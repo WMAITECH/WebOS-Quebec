@@ -816,6 +816,553 @@
     })();
 
     // ============================================
+    // PERFORMANCE MONITOR
+    // ============================================
+    const PerformanceMonitor = (() => {
+      const metrics = [];
+      const marks = new Map();
+      let enabled = true;
+
+      function initWebVitals() {
+        try {
+          if ('PerformanceObserver' in window) {
+            const observer = new PerformanceObserver((list) => {
+              for (const entry of list.getEntries()) {
+                if (entry.entryType === 'largest-contentful-paint') {
+                  recordMetric('LCP', entry.startTime, { element: entry.element?.tagName });
+                } else if (entry.entryType === 'first-input') {
+                  recordMetric('FID', entry.processingStart - entry.startTime, { eventType: entry.name });
+                } else if (entry.entryType === 'layout-shift' && !entry.hadRecentInput) {
+                  recordMetric('CLS', entry.value);
+                }
+              }
+            });
+
+            observer.observe({ type: 'largest-contentful-paint', buffered: true });
+            observer.observe({ type: 'first-input', buffered: true });
+            observer.observe({ type: 'layout-shift', buffered: true });
+          }
+
+          const navTiming = performance.getEntriesByType('navigation')[0];
+          if (navTiming) {
+            recordMetric('TTFB', navTiming.responseStart - navTiming.requestStart);
+          }
+        } catch (error) {
+          console.warn('Failed to initialize Web Vitals monitoring:', error);
+        }
+      }
+
+      function recordMetric(name, duration, metadata) {
+        metrics.push({
+          name,
+          duration,
+          timestamp: Date.now(),
+          metadata
+        });
+
+        if (metrics.length > 1000) {
+          metrics.splice(0, 500);
+        }
+
+        Kernel.emit('performance:metric', { name, duration, metadata });
+      }
+
+      initWebVitals();
+
+      return {
+        setEnabled(value) {
+          enabled = value;
+        },
+
+        start(name) {
+          if (!enabled) return;
+          if (performance.mark) {
+            performance.mark(`${name}-start`);
+          }
+          marks.set(name, Date.now());
+        },
+
+        end(name, metadata) {
+          if (!enabled) return;
+          const startTime = marks.get(name);
+          if (!startTime) return;
+
+          const duration = Date.now() - startTime;
+          marks.delete(name);
+
+          if (performance.mark && performance.measure) {
+            try {
+              performance.mark(`${name}-end`);
+              performance.measure(name, `${name}-start`, `${name}-end`);
+            } catch (error) {
+              console.warn('Failed to create performance measure:', error);
+            }
+          }
+
+          recordMetric(name, duration, metadata);
+        },
+
+        getMetrics() {
+          return [...metrics];
+        },
+
+        getReport() {
+          const nonVitalMetrics = metrics.filter(m => !['LCP', 'FID', 'CLS', 'TTFB'].includes(m.name));
+
+          let totalDuration = 0;
+          let slowest = null;
+          let fastest = null;
+
+          for (const metric of nonVitalMetrics) {
+            totalDuration += metric.duration;
+            if (!slowest || metric.duration > slowest.duration) slowest = metric;
+            if (!fastest || metric.duration < fastest.duration) fastest = metric;
+          }
+
+          const webVitals = {};
+          const lcpMetric = metrics.find(m => m.name === 'LCP');
+          const fidMetric = metrics.find(m => m.name === 'FID');
+          const clsMetric = metrics.find(m => m.name === 'CLS');
+          const ttfbMetric = metrics.find(m => m.name === 'TTFB');
+
+          if (lcpMetric) webVitals.lcp = lcpMetric.duration;
+          if (fidMetric) webVitals.fid = fidMetric.duration;
+          if (clsMetric) webVitals.cls = clsMetric.duration;
+          if (ttfbMetric) webVitals.ttfb = ttfbMetric.duration;
+
+          return {
+            metrics,
+            summary: {
+              totalMeasures: nonVitalMetrics.length,
+              averageDuration: nonVitalMetrics.length > 0 ? totalDuration / nonVitalMetrics.length : 0,
+              slowestOperation: slowest,
+              fastestOperation: fastest
+            },
+            webVitals
+          };
+        },
+
+        exportReport() {
+          return JSON.stringify(this.getReport(), null, 2);
+        },
+
+        clear() {
+          metrics.length = 0;
+          marks.clear();
+          if (performance.clearMarks && performance.clearMeasures) {
+            performance.clearMarks();
+            performance.clearMeasures();
+          }
+        }
+      };
+    })();
+
+    // ============================================
+    // OPFS SNAPSHOT MANAGER
+    // ============================================
+    const OPFSSnapshot = (() => {
+      const SNAPSHOT_VERSION = '1.0.0';
+      const ENCRYPTION_ALGORITHM = 'AES-GCM';
+      const KEY_DERIVATION_ALGORITHM = 'PBKDF2';
+      const maxSnapshots = 5;
+
+      async function createSnapshot(password) {
+        try {
+          if (!('storage' in navigator && 'getDirectory' in navigator.storage)) {
+            throw new Error('OPFS not supported in this browser');
+          }
+
+          PerformanceMonitor.start('snapshot-create');
+
+          const root = await navigator.storage.getDirectory();
+          const files = await collectFiles(root, '');
+          const totalSize = files.reduce((sum, f) => sum + f.size, 0);
+          const checksum = await calculateChecksum(files);
+
+          const snapshotData = {
+            metadata: {
+              version: SNAPSHOT_VERSION,
+              timestamp: Date.now(),
+              fileCount: files.length,
+              totalSize,
+              checksum
+            },
+            files
+          };
+
+          const serialized = serializeSnapshot(snapshotData);
+
+          let exportData;
+          if (password) {
+            const encrypted = await encryptData(serialized, password);
+            exportData = {
+              encrypted: true,
+              data: encrypted.data,
+              iv: encrypted.iv,
+              salt: encrypted.salt
+            };
+          } else {
+            exportData = {
+              encrypted: false,
+              data: serialized
+            };
+          }
+
+          await saveSnapshot(exportData);
+          await rotateSnapshots();
+
+          PerformanceMonitor.end('snapshot-create', { fileCount: files.length, size: exportData.data.byteLength });
+
+          return { success: true, size: exportData.data.byteLength, fileCount: files.length };
+        } catch (error) {
+          console.error('Failed to create snapshot:', error);
+          return { success: false, error: error.message };
+        }
+      }
+
+      async function restoreSnapshot(data, password) {
+        try {
+          PerformanceMonitor.start('snapshot-restore');
+
+          const exportData = deserializeExportData(data);
+
+          let snapshotBuffer;
+          if (exportData.encrypted) {
+            if (!password) throw new Error('Password required for encrypted snapshot');
+            if (!exportData.iv || !exportData.salt) throw new Error('Invalid encrypted snapshot');
+            snapshotBuffer = await decryptData(exportData.data, password, exportData.iv, exportData.salt);
+          } else {
+            snapshotBuffer = exportData.data;
+          }
+
+          const snapshotData = deserializeSnapshot(snapshotBuffer);
+
+          const calculatedChecksum = await calculateChecksum(snapshotData.files);
+          if (calculatedChecksum !== snapshotData.metadata.checksum) {
+            throw new Error('Snapshot checksum mismatch - data may be corrupted');
+          }
+
+          await restoreFiles(snapshotData.files);
+
+          PerformanceMonitor.end('snapshot-restore', { fileCount: snapshotData.files.length });
+
+          return { success: true, fileCount: snapshotData.files.length };
+        } catch (error) {
+          console.error('Failed to restore snapshot:', error);
+          return { success: false, error: error.message };
+        }
+      }
+
+      async function exportSnapshot(password) {
+        const result = await createSnapshot(password);
+        if (!result.success) throw new Error(result.error);
+
+        const snapshots = await listSnapshots();
+        if (snapshots.length === 0) throw new Error('No snapshots available');
+
+        const latestSnapshot = snapshots[snapshots.length - 1];
+        const snapshotData = await latestSnapshot.arrayBuffer();
+
+        return new Blob([snapshotData], { type: 'application/octet-stream' });
+      }
+
+      async function collectFiles(directory, path) {
+        const files = [];
+
+        for await (const [name, handle] of directory.entries()) {
+          const fullPath = path ? `${path}/${name}` : name;
+
+          if (handle.kind === 'file') {
+            const file = await handle.getFile();
+            const content = await file.arrayBuffer();
+            files.push({ path: fullPath, content, type: file.type, size: file.size });
+          } else if (handle.kind === 'directory') {
+            const subFiles = await collectFiles(handle, fullPath);
+            files.push(...subFiles);
+          }
+        }
+
+        return files;
+      }
+
+      async function restoreFiles(files) {
+        const root = await navigator.storage.getDirectory();
+
+        for (const file of files) {
+          const pathParts = file.path.split('/');
+          const fileName = pathParts.pop();
+
+          let currentDir = root;
+          for (const part of pathParts) {
+            currentDir = await currentDir.getDirectoryHandle(part, { create: true });
+          }
+
+          const fileHandle = await currentDir.getFileHandle(fileName, { create: true });
+          const writable = await fileHandle.createWritable();
+          await writable.write(file.content);
+          await writable.close();
+        }
+      }
+
+      function serializeSnapshot(snapshot) {
+        const encoder = new TextEncoder();
+        const metadataJson = JSON.stringify(snapshot.metadata);
+        const metadataBytes = encoder.encode(metadataJson);
+        const metadataLength = metadataBytes.byteLength;
+
+        const filesData = snapshot.files.map(file => {
+          const pathBytes = encoder.encode(file.path);
+          const typeBytes = encoder.encode(file.type);
+          const header = new Uint32Array([pathBytes.byteLength, typeBytes.byteLength, file.content.byteLength]);
+          return { header, pathBytes, typeBytes, content: new Uint8Array(file.content) };
+        });
+
+        const totalSize = 4 + metadataLength + filesData.reduce(
+          (sum, f) => sum + 12 + f.pathBytes.byteLength + f.typeBytes.byteLength + f.content.byteLength, 0
+        );
+
+        const buffer = new ArrayBuffer(totalSize);
+        const view = new DataView(buffer);
+        const uint8View = new Uint8Array(buffer);
+
+        let offset = 0;
+        view.setUint32(offset, metadataLength);
+        offset += 4;
+
+        uint8View.set(metadataBytes, offset);
+        offset += metadataLength;
+
+        for (const file of filesData) {
+          uint8View.set(new Uint8Array(file.header.buffer), offset);
+          offset += 12;
+          uint8View.set(file.pathBytes, offset);
+          offset += file.pathBytes.byteLength;
+          uint8View.set(file.typeBytes, offset);
+          offset += file.typeBytes.byteLength;
+          uint8View.set(file.content, offset);
+          offset += file.content.byteLength;
+        }
+
+        return buffer;
+      }
+
+      function deserializeSnapshot(buffer) {
+        const view = new DataView(buffer);
+        const uint8View = new Uint8Array(buffer);
+        const decoder = new TextDecoder();
+
+        let offset = 0;
+        const metadataLength = view.getUint32(offset);
+        offset += 4;
+
+        const metadataBytes = uint8View.slice(offset, offset + metadataLength);
+        const metadata = JSON.parse(decoder.decode(metadataBytes));
+        offset += metadataLength;
+
+        const files = [];
+        while (offset < buffer.byteLength) {
+          const pathLength = view.getUint32(offset);
+          const typeLength = view.getUint32(offset + 4);
+          const contentLength = view.getUint32(offset + 8);
+          offset += 12;
+
+          const path = decoder.decode(uint8View.slice(offset, offset + pathLength));
+          offset += pathLength;
+
+          const type = decoder.decode(uint8View.slice(offset, offset + typeLength));
+          offset += typeLength;
+
+          const content = buffer.slice(offset, offset + contentLength);
+          offset += contentLength;
+
+          files.push({ path, content, type, size: contentLength });
+        }
+
+        return { metadata, files };
+      }
+
+      async function encryptData(data, password) {
+        const encoder = new TextEncoder();
+        const passwordBuffer = encoder.encode(password);
+        const salt = crypto.getRandomValues(new Uint8Array(16));
+
+        const keyMaterial = await crypto.subtle.importKey('raw', passwordBuffer, KEY_DERIVATION_ALGORITHM, false, ['deriveBits', 'deriveKey']);
+
+        const key = await crypto.subtle.deriveKey(
+          { name: KEY_DERIVATION_ALGORITHM, salt, iterations: 100000, hash: 'SHA-256' },
+          keyMaterial,
+          { name: ENCRYPTION_ALGORITHM, length: 256 },
+          false,
+          ['encrypt', 'decrypt']
+        );
+
+        const iv = crypto.getRandomValues(new Uint8Array(12));
+        const encrypted = await crypto.subtle.encrypt({ name: ENCRYPTION_ALGORITHM, iv }, key, data);
+
+        return { data: encrypted, iv, salt };
+      }
+
+      async function decryptData(data, password, iv, salt) {
+        const encoder = new TextEncoder();
+        const passwordBuffer = encoder.encode(password);
+
+        const keyMaterial = await crypto.subtle.importKey('raw', passwordBuffer, KEY_DERIVATION_ALGORITHM, false, ['deriveBits', 'deriveKey']);
+
+        const key = await crypto.subtle.deriveKey(
+          { name: KEY_DERIVATION_ALGORITHM, salt, iterations: 100000, hash: 'SHA-256' },
+          keyMaterial,
+          { name: ENCRYPTION_ALGORITHM, length: 256 },
+          false,
+          ['encrypt', 'decrypt']
+        );
+
+        return await crypto.subtle.decrypt({ name: ENCRYPTION_ALGORITHM, iv }, key, data);
+      }
+
+      async function calculateChecksum(files) {
+        const combinedData = new Uint8Array(files.reduce((sum, f) => sum + f.content.byteLength, 0));
+
+        let offset = 0;
+        for (const file of files) {
+          combinedData.set(new Uint8Array(file.content), offset);
+          offset += file.content.byteLength;
+        }
+
+        const hashBuffer = await crypto.subtle.digest('SHA-256', combinedData);
+        return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+      }
+
+      async function saveSnapshot(data) {
+        const root = await navigator.storage.getDirectory();
+        const snapshotsDir = await root.getDirectoryHandle('snapshots', { create: true });
+
+        const timestamp = Date.now();
+        const fileName = `snapshot-${timestamp}.webosq`;
+
+        const fileHandle = await snapshotsDir.getFileHandle(fileName, { create: true });
+        const writable = await fileHandle.createWritable();
+
+        const serialized = serializeExportData(data);
+        await writable.write(serialized);
+        await writable.close();
+      }
+
+      async function listSnapshots() {
+        const root = await navigator.storage.getDirectory();
+
+        try {
+          const snapshotsDir = await root.getDirectoryHandle('snapshots');
+          const snapshots = [];
+
+          for await (const [name, handle] of snapshotsDir.entries()) {
+            if (handle.kind === 'file' && name.endsWith('.webosq')) {
+              const file = await handle.getFile();
+              snapshots.push(file);
+            }
+          }
+
+          return snapshots.sort((a, b) => a.lastModified - b.lastModified);
+        } catch (error) {
+          return [];
+        }
+      }
+
+      async function rotateSnapshots() {
+        const snapshots = await listSnapshots();
+
+        if (snapshots.length > maxSnapshots) {
+          const root = await navigator.storage.getDirectory();
+          const snapshotsDir = await root.getDirectoryHandle('snapshots');
+
+          const toDelete = snapshots.slice(0, snapshots.length - maxSnapshots);
+          for (const snapshot of toDelete) {
+            try {
+              await snapshotsDir.removeEntry(snapshot.name);
+            } catch (error) {
+              console.warn(`Failed to delete old snapshot ${snapshot.name}:`, error);
+            }
+          }
+        }
+      }
+
+      function serializeExportData(data) {
+        const encoder = new TextEncoder();
+        const header = {
+          encrypted: data.encrypted,
+          ivLength: data.iv?.byteLength || 0,
+          saltLength: data.salt?.byteLength || 0,
+          dataLength: data.data.byteLength
+        };
+
+        const headerJson = JSON.stringify(header);
+        const headerBytes = encoder.encode(headerJson);
+        const headerLength = headerBytes.byteLength;
+
+        const totalSize = 4 + headerLength + header.ivLength + header.saltLength + header.dataLength;
+        const buffer = new ArrayBuffer(totalSize);
+        const view = new DataView(buffer);
+        const uint8View = new Uint8Array(buffer);
+
+        let offset = 0;
+        view.setUint32(offset, headerLength);
+        offset += 4;
+
+        uint8View.set(headerBytes, offset);
+        offset += headerLength;
+
+        if (data.iv) {
+          uint8View.set(data.iv, offset);
+          offset += data.iv.byteLength;
+        }
+
+        if (data.salt) {
+          uint8View.set(data.salt, offset);
+          offset += data.salt.byteLength;
+        }
+
+        uint8View.set(new Uint8Array(data.data), offset);
+
+        return buffer;
+      }
+
+      function deserializeExportData(buffer) {
+        const view = new DataView(buffer);
+        const uint8View = new Uint8Array(buffer);
+        const decoder = new TextDecoder();
+
+        let offset = 0;
+        const headerLength = view.getUint32(offset);
+        offset += 4;
+
+        const headerBytes = uint8View.slice(offset, offset + headerLength);
+        const header = JSON.parse(decoder.decode(headerBytes));
+        offset += headerLength;
+
+        let iv, salt;
+        if (header.ivLength > 0) {
+          iv = uint8View.slice(offset, offset + header.ivLength);
+          offset += header.ivLength;
+        }
+
+        if (header.saltLength > 0) {
+          salt = uint8View.slice(offset, offset + header.saltLength);
+          offset += header.saltLength;
+        }
+
+        const data = buffer.slice(offset, offset + header.dataLength);
+
+        return { encrypted: header.encrypted, data, iv, salt };
+      }
+
+      return {
+        createSnapshot,
+        restoreSnapshot,
+        exportSnapshot,
+        listSnapshots
+      };
+    })();
+
+    // ============================================
     // WINDOW MANAGER
     // ============================================
     const WindowManager = (() => {
@@ -3388,6 +3935,14 @@
             <div>
               <h2 style="font-size: 20px; font-weight: 700; color: #1e40af; margin-bottom: 20px;">Moniteur Système en Temps Réel</h2>
 
+              <div style="display: flex; gap: 8px; margin-bottom: 20px; border-bottom: 2px solid #e5e7eb; padding-bottom: 8px;">
+                <button onclick="WebOS.Apps.Monitor.switchTab('overview')" id="tabOverview" style="padding: 10px 20px; background: #3b82f6; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">Vue d'ensemble</button>
+                <button onclick="WebOS.Apps.Monitor.switchTab('performance')" id="tabPerformance" style="padding: 10px 20px; background: #e5e7eb; color: #374151; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">Performance</button>
+                <button onclick="WebOS.Apps.Monitor.switchTab('backup')" id="tabBackup" style="padding: 10px 20px; background: #e5e7eb; color: #374151; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">Sauvegardes</button>
+              </div>
+
+              <div id="tabContentOverview">
+
               <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 30px;" id="monitorStats">
                 <div style="padding: 20px; background: linear-gradient(135deg, #3b82f6, #2563eb); color: white; border-radius: 12px;">
                   <div style="font-size: 14px; opacity: 0.9;">Processus Actifs</div>
@@ -3459,6 +4014,103 @@
                   <div style="color: #9ca3af; text-align: center; padding: 20px;">Aucun log pour le moment...</div>
                 </div>
               </div>
+
+              </div>
+
+              <div id="tabContentPerformance" style="display: none;">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px;">
+                  <div style="padding: 20px; background: linear-gradient(135deg, #10b981, #059669); color: white; border-radius: 12px;">
+                    <div style="font-size: 14px; opacity: 0.9;">LCP (Largest Contentful Paint)</div>
+                    <div style="font-size: 32px; font-weight: 700; margin-top: 8px;" id="perfLCP">-</div>
+                    <div style="font-size: 12px; opacity: 0.8; margin-top: 4px;">Cible: &lt; 2.5s</div>
+                  </div>
+                  <div style="padding: 20px; background: linear-gradient(135deg, #3b82f6, #2563eb); color: white; border-radius: 12px;">
+                    <div style="font-size: 14px; opacity: 0.9;">FID (First Input Delay)</div>
+                    <div style="font-size: 32px; font-weight: 700; margin-top: 8px;" id="perfFID">-</div>
+                    <div style="font-size: 12px; opacity: 0.8; margin-top: 4px;">Cible: &lt; 100ms</div>
+                  </div>
+                  <div style="padding: 20px; background: linear-gradient(135deg, #f59e0b, #d97706); color: white; border-radius: 12px;">
+                    <div style="font-size: 14px; opacity: 0.9;">CLS (Cumulative Layout Shift)</div>
+                    <div style="font-size: 32px; font-weight: 700; margin-top: 8px;" id="perfCLS">-</div>
+                    <div style="font-size: 12px; opacity: 0.8; margin-top: 4px;">Cible: &lt; 0.1</div>
+                  </div>
+                  <div style="padding: 20px; background: linear-gradient(135deg, #8b5cf6, #7c3aed); color: white; border-radius: 12px;">
+                    <div style="font-size: 14px; opacity: 0.9;">TTFB (Time to First Byte)</div>
+                    <div style="font-size: 32px; font-weight: 700; margin-top: 8px;" id="perfTTFB">-</div>
+                    <div style="font-size: 12px; opacity: 0.8; margin-top: 4px;">Cible: &lt; 600ms</div>
+                  </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px;">
+                  <div style="padding: 16px; background: #f9fafb; border-radius: 8px; border: 1px solid #e5e7eb;">
+                    <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 12px;">Résumé des Performances</h3>
+                    <div style="font-size: 14px; color: #6b7280; line-height: 1.8;">
+                      <div><strong>Total mesures:</strong> <span id="perfTotalMeasures">0</span></div>
+                      <div><strong>Durée moyenne:</strong> <span id="perfAvgDuration">0ms</span></div>
+                      <div><strong>Opération la plus lente:</strong> <span id="perfSlowest">-</span></div>
+                      <div><strong>Opération la plus rapide:</strong> <span id="perfFastest">-</span></div>
+                    </div>
+                  </div>
+                  <div style="padding: 16px; background: #f9fafb; border-radius: 8px; border: 1px solid #e5e7eb;">
+                    <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 12px;">Actions</h3>
+                    <div style="display: flex; flex-direction: column; gap: 8px;">
+                      <button onclick="WebOS.Apps.Monitor.exportPerformanceReport()" style="padding: 10px 16px; background: #3b82f6; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">Exporter Rapport JSON</button>
+                      <button onclick="WebOS.Apps.Monitor.clearPerformanceMetrics()" style="padding: 10px 16px; background: #ef4444; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">Effacer Métriques</button>
+                      <button onclick="PerformanceMonitor.setEnabled(!PerformanceMonitor.enabled)" style="padding: 10px 16px; background: #6b7280; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">Activer/Désactiver Monitoring</button>
+                    </div>
+                  </div>
+                </div>
+
+                <h3 style="font-size: 18px; font-weight: 600; margin-bottom: 12px;">Métriques Détaillées</h3>
+                <div style="max-height: 400px; overflow-y: auto;">
+                  <table style="width: 100%; border-collapse: collapse;">
+                    <thead style="position: sticky; top: 0; background: #f3f4f6;">
+                      <tr style="text-align: left;">
+                        <th style="padding: 12px; font-weight: 600;">Opération</th>
+                        <th style="padding: 12px; font-weight: 600;">Durée (ms)</th>
+                        <th style="padding: 12px; font-weight: 600;">Horodatage</th>
+                        <th style="padding: 12px; font-weight: 600;">Métadonnées</th>
+                      </tr>
+                    </thead>
+                    <tbody id="perfMetricsTable">
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <div id="tabContentBackup" style="display: none;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px;">
+                  <div style="padding: 24px; background: linear-gradient(135deg, #3b82f6, #2563eb); color: white; border-radius: 12px;">
+                    <h3 style="font-size: 18px; font-weight: 700; margin-bottom: 16px;">Créer une Sauvegarde</h3>
+                    <p style="font-size: 14px; opacity: 0.9; margin-bottom: 16px;">Sauvegarde chiffrée de tous vos fichiers OPFS avec rotation automatique (5 max).</p>
+                    <input type="password" id="backupPassword" placeholder="Mot de passe (optionnel)" style="width: 100%; padding: 10px; border-radius: 6px; border: none; margin-bottom: 12px; color: #1f2937;">
+                    <button onclick="WebOS.Apps.Monitor.createBackup()" style="width: 100%; padding: 12px; background: white; color: #3b82f6; border: none; border-radius: 6px; cursor: pointer; font-weight: 700; font-size: 14px;">Créer Sauvegarde</button>
+                  </div>
+
+                  <div style="padding: 24px; background: linear-gradient(135deg, #10b981, #059669); color: white; border-radius: 12px;">
+                    <h3 style="font-size: 18px; font-weight: 700; margin-bottom: 16px;">Restaurer depuis Fichier</h3>
+                    <p style="font-size: 14px; opacity: 0.9; margin-bottom: 16px;">Importer et restaurer une sauvegarde .webosq depuis votre ordinateur.</p>
+                    <input type="file" id="restoreFile" accept=".webosq" style="width: 100%; padding: 10px; background: white; border-radius: 6px; border: none; margin-bottom: 12px; color: #1f2937;">
+                    <input type="password" id="restorePassword" placeholder="Mot de passe (si chiffré)" style="width: 100%; padding: 10px; border-radius: 6px; border: none; margin-bottom: 12px; color: #1f2937;">
+                    <button onclick="WebOS.Apps.Monitor.restoreBackup()" style="width: 100%; padding: 12px; background: white; color: #10b981; border: none; border-radius: 6px; cursor: pointer; font-weight: 700; font-size: 14px;">Restaurer</button>
+                  </div>
+                </div>
+
+                <div style="padding: 24px; background: #f9fafb; border-radius: 12px; border: 1px solid #e5e7eb; margin-bottom: 24px;">
+                  <h3 style="font-size: 18px; font-weight: 600; margin-bottom: 16px;">Exporter vers Fichier</h3>
+                  <p style="font-size: 14px; color: #6b7280; margin-bottom: 16px;">Télécharger la dernière sauvegarde sur votre ordinateur.</p>
+                  <div style="display: flex; gap: 12px; align-items: center;">
+                    <input type="password" id="exportPassword" placeholder="Mot de passe pour chiffrer (optionnel)" style="flex: 1; padding: 10px; border-radius: 6px; border: 1px solid #d1d5db;">
+                    <button onclick="WebOS.Apps.Monitor.exportBackup()" style="padding: 12px 24px; background: #3b82f6; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 700;">Télécharger .webosq</button>
+                  </div>
+                </div>
+
+                <h3 style="font-size: 18px; font-weight: 600; margin-bottom: 12px;">Sauvegardes Automatiques (OPFS)</h3>
+                <div id="backupsList" style="display: flex; flex-direction: column; gap: 12px;">
+                  <div style="text-align: center; padding: 40px; color: #9ca3af;">Aucune sauvegarde trouvée</div>
+                </div>
+              </div>
+
             </div>
           `;
 
@@ -3624,6 +4276,210 @@
           const div = document.createElement('div');
           div.textContent = text;
           return div.innerHTML;
+        },
+
+        switchTab(tab) {
+          ['overview', 'performance', 'backup'].forEach(t => {
+            const content = document.getElementById(`tabContent${t.charAt(0).toUpperCase() + t.slice(1)}`);
+            const button = document.getElementById(`tab${t.charAt(0).toUpperCase() + t.slice(1)}`);
+
+            if (content && button) {
+              if (t === tab) {
+                content.style.display = 'block';
+                button.style.background = '#3b82f6';
+                button.style.color = 'white';
+              } else {
+                content.style.display = 'none';
+                button.style.background = '#e5e7eb';
+                button.style.color = '#374151';
+              }
+            }
+          });
+
+          if (tab === 'performance') {
+            this.updatePerformanceMetrics();
+          } else if (tab === 'backup') {
+            this.updateBackupsList();
+          }
+        },
+
+        updatePerformanceMetrics() {
+          const report = PerformanceMonitor.getReport();
+
+          const lcpEl = document.getElementById('perfLCP');
+          const fidEl = document.getElementById('perfFID');
+          const clsEl = document.getElementById('perfCLS');
+          const ttfbEl = document.getElementById('perfTTFB');
+
+          if (lcpEl) lcpEl.textContent = report.webVitals.lcp ? `${(report.webVitals.lcp / 1000).toFixed(2)}s` : '-';
+          if (fidEl) fidEl.textContent = report.webVitals.fid ? `${report.webVitals.fid.toFixed(0)}ms` : '-';
+          if (clsEl) clsEl.textContent = report.webVitals.cls ? report.webVitals.cls.toFixed(4) : '-';
+          if (ttfbEl) ttfbEl.textContent = report.webVitals.ttfb ? `${report.webVitals.ttfb.toFixed(0)}ms` : '-';
+
+          const totalEl = document.getElementById('perfTotalMeasures');
+          const avgEl = document.getElementById('perfAvgDuration');
+          const slowestEl = document.getElementById('perfSlowest');
+          const fastestEl = document.getElementById('perfFastest');
+
+          if (totalEl) totalEl.textContent = report.summary.totalMeasures;
+          if (avgEl) avgEl.textContent = `${report.summary.averageDuration.toFixed(2)}ms`;
+          if (slowestEl) slowestEl.textContent = report.summary.slowestOperation ? `${report.summary.slowestOperation.name} (${report.summary.slowestOperation.duration.toFixed(2)}ms)` : '-';
+          if (fastestEl) fastestEl.textContent = report.summary.fastestOperation ? `${report.summary.fastestOperation.name} (${report.summary.fastestOperation.duration.toFixed(2)}ms)` : '-';
+
+          const tableEl = document.getElementById('perfMetricsTable');
+          if (tableEl) {
+            const metrics = report.metrics.slice(0, 100);
+            tableEl.innerHTML = metrics.map(m => `
+              <tr style="border-bottom: 1px solid #e5e7eb;">
+                <td style="padding: 12px;">${m.name}</td>
+                <td style="padding: 12px; font-weight: 600;">${m.duration.toFixed(2)}</td>
+                <td style="padding: 12px;">${new Date(m.timestamp).toLocaleTimeString()}</td>
+                <td style="padding: 12px; font-size: 12px; color: #6b7280;">${m.metadata ? JSON.stringify(m.metadata) : '-'}</td>
+              </tr>
+            `).join('');
+          }
+        },
+
+        exportPerformanceReport() {
+          const report = PerformanceMonitor.exportReport();
+          const blob = new Blob([report], { type: 'application/json' });
+          const url = URL.createObjectURL(blob);
+
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `performance-report-${Date.now()}.json`;
+          a.click();
+
+          URL.revokeObjectURL(url);
+        },
+
+        clearPerformanceMetrics() {
+          if (confirm('Effacer toutes les métriques de performance?')) {
+            PerformanceMonitor.clear();
+            this.updatePerformanceMetrics();
+          }
+        },
+
+        async createBackup() {
+          const passwordEl = document.getElementById('backupPassword');
+          const password = passwordEl?.value || null;
+
+          const result = await OPFSSnapshot.createSnapshot(password);
+
+          if (result.success) {
+            alert(`Sauvegarde créée avec succès!\n\nFichiers: ${result.fileCount}\nTaille: ${(result.size / 1024).toFixed(2)} KB`);
+            if (passwordEl) passwordEl.value = '';
+            this.updateBackupsList();
+          } else {
+            alert(`Erreur lors de la création de la sauvegarde:\n${result.error}`);
+          }
+        },
+
+        async restoreBackup() {
+          const fileEl = document.getElementById('restoreFile');
+          const passwordEl = document.getElementById('restorePassword');
+
+          if (!fileEl || !fileEl.files || fileEl.files.length === 0) {
+            alert('Veuillez sélectionner un fichier .webosq');
+            return;
+          }
+
+          const file = fileEl.files[0];
+          const password = passwordEl?.value || null;
+
+          if (!confirm('ATTENTION: La restauration remplacera tous les fichiers actuels. Continuer?')) {
+            return;
+          }
+
+          const arrayBuffer = await file.arrayBuffer();
+          const result = await OPFSSnapshot.restoreSnapshot(arrayBuffer, password);
+
+          if (result.success) {
+            alert(`Restauration réussie!\n\nFichiers restaurés: ${result.fileCount}`);
+            if (fileEl) fileEl.value = '';
+            if (passwordEl) passwordEl.value = '';
+            this.updateBackupsList();
+          } else {
+            alert(`Erreur lors de la restauration:\n${result.error}`);
+          }
+        },
+
+        async exportBackup() {
+          const passwordEl = document.getElementById('exportPassword');
+          const password = passwordEl?.value || null;
+
+          try {
+            const blob = await OPFSSnapshot.exportSnapshot(password);
+
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `webos-backup-${new Date().toISOString().slice(0,10)}.webosq`;
+            a.click();
+
+            URL.revokeObjectURL(url);
+
+            if (passwordEl) passwordEl.value = '';
+            alert('Sauvegarde téléchargée avec succès!');
+          } catch (error) {
+            alert(`Erreur lors de l'export:\n${error.message}`);
+          }
+        },
+
+        async updateBackupsList() {
+          const listEl = document.getElementById('backupsList');
+          if (!listEl) return;
+
+          const snapshots = await OPFSSnapshot.listSnapshots();
+
+          if (snapshots.length === 0) {
+            listEl.innerHTML = '<div style="text-align: center; padding: 40px; color: #9ca3af;">Aucune sauvegarde trouvée</div>';
+            return;
+          }
+
+          listEl.innerHTML = snapshots.map((snapshot, index) => {
+            const date = new Date(snapshot.lastModified);
+            const sizeKB = (snapshot.size / 1024).toFixed(2);
+            const isLatest = index === snapshots.length - 1;
+
+            return `
+              <div style="padding: 16px; background: white; border-radius: 8px; border: 1px solid ${isLatest ? '#3b82f6' : '#e5e7eb'}; display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                  <div style="font-weight: 600; color: #1f2937; display: flex; align-items: center; gap: 8px;">
+                    ${snapshot.name}
+                    ${isLatest ? '<span style="padding: 2px 8px; background: #3b82f6; color: white; border-radius: 4px; font-size: 11px; font-weight: 700;">DERNIÈRE</span>' : ''}
+                  </div>
+                  <div style="font-size: 14px; color: #6b7280; margin-top: 4px;">
+                    ${date.toLocaleString('fr-CA')} • ${sizeKB} KB
+                  </div>
+                </div>
+                <div style="display: flex; gap: 8px;">
+                  <button onclick="WebOS.Apps.Monitor.downloadBackupFile('${snapshot.name}')" style="padding: 8px 16px; background: #10b981; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 13px;">Télécharger</button>
+                </div>
+              </div>
+            `;
+          }).join('');
+        },
+
+        async downloadBackupFile(filename) {
+          try {
+            const root = await navigator.storage.getDirectory();
+            const snapshotsDir = await root.getDirectoryHandle('snapshots');
+            const fileHandle = await snapshotsDir.getFileHandle(filename);
+            const file = await fileHandle.getFile();
+            const blob = new Blob([await file.arrayBuffer()], { type: 'application/octet-stream' });
+
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.click();
+
+            URL.revokeObjectURL(url);
+            alert('Sauvegarde téléchargée!');
+          } catch (error) {
+            alert(`Erreur lors du téléchargement:\n${error.message}`);
+          }
         },
 
         close() {
