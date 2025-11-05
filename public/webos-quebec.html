@@ -874,6 +874,15 @@
           enabled = value;
         },
 
+        isEnabled() {
+          return enabled;
+        },
+
+        toggleEnabled() {
+          enabled = !enabled;
+          return enabled;
+        },
+
         start(name) {
           if (!enabled) return;
           if (performance.mark) {
@@ -4056,7 +4065,7 @@
                     <div style="display: flex; flex-direction: column; gap: 8px;">
                       <button onclick="WebOS.Apps.Monitor.exportPerformanceReport()" style="padding: 10px 16px; background: #3b82f6; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">Exporter Rapport JSON</button>
                       <button onclick="WebOS.Apps.Monitor.clearPerformanceMetrics()" style="padding: 10px 16px; background: #ef4444; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">Effacer Métriques</button>
-                      <button onclick="PerformanceMonitor.setEnabled(!PerformanceMonitor.enabled)" style="padding: 10px 16px; background: #6b7280; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">Activer/Désactiver Monitoring</button>
+                      <button onclick="WebOS.Apps.Monitor.togglePerformanceMonitoring()" style="padding: 10px 16px; background: #6b7280; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">Activer/Désactiver Monitoring</button>
                     </div>
                   </div>
                 </div>
@@ -4358,6 +4367,11 @@
             PerformanceMonitor.clear();
             this.updatePerformanceMetrics();
           }
+        },
+
+        togglePerformanceMonitoring() {
+          const newState = PerformanceMonitor.toggleEnabled();
+          alert(`Monitoring de performance ${newState ? 'activé' : 'désactivé'}`);
         },
 
         async createBackup() {
