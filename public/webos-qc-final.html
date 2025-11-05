@@ -1,0 +1,998 @@
+<!DOCTYPE html>
+<html lang="fr-CA">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="description" content="WebOS Québec - Système d'exploitation gouvernemental souverain avancé dans le navigateur">
+  <meta name="keywords" content="WebOS, Québec, Gouvernement, OSINT, IA, Messagerie, Cloud, Souverain">
+  <meta name="author" content="Gouvernement du Québec">
+  <meta name="theme-color" content="#1e40af">
+  <meta name="color-scheme" content="dark light">
+
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="WebOS Québec">
+  <meta name="format-detection" content="telephone=no">
+
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext x='50' y='75' font-size='80' text-anchor='middle'%3E⚜️%3C/text%3E%3C/svg%3E" type="image/svg+xml">
+  <link rel="manifest" href="/manifest.json">
+
+  <title>WebOS Québec - Système d'Exploitation Souverain Avancé</title>
+
+  <style>
+    :root {
+      --bg-primary: #0a0a0b;
+      --bg-secondary: #121214;
+      --bg-tertiary: #1a1a1d;
+      --bg-elevated: #222225;
+      --bg-hover: #2a2a2e;
+
+      --text-primary: #e4e4e7;
+      --text-secondary: #a1a1aa;
+      --text-tertiary: #71717a;
+
+      --accent-primary: #3b82f6;
+      --accent-secondary: #2563eb;
+      --accent-tertiary: #22d3ee;
+
+      --success: #10b981;
+      --warning: #f59e0b;
+      --error: #ef4444;
+
+      --border-primary: #27272a;
+      --border-secondary: #3f3f46;
+
+      --gold: #fbbf24;
+      --gold-dark: #d97706;
+
+      --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+      --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+      --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.4);
+      --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+
+      --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+      --transition-base: 300ms cubic-bezier(0.4, 0, 0.2, 1);
+      --transition-slow: 500ms cubic-bezier(0.4, 0, 0.2, 1);
+
+      --z-base: 0;
+      --z-dropdown: 1000;
+      --z-sticky: 1100;
+      --z-fixed: 1200;
+      --z-modal-backdrop: 1300;
+      --z-modal: 1400;
+      --z-popover: 1500;
+      --z-tooltip: 1600;
+      --z-notification: 1700;
+      --z-max: 9999;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html, body {
+      height: 100%;
+      width: 100%;
+      overflow: hidden;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 50%, #60a5fa 100%);
+      color: var(--text-primary);
+    }
+
+    .loading-screen {
+      position: fixed;
+      inset: 0;
+      background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: var(--z-max);
+      color: white;
+    }
+
+    .loading-spinner {
+      width: 60px;
+      height: 60px;
+      border: 4px solid rgba(255, 255, 255, 0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .loading-title {
+      margin-top: 30px;
+      font-size: 24px;
+      font-weight: 600;
+    }
+
+    .loading-subtitle {
+      margin-top: 10px;
+      opacity: 0.8;
+      font-size: 14px;
+    }
+
+    .progress-bar {
+      width: 400px;
+      max-width: 90vw;
+      height: 6px;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 3px;
+      margin-top: 30px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: white;
+      border-radius: 3px;
+      transition: width var(--transition-base);
+      width: 0%;
+    }
+
+    .login-screen {
+      position: fixed;
+      inset: 0;
+      background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: calc(var(--z-max) - 1);
+    }
+
+    .login-box {
+      background: white;
+      padding: 40px;
+      border-radius: 20px;
+      box-shadow: var(--shadow-2xl);
+      width: 400px;
+      max-width: 90%;
+      color: #1f2937;
+    }
+
+    .login-header {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    .login-icon {
+      font-size: 64px;
+      margin-bottom: 16px;
+    }
+
+    .login-title {
+      color: #1e40af;
+      font-size: 28px;
+      font-weight: 700;
+      margin-bottom: 10px;
+    }
+
+    .login-subtitle {
+      color: #6b7280;
+      font-size: 14px;
+    }
+
+    .input-group {
+      margin-bottom: 20px;
+    }
+
+    .input-group label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+      color: #1e40af;
+      font-size: 14px;
+    }
+
+    .input-group input {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid #e5e7eb;
+      border-radius: 8px;
+      font-size: 14px;
+      transition: border-color var(--transition-fast);
+    }
+
+    .input-group input:focus {
+      outline: none;
+      border-color: #3b82f6;
+    }
+
+    .btn {
+      width: 100%;
+      padding: 12px;
+      background: linear-gradient(to right, #1e40af, #3b82f6);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform var(--transition-fast);
+    }
+
+    .btn:hover:not(:disabled) {
+      transform: translateY(-2px);
+    }
+
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .login-footer {
+      text-align: center;
+      margin-top: 20px;
+      color: #6b7280;
+      font-size: 14px;
+    }
+
+    .login-link {
+      color: #3b82f6;
+      text-decoration: none;
+      cursor: pointer;
+    }
+
+    .login-link:hover {
+      text-decoration: underline;
+    }
+
+    .alert {
+      padding: 12px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+    }
+
+    .alert-error {
+      background: #fee2e2;
+      border: 1px solid #fecaca;
+      color: #991b1b;
+    }
+
+    .alert-success {
+      background: #d1fae5;
+      border: 1px solid #a7f3d0;
+      color: #065f46;
+    }
+
+    .desktop {
+      position: fixed;
+      top: 40px;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      display: none;
+      overflow: hidden;
+    }
+
+    .topbar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 40px;
+      background: rgba(30, 64, 175, 0.95);
+      backdrop-filter: blur(10px);
+      display: none;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 20px;
+      color: white;
+      z-index: var(--z-max);
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+    }
+
+    .topbar-left, .topbar-right {
+      display: flex;
+      gap: 20px;
+      align-items: center;
+    }
+
+    .topbar-brand {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 700;
+      font-size: 16px;
+    }
+
+    .topbar-item {
+      cursor: pointer;
+      padding: 6px 12px;
+      border-radius: 6px;
+      transition: background var(--transition-fast);
+      font-size: 14px;
+    }
+
+    .topbar-item:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .dock {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(20px);
+      border-radius: 20px;
+      padding: 12px;
+      display: none;
+      gap: 12px;
+      box-shadow: var(--shadow-xl);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      z-index: var(--z-fixed);
+    }
+
+    .dock-item {
+      width: 56px;
+      height: 56px;
+      background: white;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+      box-shadow: var(--shadow-md);
+      position: relative;
+    }
+
+    .dock-item:hover {
+      transform: translateY(-8px) scale(1.1);
+      box-shadow: var(--shadow-lg);
+    }
+
+    .dock-badge {
+      position: absolute;
+      top: -4px;
+      right: -4px;
+      background: var(--error);
+      color: white;
+      border-radius: 50%;
+      width: 20px;
+      height: 20px;
+      font-size: 11px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 2px solid var(--bg-primary);
+    }
+
+    .window {
+      position: absolute;
+      background: white;
+      border-radius: 12px;
+      box-shadow: var(--shadow-2xl);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      transition: box-shadow var(--transition-fast);
+      min-width: 300px;
+      min-height: 200px;
+      color: #1f2937;
+    }
+
+    .window:hover {
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+    }
+
+    .window-header {
+      background: linear-gradient(to right, #1e40af, #3b82f6);
+      color: white;
+      padding: 12px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: move;
+      user-select: none;
+    }
+
+    .window-title {
+      font-weight: 600;
+      font-size: 14px;
+    }
+
+    .window-controls {
+      display: flex;
+      gap: 8px;
+    }
+
+    .window-control {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      cursor: pointer;
+      transition: transform var(--transition-fast);
+    }
+
+    .window-control:hover {
+      transform: scale(1.2);
+    }
+
+    .window-control.close { background: #ef4444; }
+    .window-control.minimize { background: #f59e0b; }
+    .window-control.maximize { background: #10b981; }
+
+    .window-content {
+      flex: 1;
+      overflow: auto;
+      padding: 20px;
+      background: white;
+    }
+
+    .resize-handle {
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      background: #3b82f6;
+      opacity: 0;
+      transition: opacity var(--transition-fast);
+      bottom: 0;
+      right: 0;
+      cursor: se-resize;
+    }
+
+    .window:hover .resize-handle {
+      opacity: 0.5;
+    }
+
+    @media (max-width: 768px) {
+      .window {
+        min-width: 280px !important;
+        border-radius: 0 !important;
+      }
+
+      .window-header {
+        padding: 16px !important;
+        touch-action: none;
+      }
+
+      .window-control {
+        width: 16px !important;
+        height: 16px !important;
+      }
+
+      .window-content {
+        padding: 12px !important;
+      }
+
+      .dock {
+        bottom: 10px;
+        padding: 8px;
+        gap: 8px;
+      }
+
+      .dock-item {
+        width: 48px;
+        height: 48px;
+      }
+
+      .topbar {
+        font-size: 13px;
+      }
+
+      .topbar-item {
+        padding: 8px 10px;
+      }
+
+      .resize-handle {
+        width: 20px !important;
+        height: 20px !important;
+        opacity: 1 !important;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .window {
+        min-width: 100% !important;
+        max-width: 100% !important;
+        left: 0 !important;
+        right: 0 !important;
+        margin: 0 !important;
+        border-radius: 0 !important;
+      }
+
+      .dock {
+        left: 0;
+        right: 0;
+        transform: none;
+        border-radius: 0;
+        justify-content: space-around;
+        padding: 8px 4px;
+      }
+
+      .dock-item {
+        width: 42px;
+        height: 42px;
+      }
+
+      .topbar-left, .topbar-right {
+        gap: 4px;
+      }
+
+      .topbar-item {
+        padding: 6px 8px;
+        font-size: 12px;
+      }
+    }
+
+    @media (orientation: landscape) and (max-height: 500px) {
+      .window {
+        max-height: calc(100vh - 100px) !important;
+      }
+
+      .dock {
+        padding: 6px;
+      }
+
+      .dock-item {
+        width: 40px;
+        height: 40px;
+      }
+    }
+
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: var(--bg-secondary);
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--border-secondary);
+      border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--text-tertiary);
+    }
+  </style>
+</head>
+<body>
+
+  <div id="loadingScreen" class="loading-screen">
+    <div class="loading-spinner"></div>
+    <h2 class="loading-title">WebOS Québec</h2>
+    <p class="loading-subtitle">Initialisation du système souverain avancé...</p>
+    <div class="progress-bar">
+      <div id="progressFill" class="progress-fill"></div>
+    </div>
+    <p id="loadingStatus" class="loading-subtitle" style="margin-top: 15px;">Démarrage du noyau...</p>
+  </div>
+
+  <div id="loginScreen" class="login-screen">
+    <div class="login-box">
+      <div class="login-header">
+        <div class="login-icon">⚜️</div>
+        <h1 class="login-title">WebOS Québec</h1>
+        <p class="login-subtitle">Système d'exploitation souverain avancé</p>
+      </div>
+
+      <div id="alertContainer"></div>
+
+      <div id="loginForm">
+        <div class="input-group">
+          <label>Courriel</label>
+          <input type="email" id="loginEmail" placeholder="votre@courriel.qc.ca" autocomplete="email">
+        </div>
+        <div class="input-group">
+          <label>Mot de passe</label>
+          <input type="password" id="loginPassword" placeholder="••••••••" autocomplete="current-password">
+        </div>
+        <button class="btn" id="loginBtn">Se connecter</button>
+        <p class="login-footer">
+          Pas de compte?
+          <a class="login-link" id="showRegisterLink">Créer un compte</a>
+        </p>
+      </div>
+
+      <div id="registerForm" style="display: none;">
+        <div class="input-group">
+          <label>Nom complet</label>
+          <input type="text" id="registerName" placeholder="Jean Tremblay" autocomplete="name">
+        </div>
+        <div class="input-group">
+          <label>Courriel</label>
+          <input type="email" id="registerEmail" placeholder="votre@courriel.qc.ca" autocomplete="email">
+        </div>
+        <div class="input-group">
+          <label>Mot de passe</label>
+          <input type="password" id="registerPassword" placeholder="••••••••" autocomplete="new-password">
+        </div>
+        <button class="btn" id="registerBtn">Créer mon compte</button>
+        <p class="login-footer">
+          Déjà inscrit?
+          <a class="login-link" id="showLoginLink">Se connecter</a>
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <div id="topbar" class="topbar">
+    <div class="topbar-left">
+      <div class="topbar-brand">
+        <span style="font-size: 20px;">⚜️</span>
+        <span>WebOS Québec</span>
+      </div>
+      <div class="topbar-item" id="menuAbout">À propos</div>
+      <div class="topbar-item" id="menuSettings">Préférences</div>
+    </div>
+    <div class="topbar-right">
+      <div class="topbar-item" id="statusAI">IA: Non chargée</div>
+      <div class="topbar-item" id="systemTime">--:--</div>
+      <div class="topbar-item" id="menuLogout">Déconnexion</div>
+    </div>
+  </div>
+
+  <div id="desktop" class="desktop"></div>
+
+  <div id="dock" class="dock">
+    <div class="dock-item" id="dockPortal" title="Portail Citoyen">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#1e40af" stroke-width="2">
+        <rect x="3" y="3" width="7" height="7"></rect>
+        <rect x="14" y="3" width="7" height="7"></rect>
+        <rect x="14" y="14" width="7" height="7"></rect>
+        <rect x="3" y="14" width="7" height="7"></rect>
+      </svg>
+      <div id="badgePortal" class="dock-badge" style="display: none;"></div>
+    </div>
+    <div class="dock-item" id="dockFiles" title="Gestionnaire de fichiers">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#1e40af" stroke-width="2">
+        <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+      </svg>
+    </div>
+    <div class="dock-item" id="dockAIChat" title="Assistant IA">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#1e40af" stroke-width="2">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+      </svg>
+    </div>
+    <div class="dock-item" id="dockTerminal" title="Terminal">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#1e40af" stroke-width="2">
+        <polyline points="4 17 10 11 4 5"></polyline>
+        <line x1="12" y1="19" x2="20" y2="19"></line>
+      </svg>
+    </div>
+    <div class="dock-item" id="dockMonitor" title="Moniteur Système">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#1e40af" stroke-width="2">
+        <path d="M18 20V10"></path>
+        <path d="M12 20V4"></path>
+        <path d="M6 20v-6"></path>
+      </svg>
+    </div>
+    <div class="dock-item" id="dockOSINT" title="OSINT Intelligence">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2.5">
+        <circle cx="12" cy="12" r="10"/>
+        <circle cx="12" cy="12" r="6"/>
+        <circle cx="12" cy="12" r="2"/>
+        <line x1="12" y1="2" x2="12" y2="6"/>
+        <line x1="12" y1="18" x2="12" y2="22"/>
+        <line x1="2" y1="12" x2="6" y2="12"/>
+        <line x1="18" y1="12" x2="22" y2="12"/>
+      </svg>
+    </div>
+    <div class="dock-item" id="dockMessages" title="Messages">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+        <circle cx="9" cy="10" r="1" fill="#10b981"/>
+        <circle cx="12" cy="10" r="1" fill="#10b981"/>
+        <circle cx="15" cy="10" r="1" fill="#10b981"/>
+      </svg>
+      <div id="badgeMessages" class="dock-badge" style="display: none;"></div>
+    </div>
+    <div class="dock-item" id="dockMail" title="Courriel">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2">
+        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+        <polyline points="22,6 12,13 2,6"></polyline>
+      </svg>
+      <div id="badgeMail" class="dock-badge" style="display: none;"></div>
+    </div>
+  </div>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "@supabase/supabase-js": "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm",
+      "@mlc-ai/web-llm": "https://esm.run/@mlc-ai/web-llm@0.2.79"
+    }
+  }
+  </script>
+
+  <script type="module">
+    'use strict';
+
+    console.log('WebOS Québec Final - Initialisation...');
+
+    const CONFIG = {
+      supabase: {
+        url: 'https://gwcpuwihjouusnohkmcy.supabase.co',
+        anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd3Y3B1d2loam91dXNub2hrbWN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIxODU1MTAsImV4cCI6MjA3Nzc2MTUxMH0.E9cDmyAmHvcIVNbvzBV7MKlqpLchAME9i2JKwNcuPO4'
+      },
+      webllm: {
+        model: 'Llama-3.2-3B-Instruct-q4f32_1-MLC',
+        temperature: 0.7,
+        topP: 0.95,
+        maxTokens: 2048,
+        contextWindow: 8192
+      },
+      version: '2.0.0-final',
+      build: Date.now()
+    };
+
+    let supabaseClient = null;
+    let currentUser = null;
+    let systemReady = false;
+
+    async function initializeSystem() {
+      try {
+        updateLoadingProgress(10, 'Chargement des dépendances...');
+
+        const { createClient } = await import('@supabase/supabase-js');
+        supabaseClient = createClient(CONFIG.supabase.url, CONFIG.supabase.anon_key, {
+          auth: {
+            persistSession: true,
+            storageKey: 'webos-qc-final-auth-token',
+            storage: window.localStorage,
+            autoRefreshToken: true,
+            detectSessionInUrl: true
+          }
+        });
+
+        updateLoadingProgress(30, 'Connexion à Supabase...');
+
+        const { data: { session } } = await supabaseClient.auth.getSession();
+
+        updateLoadingProgress(50, 'Initialisation du noyau...');
+        await initializeKernel();
+
+        updateLoadingProgress(70, 'Chargement des modules...');
+        await initializeModules();
+
+        updateLoadingProgress(90, 'Finalisation...');
+
+        if (session && session.user) {
+          currentUser = session.user;
+          const { data: userData } = await supabaseClient
+            .from('users')
+            .select('*')
+            .eq('id', session.user.id)
+            .maybeSingle();
+
+          if (userData) {
+            currentUser = { ...session.user, ...userData };
+          }
+
+          updateLoadingProgress(100, 'Système prêt!');
+          setTimeout(() => showDesktop(), 500);
+        } else {
+          updateLoadingProgress(100, 'Connexion requise');
+          setTimeout(() => showLogin(), 500);
+        }
+
+        systemReady = true;
+        console.log('WebOS Québec Final - Système initialisé avec succès');
+
+      } catch (error) {
+        console.error('Erreur lors de l\'initialisation:', error);
+        updateLoadingProgress(0, 'Erreur: ' + error.message);
+        setTimeout(() => showLogin(), 2000);
+      }
+    }
+
+    function updateLoadingProgress(percent, status) {
+      const fill = document.getElementById('progressFill');
+      const statusText = document.getElementById('loadingStatus');
+
+      if (fill) fill.style.width = `${percent}%`;
+      if (statusText) statusText.textContent = status;
+    }
+
+    function showLogin() {
+      document.getElementById('loadingScreen').style.display = 'none';
+      document.getElementById('loginScreen').style.display = 'flex';
+    }
+
+    function showDesktop() {
+      document.getElementById('loadingScreen').style.display = 'none';
+      document.getElementById('loginScreen').style.display = 'none';
+      document.getElementById('desktop').style.display = 'block';
+      document.getElementById('topbar').style.display = 'flex';
+      document.getElementById('dock').style.display = 'flex';
+
+      updateSystemTime();
+      setInterval(updateSystemTime, 1000);
+
+      console.log('Bureau affiché pour l\'utilisateur:', currentUser?.email);
+    }
+
+    function updateSystemTime() {
+      const timeEl = document.getElementById('systemTime');
+      if (timeEl) {
+        const now = new Date();
+        timeEl.textContent = now.toLocaleTimeString('fr-CA', {
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+      }
+    }
+
+    async function initializeKernel() {
+      console.log('Noyau système en cours d\'initialisation...');
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }
+
+    async function initializeModules() {
+      console.log('Modules système en cours de chargement...');
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }
+
+    function showAlert(message, type = 'error') {
+      const container = document.getElementById('alertContainer');
+      if (!container) return;
+
+      const alertClass = type === 'error' ? 'alert-error' : 'alert-success';
+      container.innerHTML = `
+        <div class="alert ${alertClass}">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            ${type === 'error'
+              ? '<circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>'
+              : '<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>'
+            }
+          </svg>
+          <span>${message}</span>
+        </div>
+      `;
+
+      setTimeout(() => container.innerHTML = '', 5000);
+    }
+
+    document.getElementById('showRegisterLink')?.addEventListener('click', () => {
+      document.getElementById('loginForm').style.display = 'none';
+      document.getElementById('registerForm').style.display = 'block';
+      document.getElementById('alertContainer').innerHTML = '';
+    });
+
+    document.getElementById('showLoginLink')?.addEventListener('click', () => {
+      document.getElementById('registerForm').style.display = 'none';
+      document.getElementById('loginForm').style.display = 'block';
+      document.getElementById('alertContainer').innerHTML = '';
+    });
+
+    document.getElementById('loginBtn')?.addEventListener('click', async () => {
+      const email = document.getElementById('loginEmail')?.value.trim();
+      const password = document.getElementById('loginPassword')?.value;
+
+      if (!email || !password) {
+        showAlert('Veuillez remplir tous les champs');
+        return;
+      }
+
+      const btn = document.getElementById('loginBtn');
+      btn.disabled = true;
+      btn.textContent = 'Connexion...';
+
+      try {
+        const { data, error } = await supabaseClient.auth.signInWithPassword({
+          email,
+          password
+        });
+
+        if (error) throw error;
+
+        currentUser = data.user;
+        const { data: userData } = await supabaseClient
+          .from('users')
+          .select('*')
+          .eq('id', data.user.id)
+          .maybeSingle();
+
+        if (userData) {
+          currentUser = { ...data.user, ...userData };
+        }
+
+        showDesktop();
+
+      } catch (error) {
+        console.error('Erreur de connexion:', error);
+        showAlert(error.message || 'Erreur lors de la connexion');
+        btn.disabled = false;
+        btn.textContent = 'Se connecter';
+      }
+    });
+
+    document.getElementById('registerBtn')?.addEventListener('click', async () => {
+      const name = document.getElementById('registerName')?.value.trim();
+      const email = document.getElementById('registerEmail')?.value.trim();
+      const password = document.getElementById('registerPassword')?.value;
+
+      if (!name || !email || !password) {
+        showAlert('Veuillez remplir tous les champs');
+        return;
+      }
+
+      if (password.length < 6) {
+        showAlert('Le mot de passe doit contenir au moins 6 caractères');
+        return;
+      }
+
+      const btn = document.getElementById('registerBtn');
+      btn.disabled = true;
+      btn.textContent = 'Création...';
+
+      try {
+        const { data, error } = await supabaseClient.auth.signUp({
+          email,
+          password
+        });
+
+        if (error) throw error;
+
+        if (data.user) {
+          await supabaseClient.from('users').upsert({
+            id: data.user.id,
+            email: data.user.email,
+            full_name: name,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          });
+
+          currentUser = data.user;
+          showAlert('Compte créé avec succès!', 'success');
+          setTimeout(() => showDesktop(), 1500);
+        }
+
+      } catch (error) {
+        console.error('Erreur d\'inscription:', error);
+        showAlert(error.message || 'Erreur lors de la création du compte');
+        btn.disabled = false;
+        btn.textContent = 'Créer mon compte';
+      }
+    });
+
+    document.getElementById('loginEmail')?.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') document.getElementById('loginBtn')?.click();
+    });
+
+    document.getElementById('loginPassword')?.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') document.getElementById('loginBtn')?.click();
+    });
+
+    document.getElementById('registerPassword')?.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') document.getElementById('registerBtn')?.click();
+    });
+
+    document.getElementById('menuLogout')?.addEventListener('click', async () => {
+      if (confirm('Voulez-vous vraiment vous déconnecter?')) {
+        await supabaseClient?.auth.signOut();
+        currentUser = null;
+        location.reload();
+      }
+    });
+
+    window.addEventListener('DOMContentLoaded', () => {
+      initializeSystem();
+    });
+
+    console.log('WebOS Québec Final - Script chargé');
+  </script>
+
+</body>
+</html>
