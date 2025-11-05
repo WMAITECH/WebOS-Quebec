@@ -128,10 +128,14 @@ export function MessagingApp() {
     if (convos) {
       const enriched = await Promise.all(
         convos.map(async (convo) => {
-          const { data: participants } = await supabase
+          const { data: participants, error: partError } = await supabase
             .from('conversation_participants')
-            .select('user_id, users(id, email, full_name, phone_number, phone_verified)')
+            .select('user_id, users!conversation_participants_user_id_fkey(id, email, full_name, phone_number, phone_verified)')
             .eq('conversation_id', convo.id);
+
+          if (partError) {
+            console.error('Error loading participants:', partError);
+          }
 
           const { data: lastMsg } = await supabase
             .from('messages')
@@ -141,9 +145,11 @@ export function MessagingApp() {
             .limit(1)
             .maybeSingle();
 
+          const mappedParticipants = participants?.map((p: any) => p.users).filter(Boolean) || [];
+
           return {
             ...convo,
-            participants: participants?.map((p: any) => p.users) || [],
+            participants: mappedParticipants,
             last_message: lastMsg,
           };
         })
@@ -415,10 +421,14 @@ export function MessagingApp() {
         <div className="flex-1 overflow-y-auto">
           {conversations.map((convo) => {
             const otherUsers = convo.participants?.filter((p) => p.id !== user?.id) || [];
-            const displayName =
-              convo.type === 'group'
-                ? convo.name || `Groupe (${otherUsers.length + 1})`
-                : otherUsers[0]?.full_name || otherUsers[0]?.email || 'Utilisateur';
+            let displayName = 'Utilisateur';
+
+            if (convo.type === 'group') {
+              displayName = convo.name || `Groupe (${otherUsers.length + 1})`;
+            } else if (otherUsers.length > 0) {
+              const otherUser = otherUsers[0];
+              displayName = otherUser?.full_name || otherUser?.email || 'Utilisateur';
+            }
 
             return (
               <div key={convo.id} className="relative group">
@@ -479,7 +489,7 @@ export function MessagingApp() {
               <h3 className="font-semibold">
                 {selectedConvo.type === 'group'
                   ? selectedConvo.name || `Groupe (${selectedConvo.participants?.length})`
-                  : otherParticipants[0]?.full_name || otherParticipants[0]?.email}
+                  : (otherParticipants[0]?.full_name || otherParticipants[0]?.email || 'Utilisateur')}
               </h3>
               {otherParticipants.length > 0 && otherParticipants[0]?.phone_number && (
                 <div className="text-sm text-zinc-400 flex items-center gap-1 mt-1">
