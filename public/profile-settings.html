@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Profil & Sécurité - WebOS Québec</title>
+  <style>
+    :root {
+      --bg1:#09090b; --bg2:#18181b; --bg3:#27272a;
+      --ink:#fafafa; --mut:#a1a1aa; --hint:#71717a;
+      --elev:#3f3f46; --acc:#3b82f6; --ok:#10b981;
+      --wrn:#f59e0b; --err:#ef4444; --brd:#27272a;
+      --brd2:#3f3f46;
+    }
+    * { box-sizing:border-box; margin:0; padding:0 }
+    body {
+      font-family:system-ui,-apple-system,sans-serif;
+      background:var(--bg1); color:var(--ink);
+      padding:24px; overflow-y:auto; height:100vh;
+    }
+    .container { max-width:600px; margin:0 auto }
+    .header {
+      display:flex; align-items:center; gap:12px;
+      margin-bottom:32px;
+    }
+    .header-icon {
+      width:48px; height:48px; border-radius:12px;
+      background:linear-gradient(135deg, var(--acc), #2563eb);
+      display:flex; align-items:center; justify-content:center;
+      color:#fff;
+    }
+    .header-title { font-size:24px; font-weight:700 }
+    .section {
+      background:var(--bg2); border:1px solid var(--brd);
+      border-radius:12px; padding:24px; margin-bottom:24px;
+    }
+    .section-title {
+      font-size:18px; font-weight:700; margin-bottom:16px;
+      display:flex; align-items:center; gap:8px;
+    }
+    .info-row {
+      display:flex; justify-content:space-between;
+      padding:12px 0; border-bottom:1px solid var(--brd);
+    }
+    .info-row:last-child { border-bottom:none }
+    .info-label { color:var(--mut); font-size:14px }
+    .info-value { font-weight:600 }
+    .badge {
+      display:inline-flex; align-items:center; gap:4px;
+      padding:4px 8px; border-radius:6px; font-size:12px;
+      font-weight:600;
+    }
+    .badge.success { background:#10b98120; color:var(--ok) }
+    .badge.warning { background:#f59e0b20; color:var(--wrn) }
+    .badge.danger { background:#ef444420; color:var(--err) }
+    .phone-section {
+      background:var(--bg3); border-radius:8px;
+      padding:16px; margin-top:16px;
+    }
+    .input-group { margin-bottom:16px }
+    .input-group label {
+      display:block; font-size:14px; font-weight:600;
+      color:var(--mut); margin-bottom:8px;
+    }
+    .input-group input {
+      width:100%; padding:12px; background:var(--bg1);
+      border:1px solid var(--brd2); border-radius:8px;
+      color:var(--ink); font-size:15px; outline:none;
+    }
+    .input-group input:focus { border-color:var(--acc) }
+    .input-hint {
+      font-size:12px; color:var(--hint); margin-top:4px;
+    }
+    .btn {
+      padding:12px 24px; border:none; border-radius:8px;
+      font-weight:600; cursor:pointer; transition:opacity 0.2s;
+      font-size:15px;
+    }
+    .btn:hover { opacity:0.9 }
+    .btn:disabled { opacity:0.5; cursor:not-allowed }
+    .btn-primary { background:var(--acc); color:#fff }
+    .btn-success { background:var(--ok); color:#fff }
+    .btn-danger { background:var(--err); color:#fff }
+    .btn-secondary {
+      background:transparent; color:var(--mut);
+      border:1px solid var(--brd2);
+    }
+    .alert {
+      padding:12px 16px; border-radius:8px; margin-bottom:16px;
+      display:flex; align-items:start; gap:12px;
+    }
+    .alert.error {
+      background:#ef444420; border:1px solid #ef444440;
+      color:var(--err);
+    }
+    .alert.success {
+      background:#10b98120; border:1px solid #10b98140;
+      color:var(--ok);
+    }
+    .alert.info {
+      background:#3b82f620; border:1px solid #3b82f640;
+      color:var(--acc);
+    }
+    .code-input {
+      text-align:center; font-size:24px; letter-spacing:8px;
+      font-family:monospace; font-weight:700;
+    }
+    .toggle-row {
+      display:flex; align-items:center; justify-content:space-between;
+      padding:16px 0;
+    }
+    .toggle-label { font-weight:600 }
+    .toggle-desc { font-size:13px; color:var(--mut); margin-top:4px }
+    .switch {
+      position:relative; width:48px; height:24px;
+      background:var(--bg3); border-radius:12px;
+      cursor:pointer; transition:background 0.2s;
+    }
+    .switch.active { background:var(--ok) }
+    .switch.disabled { opacity:0.5; cursor:not-allowed }
+    .switch::after {
+      content:''; position:absolute; top:2px; left:2px;
+      width:20px; height:20px; background:#fff;
+      border-radius:50%; transition:transform 0.2s;
+    }
+    .switch.active::after { transform:translateX(24px) }
+    .loader {
+      display:flex; align-items:center; justify-content:center;
+      padding:40px;
+    }
+    .spinner {
+      width:40px; height:40px; border:3px solid var(--brd);
+      border-top-color:var(--acc); border-radius:50%;
+      animation:spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform:rotate(360deg) }}
+    .info-box {
+      padding:12px 16px; background:var(--bg3);
+      border-radius:8px; margin-top:16px;
+    }
+    .info-box-title {
+      display:flex; align-items:center; gap:8px;
+      margin-bottom:8px; color:var(--acc);
+      font-weight:600;
+    }
+    .info-box-text {
+      font-size:13px; color:var(--mut);
+      line-height:1.5;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="header-icon">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+          <circle cx="12" cy="7" r="4"/>
+        </svg>
+      </div>
+      <div>
+        <div class="header-title">Profil & Sécurité</div>
+      </div>
+    </div>
+
+    <div id="content">
+      <div class="loader"><div class="spinner"></div></div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.4';
+
+    const supabaseUrl = 'https://gwcpuwihjouusnohkmcy.supabase.co';
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd3Y3B1d2loam91dXNub2hrbWN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIxODU1MTAsImV4cCI6MjA3Nzc2MTUxMH0.E9cDmyAmHvcIVNbvzBV7MKlqpLchAME9i2JKwNcuPO4';
+    const supabase = createClient(supabaseUrl, supabaseKey, {
+      auth: {
+        persistSession: true,
+        storageKey: 'sb-gwcpuwihjouusnohkmcy-auth-token',
+        storage: window.localStorage
+      }
+    });
+
+    let currentUser = null;
+    let userProfile = null;
+    let verificationId = null;
+    let phoneStep = 'input';
+
+    async function init() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        document.getElementById('content').innerHTML = '<div class="alert error">Non authentifié</div>';
+        return;
+      }
+      currentUser = user;
+      await loadProfile();
+      render();
+    }
+
+    async function loadProfile() {
+      const { data } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', currentUser.id)
+        .maybeSingle();
+      userProfile = data || {};
+    }
+
+    function render() {
+      const content = document.getElementById('content');
+      content.innerHTML = '';
+
+      // Section 1: Informations du compte
+      const accountSection = createAccountSection();
+      content.appendChild(accountSection);
+
+      // Section 2: Sécurité 2FA
+      const securitySection = createSecuritySection();
+      content.appendChild(securitySection);
+
+      // Section 3: Numéro de téléphone
+      const phoneSection = createPhoneSection();
+      content.appendChild(phoneSection);
+    }
+
+    function createAccountSection() {
+      const section = document.createElement('div');
+      section.className = 'section';
+      section.innerHTML = `
+        <div class="section-title">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+            <circle cx="12" cy="7" r="4"/>
+          </svg>
+          Informations du compte
+        </div>
+        <div class="info-row">
+          <span class="info-label">Email</span>
+          <span class="info-value">${currentUser.email}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">ID Utilisateur</span>
+          <span class="info-value" style="font-size:12px;font-family:monospace">${currentUser.id.substring(0, 8)}...</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Nom complet</span>
+          <span class="info-value">${userProfile.full_name || '<span style="color:#71717a">Non défini</span>'}</span>
+        </div>
+        <div id="nameEditContainer" class="phone-section" style="display:none">
+          <div id="nameAlertContainer"></div>
+          <div class="input-group">
+            <label>Nouveau nom complet</label>
+            <input type="text" id="nameInput" placeholder="Votre nom complet" value="${userProfile.full_name || ''}" />
+          </div>
+          <button class="btn btn-primary" style="width:100%;margin-bottom:12px" id="saveNameBtn">
+            Enregistrer
+          </button>
+          <button class="btn btn-secondary" style="width:100%" id="cancelNameBtn">
+            Annuler
+          </button>
+        </div>
+        <div style="margin-top:16px">
+          <button class="btn btn-primary" style="width:100%" id="editNameBtn">
+            Modifier le nom
+          </button>
+        </div>
+      `;
+
+      setTimeout(() => {
+        const editBtn = document.getElementById('editNameBtn');
+        const saveBtn = document.getElementById('saveNameBtn');
+        const cancelBtn = document.getElementById('cancelNameBtn');
+        const nameEditContainer = document.getElementById('nameEditContainer');
+
+        if (editBtn) {
+          editBtn.addEventListener('click', () => {
+            editBtn.style.display = 'none';
+            nameEditContainer.style.display = 'block';
+          });
+        }
+
+        if (cancelBtn) {
+          cancelBtn.addEventListener('click', () => {
+            nameEditContainer.style.display = 'none';
+            editBtn.style.display = 'block';
+          });
+        }
+
+        if (saveBtn) {
+          saveBtn.addEventListener('click', saveName);
+        }
+      }, 0);
+
+      return section;
+    }
+
+    function createSecuritySection() {
+      const section = document.createElement('div');
+      section.className = 'section';
+
+      const twoFactorEnabled = userProfile.two_factor_enabled;
+      const phoneVerified = userProfile.phone_verified;
+
+      section.innerHTML = `
+        <div class="section-title">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="5" y="11" width="14" height="10" rx="2" ry="2"/>
+            <circle cx="12" cy="16" r="1"/>
+            <path d="M8 11V7a4 4 0 0 1 8 0v4"/>
+          </svg>
+          Sécurité - Authentification à deux facteurs
+        </div>
+        <div class="toggle-row">
+          <div>
+            <div class="toggle-label">Double authentification (2FA)</div>
+            <div class="toggle-desc">
+              ${twoFactorEnabled ? 'Activée - Code SMS requis à la connexion' : 'Désactivée - Nécessite un numéro vérifié'}
+            </div>
+          </div>
+          <div class="switch ${twoFactorEnabled ? 'active' : ''} ${!phoneVerified ? 'disabled' : ''}" id="toggle2FASwitch"></div>
+        </div>
+        <div class="info-box">
+          <div class="info-box-title">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M12 16v-4"/>
+              <path d="M12 8h.01"/>
+            </svg>
+            Comment ça fonctionne?
+          </div>
+          <p class="info-box-text">
+            Lorsque la 2FA est activée, vous recevrez un code à 6 chiffres par SMS à chaque connexion.
+            Vous devez d'abord ajouter et vérifier votre numéro de téléphone ci-dessous.
+          </p>
+        </div>
+      `;
+
+      setTimeout(() => {
+        const toggle = document.getElementById('toggle2FASwitch');
+        if (toggle && phoneVerified) {
+          toggle.addEventListener('click', toggle2FA);
+        }
+      }, 0);
+
+      return section;
+    }
+
+    function createPhoneSection() {
+      const section = document.createElement('div');
+      section.className = 'section';
+
+      const hasPhone = userProfile.phone_number;
+      const phoneVerified = userProfile.phone_verified;
+
+      const titleHTML = `
+        <div class="section-title">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="5" y="2" width="14" height="20" rx="2" ry="2"/>
+            <line x1="12" y1="18" x2="12.01" y2="18"/>
+          </svg>
+          Numéro de téléphone
+        </div>
+      `;
+
+      if (hasPhone) {
+        section.innerHTML = titleHTML + `
+          <div class="info-row">
+            <span class="info-label">Numéro</span>
+            <span class="info-value">${userProfile.phone_number}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Statut</span>
+            <span class="badge ${phoneVerified ? 'success' : 'warning'}">
+              ${phoneVerified ? '✓ Vérifié' : '⚠ Non vérifié'}
+            </span>
+          </div>
+          ${!phoneVerified ? `
+            <div class="phone-section">
+              <button class="btn btn-primary" style="width:100%" id="resendBtn">
+                Renvoyer le code de vérification
+              </button>
+            </div>
+          ` : ''}
+          <div class="phone-section">
+            <button class="btn btn-danger" style="width:100%" id="removePhoneBtn">
+              Retirer le numéro
+            </button>
+          </div>
+        `;
+
+        setTimeout(() => {
+          const resendBtn = document.getElementById('resendBtn');
+          if (resendBtn) resendBtn.addEventListener('click', resendVerification);
+
+          const removeBtn = document.getElementById('removePhoneBtn');
+          if (removeBtn) removeBtn.addEventListener('click', removePhone);
+        }, 0);
+      } else {
+        if (phoneStep === 'input') {
+          section.innerHTML = titleHTML + `
+            <div id="phoneForm" class="phone-section">
+              <div id="alertContainer"></div>
+              <div class="input-group">
+                <label>Numéro de téléphone</label>
+                <input type="tel" id="phoneInput" placeholder="+1 514-555-0123" />
+                <div class="input-hint">Format: +1 XXX-XXX-XXXX (Québec/Canada)</div>
+              </div>
+              <button class="btn btn-primary" style="width:100%" id="sendCodeBtn">
+                Envoyer le code de vérification
+              </button>
+            </div>
+          `;
+
+          setTimeout(() => {
+            const sendBtn = document.getElementById('sendCodeBtn');
+            if (sendBtn) sendBtn.addEventListener('click', sendCode);
+          }, 0);
+        } else {
+          section.innerHTML = titleHTML + `
+            <div id="phoneForm" class="phone-section">
+              <div id="alertContainer"></div>
+              <div class="input-group">
+                <label>Code de vérification</label>
+                <input type="text" id="codeInput" class="code-input" maxlength="6" placeholder="000000" />
+                <div class="input-hint">Entrez le code à 6 chiffres envoyé par SMS</div>
+              </div>
+              <button class="btn btn-success" style="width:100%;margin-bottom:12px" id="verifyCodeBtn">
+                Vérifier le code
+              </button>
+              <button class="btn btn-secondary" style="width:100%" id="resetFormBtn">
+                Changer de numéro
+              </button>
+            </div>
+          `;
+
+          setTimeout(() => {
+            const verifyBtn = document.getElementById('verifyCodeBtn');
+            if (verifyBtn) verifyBtn.addEventListener('click', verifyCode);
+
+            const resetBtn = document.getElementById('resetFormBtn');
+            if (resetBtn) resetBtn.addEventListener('click', resetPhoneForm);
+          }, 0);
+        }
+      }
+
+      return section;
+    }
+
+    async function toggle2FA() {
+      if (!userProfile.phone_verified) {
+        showAlert('error', "Vous devez d'abord vérifier votre numéro de téléphone");
+        return;
+      }
+
+      const newState = !userProfile.two_factor_enabled;
+      await supabase
+        .from('users')
+        .update({ two_factor_enabled: newState })
+        .eq('id', currentUser.id);
+
+      userProfile.two_factor_enabled = newState;
+      render();
+      showAlert('success', `2FA ${newState ? 'activée' : 'désactivée'} avec succès`);
+    }
+
+    async function sendCode() {
+      const phone = document.getElementById('phoneInput').value.trim();
+      if (!phone) {
+        showAlert('error', 'Veuillez entrer un numéro de téléphone');
+        return;
+      }
+
+      if (!/^\+?[1-9]\d{1,14}$/.test(phone.replace(/[\s()-]/g, ''))) {
+        showAlert('error', 'Format de numéro invalide (ex: +1 514 555 1234)');
+        return;
+      }
+
+      const sendBtn = document.getElementById('sendCodeBtn');
+      if (sendBtn) sendBtn.disabled = true;
+
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) throw new Error('Non authentifié');
+
+        const apiUrl = `${supabaseUrl}/functions/v1/send-sms-verification`;
+        const response = await fetch(apiUrl, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            phoneNumber: phone,
+            action: 'send'
+          })
+        });
+
+        const result = await response.json();
+        if (!result.success) throw new Error(result.error);
+
+        verificationId = result.verificationId;
+        phoneStep = 'verify';
+        render();
+
+        showAlert('success', `Votre code de vérification: ${result.code}`, 15000);
+      } catch (err) {
+        console.error('Send code error:', err);
+        showAlert('error', err.message || "Erreur lors de l'envoi");
+        if (sendBtn) sendBtn.disabled = false;
+      }
+    }
+
+    async function verifyCode() {
+      const code = document.getElementById('codeInput').value.trim();
+      if (code.length !== 6) {
+        showAlert('error', 'Le code doit contenir 6 chiffres');
+        return;
+      }
+
+      const verifyBtn = document.getElementById('verifyCodeBtn');
+      if (verifyBtn) verifyBtn.disabled = true;
+
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) throw new Error('Non authentifié');
+
+        const apiUrl = `${supabaseUrl}/functions/v1/send-sms-verification`;
+        const response = await fetch(apiUrl, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            action: 'verify',
+            verificationId,
+            code
+          })
+        });
+
+        const result = await response.json();
+        if (!result.success) throw new Error(result.error);
+
+        await loadProfile();
+        phoneStep = 'input';
+        render();
+        showAlert('success', 'Numéro synchronisé avec succès!');
+      } catch (err) {
+        console.error('Verify error:', err);
+        showAlert('error', err.message || 'Erreur lors de la vérification');
+        if (verifyBtn) verifyBtn.disabled = false;
+      }
+    }
+
+    function resetPhoneForm() {
+      phoneStep = 'input';
+      render();
+    }
+
+    async function resendVerification() {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) throw new Error('Non authentifié');
+
+        const apiUrl = `${supabaseUrl}/functions/v1/send-sms-verification`;
+        const response = await fetch(apiUrl, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            phoneNumber: userProfile.phone_number,
+            action: 'send'
+          })
+        });
+
+        const result = await response.json();
+        if (!result.success) throw new Error(result.error);
+
+        verificationId = result.verificationId;
+        phoneStep = 'verify';
+        await supabase.from('users').update({ phone_verified: false }).eq('id', currentUser.id);
+        await loadProfile();
+        render();
+
+        showAlert('success', `Nouveau code de vérification: ${result.code}`, 15000);
+      } catch (err) {
+        console.error('Resend error:', err);
+        showAlert('error', err.message || 'Erreur lors du renvoi');
+      }
+    }
+
+    async function removePhone() {
+      if (!confirm("Êtes-vous sûr de vouloir retirer votre numéro? La 2FA sera désactivée.")) return;
+
+      await supabase.from('users').update({
+        phone_number: null,
+        phone_verified: false,
+        phone_verified_at: null,
+        two_factor_enabled: false
+      }).eq('id', currentUser.id);
+
+      await loadProfile();
+      render();
+      showAlert('success', 'Numéro retiré avec succès');
+    }
+
+    async function saveName() {
+      const nameInput = document.getElementById('nameInput');
+      const newName = nameInput.value.trim();
+
+      if (!newName) {
+        showNameAlert('error', 'Le nom ne peut pas être vide');
+        return;
+      }
+
+      const saveBtn = document.getElementById('saveNameBtn');
+      if (saveBtn) saveBtn.disabled = true;
+
+      try {
+        const { error } = await supabase
+          .from('users')
+          .update({ full_name: newName })
+          .eq('id', currentUser.id);
+
+        if (error) throw error;
+
+        userProfile.full_name = newName;
+        render();
+        showAlert('success', 'Nom mis à jour avec succès');
+      } catch (err) {
+        console.error('Save name error:', err);
+        showNameAlert('error', err.message || 'Erreur lors de la mise à jour');
+        if (saveBtn) saveBtn.disabled = false;
+      }
+    }
+
+    function showNameAlert(type, message) {
+      const container = document.getElementById('nameAlertContainer');
+      if (!container) return;
+
+      const iconPath = type === 'error'
+        ? '<circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>'
+        : '<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>';
+
+      container.innerHTML = `
+        <div class="alert ${type}">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            ${iconPath}
+          </svg>
+          <span>${message}</span>
+        </div>
+      `;
+
+      setTimeout(() => container.innerHTML = '', 5000);
+    }
+
+    function showAlert(type, message) {
+      const container = document.getElementById('alertContainer');
+      if (!container) return;
+
+      const iconPath = type === 'error'
+        ? '<circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>'
+        : '<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>';
+
+      container.innerHTML = `
+        <div class="alert ${type}">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            ${iconPath}
+          </svg>
+          <span>${message}</span>
+        </div>
+      `;
+
+      setTimeout(() => container.innerHTML = '', 5000);
+    }
+
+    init();
+  </script>
+</body>
+</html>

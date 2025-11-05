@@ -1,0 +1,848 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext x='50' y='75' font-size='80' text-anchor='middle'%3E⚜️%3C/text%3E%3C/svg%3E" type="image/svg+xml" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WebOS Québec - L'Alternative Souveraine</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+        line-height: 1.6;
+        color: #1e293b;
+        overflow-x: hidden;
+      }
+
+      /* Hero Section */
+      .hero {
+        background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 50%, #3b82f6 100%);
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .hero::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: url('data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%231e40af" fill-opacity="0.1"%3E%3Cpath d="M36 34c0-2.21-1.79-4-4-4s-4 1.79-4 4 1.79 4 4 4 4-1.79 4-4z"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E') repeat;
+        opacity: 0.3;
+      }
+
+      .hero-content {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 60px 20px;
+        position: relative;
+        z-index: 1;
+        text-align: center;
+      }
+
+      .hero-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: rgba(59, 130, 246, 0.2);
+        border: 2px solid rgba(59, 130, 246, 0.4);
+        border-radius: 50px;
+        padding: 12px 24px;
+        color: #93c5fd;
+        font-weight: 600;
+        font-size: 14px;
+        margin-bottom: 30px;
+        backdrop-filter: blur(10px);
+      }
+
+      .hero h1 {
+        font-size: 72px;
+        font-weight: 800;
+        color: white;
+        margin-bottom: 20px;
+        line-height: 1.1;
+      }
+
+      .hero h1 .highlight {
+        background: linear-gradient(135deg, #60a5fa, #34d399);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+
+      .hero p {
+        font-size: 24px;
+        color: #cbd5e1;
+        max-width: 800px;
+        margin: 0 auto 40px;
+      }
+
+      .cta-buttons {
+        display: flex;
+        gap: 20px;
+        justify-content: center;
+        flex-wrap: wrap;
+      }
+
+      .btn {
+        padding: 18px 40px;
+        font-size: 18px;
+        font-weight: 700;
+        border-radius: 12px;
+        text-decoration: none;
+        transition: all 0.3s ease;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        cursor: pointer;
+        border: none;
+      }
+
+      .btn-primary {
+        background: linear-gradient(135deg, #3b82f6, #2563eb);
+        color: white;
+        box-shadow: 0 20px 40px rgba(59, 130, 246, 0.4);
+      }
+
+      .btn-primary:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 25px 50px rgba(59, 130, 246, 0.5);
+      }
+
+      .btn-secondary {
+        background: rgba(255, 255, 255, 0.1);
+        color: white;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        backdrop-filter: blur(10px);
+      }
+
+      .btn-secondary:hover {
+        background: rgba(255, 255, 255, 0.2);
+        transform: translateY(-3px);
+      }
+
+      /* Comparison Section */
+      .comparison {
+        padding: 100px 20px;
+        background: linear-gradient(180deg, #f8fafc 0%, #e2e8f0 100%);
+      }
+
+      .section-header {
+        text-align: center;
+        max-width: 800px;
+        margin: 0 auto 60px;
+      }
+
+      .section-header h2 {
+        font-size: 48px;
+        font-weight: 800;
+        color: #0f172a;
+        margin-bottom: 20px;
+      }
+
+      .section-header p {
+        font-size: 20px;
+        color: #64748b;
+      }
+
+      .comparison-grid {
+        max-width: 1400px;
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 40px;
+      }
+
+      .comparison-card {
+        background: white;
+        border-radius: 20px;
+        padding: 40px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        position: relative;
+        overflow: hidden;
+      }
+
+      .comparison-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 6px;
+      }
+
+      .old-system::before {
+        background: linear-gradient(90deg, #ef4444, #dc2626);
+      }
+
+      .new-system::before {
+        background: linear-gradient(90deg, #10b981, #059669);
+      }
+
+      .comparison-card h3 {
+        font-size: 32px;
+        font-weight: 700;
+        margin-bottom: 30px;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+      }
+
+      .old-system h3 {
+        color: #dc2626;
+      }
+
+      .new-system h3 {
+        color: #059669;
+      }
+
+      .comparison-list {
+        list-style: none;
+      }
+
+      .comparison-list li {
+        padding: 20px;
+        margin-bottom: 15px;
+        border-radius: 12px;
+        font-size: 16px;
+        line-height: 1.6;
+        display: flex;
+        align-items: flex-start;
+        gap: 15px;
+      }
+
+      .old-system .comparison-list li {
+        background: #fef2f2;
+        border-left: 4px solid #ef4444;
+      }
+
+      .new-system .comparison-list li {
+        background: #f0fdf4;
+        border-left: 4px solid #10b981;
+      }
+
+      .icon {
+        flex-shrink: 0;
+        width: 24px;
+        height: 24px;
+        font-size: 20px;
+      }
+
+      /* Features Section */
+      .features {
+        padding: 100px 20px;
+        background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%);
+        position: relative;
+      }
+
+      .features-grid {
+        max-width: 1200px;
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 30px;
+        margin-top: 60px;
+      }
+
+      .feature-card {
+        background: rgba(255, 255, 255, 0.05);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 20px;
+        padding: 40px;
+        transition: all 0.3s ease;
+      }
+
+      .feature-card:hover {
+        transform: translateY(-10px);
+        background: rgba(255, 255, 255, 0.08);
+        border-color: rgba(59, 130, 246, 0.5);
+      }
+
+      .feature-icon {
+        width: 64px;
+        height: 64px;
+        background: linear-gradient(135deg, #3b82f6, #2563eb);
+        border-radius: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 32px;
+        margin-bottom: 24px;
+        box-shadow: 0 10px 20px rgba(59, 130, 246, 0.3);
+      }
+
+      .feature-card h3 {
+        font-size: 24px;
+        font-weight: 700;
+        color: white;
+        margin-bottom: 15px;
+      }
+
+      .feature-card p {
+        color: #cbd5e1;
+        font-size: 16px;
+        line-height: 1.7;
+      }
+
+      /* Stats Section */
+      .stats {
+        padding: 100px 20px;
+        background: white;
+      }
+
+      .stats-grid {
+        max-width: 1200px;
+        margin: 60px auto 0;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 40px;
+      }
+
+      .stat-card {
+        text-align: center;
+        padding: 40px;
+        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+        border-radius: 20px;
+        border: 2px solid #e2e8f0;
+        transition: all 0.3s ease;
+      }
+
+      .stat-card:hover {
+        transform: translateY(-5px);
+        border-color: #3b82f6;
+        box-shadow: 0 20px 40px rgba(59, 130, 246, 0.1);
+      }
+
+      .stat-number {
+        font-size: 56px;
+        font-weight: 800;
+        background: linear-gradient(135deg, #3b82f6, #2563eb);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        margin-bottom: 10px;
+      }
+
+      .stat-label {
+        font-size: 18px;
+        font-weight: 600;
+        color: #64748b;
+      }
+
+      /* CTA Section */
+      .final-cta {
+        padding: 100px 20px;
+        background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .final-cta::before {
+        content: '⚜️';
+        position: absolute;
+        font-size: 400px;
+        opacity: 0.05;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+      }
+
+      .final-cta h2 {
+        font-size: 56px;
+        font-weight: 800;
+        color: white;
+        margin-bottom: 20px;
+        position: relative;
+        z-index: 1;
+      }
+
+      .final-cta p {
+        font-size: 24px;
+        color: #cbd5e1;
+        margin-bottom: 40px;
+        max-width: 700px;
+        margin-left: auto;
+        margin-right: auto;
+        position: relative;
+        z-index: 1;
+      }
+
+      /* Footer */
+      footer {
+        background: #0f172a;
+        padding: 60px 20px 30px;
+        color: #cbd5e1;
+      }
+
+      .footer-content {
+        max-width: 1200px;
+        margin: 0 auto;
+        text-align: center;
+      }
+
+      .footer-logo {
+        font-size: 48px;
+        margin-bottom: 20px;
+      }
+
+      .footer-title {
+        font-size: 28px;
+        font-weight: 700;
+        color: white;
+        margin-bottom: 10px;
+      }
+
+      .footer-tagline {
+        font-size: 16px;
+        color: #64748b;
+        margin-bottom: 40px;
+      }
+
+      .footer-message {
+        font-size: 18px;
+        font-weight: 600;
+        color: #3b82f6;
+        line-height: 1.8;
+        margin-bottom: 30px;
+        padding: 20px;
+        background: rgba(59, 130, 246, 0.1);
+        border-radius: 12px;
+        border: 1px solid rgba(59, 130, 246, 0.2);
+      }
+
+      .footer-copyright {
+        font-size: 14px;
+        color: #475569;
+        padding-top: 30px;
+        border-top: 1px solid #1e293b;
+      }
+
+      /* SVG Icons */
+      .svg-icon {
+        width: 20px;
+        height: 20px;
+        stroke-width: 2;
+        flex-shrink: 0;
+      }
+
+      .feature-icon svg {
+        width: 36px;
+        height: 36px;
+        stroke: white;
+        stroke-width: 2;
+      }
+
+      /* Responsive */
+      @media (max-width: 768px) {
+        .hero h1 {
+          font-size: 42px;
+        }
+
+        .hero p {
+          font-size: 18px;
+        }
+
+        .comparison-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .section-header h2 {
+          font-size: 36px;
+        }
+
+        .final-cta h2 {
+          font-size: 36px;
+        }
+
+        .cta-buttons {
+          flex-direction: column;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Hero Section -->
+    <section class="hero">
+      <div class="hero-content">
+        <div class="hero-badge">
+          <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+          </svg>
+          <span>100% Souverain • 100% Québécois • 100% Libre</span>
+        </div>
+        <h1>
+          Le Futur de l'IT<br>
+          <span class="highlight">Commence Maintenant</span>
+        </h1>
+        <p>
+          Fini les systèmes gouvernementaux obsolètes et dysfonctionnels.
+          WebOS Québec est la révolution technologique dont la province a besoin.
+        </p>
+        <div class="cta-buttons">
+          <a href="/webos-quebec.html" class="btn btn-primary">
+            <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+            </svg>
+            Découvrir WebOS Québec
+          </a>
+          <a href="#comparison" class="btn btn-secondary">
+            <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <rect x="3" y="3" width="18" height="18" rx="2"/>
+              <path d="M9 3v18M15 9l-6 6M15 15l-6-6"/>
+            </svg>
+            Voir la Comparaison
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- Comparison Section -->
+    <section id="comparison" class="comparison">
+      <div class="section-header">
+        <h2>Le Constat est Clair</h2>
+        <p>Les systèmes IT gouvernementaux actuels au Québec sont dépassés, coûteux et inefficaces. Il est temps de changer.</p>
+      </div>
+
+      <div class="comparison-grid">
+        <!-- Old System -->
+        <div class="comparison-card old-system">
+          <h3>
+            <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="m15 9-6 6M9 9l6 6"/>
+            </svg>
+            Systèmes Actuels
+          </h3>
+          <ul class="comparison-list">
+            <li>
+              <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <circle cx="12" cy="12" r="10"/>
+                <path d="M12 6v6l4 2"/>
+              </svg>
+              <div>
+                <strong>Lenteur Exaspérante:</strong> Temps de chargement interminables, interfaces qui gèlent, productivité massacrée
+              </div>
+            </li>
+            <li>
+              <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+              </svg>
+              <div>
+                <strong>Coûts Astronomiques:</strong> Millions gaspillés en licences propriétaires, maintenance externe, consultants à répétition
+              </div>
+            </li>
+            <li>
+              <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <rect width="18" height="11" x="3" y="11" rx="2" ry="2"/>
+                <path d="M7 11V7a5 5 0 0 1 9.9-1"/>
+              </svg>
+              <div>
+                <strong>Sécurité Défaillante:</strong> Failles constantes, données vulnérables, cyberattaques répétées, confiance perdue
+              </div>
+            </li>
+            <li>
+              <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <circle cx="12" cy="12" r="10"/>
+                <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20M2 12h20"/>
+              </svg>
+              <div>
+                <strong>Dépendance Étrangère:</strong> Serveurs hors Québec, contrôle externe, souveraineté numérique inexistante
+              </div>
+            </li>
+            <li>
+              <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+              </svg>
+              <div>
+                <strong>Maintenance Cauchemardesque:</strong> Mises à jour catastrophiques, bugs permanents, support inexistant
+              </div>
+            </li>
+            <li>
+              <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <rect width="14" height="20" x="5" y="2" rx="2" ry="2"/>
+                <path d="M12 18h.01"/>
+              </svg>
+              <div>
+                <strong>Technologie Préhistorique:</strong> Interfaces des années 90, incompatibilité mobile, expérience utilisateur désastreuse
+              </div>
+            </li>
+            <li>
+              <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <rect width="18" height="11" x="3" y="11" rx="2" ry="2"/>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+              </svg>
+              <div>
+                <strong>Enfermement Propriétaire:</strong> Verrouillage total, impossibilité de migrer, otage des fournisseurs
+              </div>
+            </li>
+            <li>
+              <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <circle cx="12" cy="12" r="10"/>
+                <polyline points="12 6 12 12 16 14"/>
+              </svg>
+              <div>
+                <strong>Déploiements Éternels:</strong> Projets de 5 ans, dépassements de budget systématiques, échecs répétés
+              </div>
+            </li>
+          </ul>
+        </div>
+
+        <!-- New System -->
+        <div class="comparison-card new-system">
+          <h3>
+            <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+              <path d="m9 11 3 3L22 4"/>
+            </svg>
+            WebOS Québec
+          </h3>
+          <ul class="comparison-list">
+            <li>
+              <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/>
+              </svg>
+              <div>
+                <strong>Vitesse Foudroyante:</strong> Interface instantanée, navigation fluide, productivité maximale dès le premier clic
+              </div>
+            </li>
+            <li>
+              <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                <circle cx="9" cy="7" r="4"/>
+                <path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
+              </svg>
+              <div>
+                <strong>100% Gratuit & Open Source:</strong> Zéro licence, code libre, économies de millions, transparence totale
+              </div>
+            </li>
+            <li>
+              <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/>
+              </svg>
+              <div>
+                <strong>Sécurité Militaire:</strong> Chiffrement de bout en bout, 2FA obligatoire, architecture zero-trust, protection maximale
+              </div>
+            </li>
+            <li>
+              <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                <polyline points="9 22 9 12 15 12 15 22"/>
+              </svg>
+              <div>
+                <strong>Souveraineté Totale:</strong> Données au Québec, contrôle local, indépendance technologique, fierté nationale
+              </div>
+            </li>
+            <li>
+              <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                <circle cx="12" cy="12" r="3"/>
+              </svg>
+              <div>
+                <strong>Auto-Maintenance:</strong> Mises à jour transparentes, bugs corrigés instantanément, système qui s'améliore seul
+              </div>
+            </li>
+            <li>
+              <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="M12 20h9M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/>
+              </svg>
+              <div>
+                <strong>Technologie 2025:</strong> Design moderne, IA intégrée, responsive parfait, expérience utilisateur exceptionnelle
+              </div>
+            </li>
+            <li>
+              <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <rect width="18" height="11" x="3" y="11" rx="2" ry="2"/>
+                <path d="M7 11V7a5 5 0 0 1 9.9-1"/>
+              </svg>
+              <div>
+                <strong>Liberté Totale:</strong> Code ouvert, APIs standards, interopérabilité parfaite, migration facile
+              </div>
+            </li>
+            <li>
+              <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/>
+              </svg>
+              <div>
+                <strong>Déploiement Immédiat:</strong> Opérationnel en heures, scalabilité instantanée, résultats immédiats
+              </div>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="features">
+      <div class="section-header">
+        <h2 style="color: white;">Construit pour l'Excellence</h2>
+        <p style="color: #cbd5e1;">WebOS Québec n'est pas qu'un système d'exploitation, c'est une révolution technologique</p>
+      </div>
+
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>
+              <path d="M19 3v4M21 5h-4"/>
+            </svg>
+          </div>
+          <h3>IA Locale Intégrée</h3>
+          <p>Llama 3.2 3B embarqué. Intelligence artificielle souveraine qui fonctionne 100% hors ligne. Vos données ne quittent jamais votre machine.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+            </svg>
+          </div>
+          <h3>Système de Fichiers OPFS</h3>
+          <p>Stockage moderne et performant directement dans le navigateur. Persistance garantie, vitesse maximale, compatibilité universelle.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/>
+            </svg>
+          </div>
+          <h3>Sécurité Inégalée</h3>
+          <p>Authentification Supabase, 2FA par SMS, chiffrement de bout en bout, RLS strict. Votre sécurité est notre priorité absolue.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <rect width="18" height="18" x="3" y="3" rx="2"/>
+              <path d="M9 3v18M15 9l-6 6M15 15l-6-6"/>
+            </svg>
+          </div>
+          <h3>Interface Intuitive</h3>
+          <p>Design moderne inspiré de macOS et Windows 11. Courbe d'apprentissage zéro, adoption immédiate par tous les utilisateurs.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <rect width="5" height="5" x="3" y="3" rx="1"/>
+              <rect width="5" height="5" x="16" y="3" rx="1"/>
+              <rect width="5" height="5" x="3" y="16" rx="1"/>
+              <rect width="5" height="5" x="16" y="16" rx="1"/>
+            </svg>
+          </div>
+          <h3>Architecture Modulaire</h3>
+          <p>Applications indépendantes, ajout facile de nouvelles fonctionnalités, personnalisation totale selon vos besoins.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path d="M5 13a2 2 0 0 1-2-2m2 2v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6m-14 0h14m-7 6v-6M9 3h6l1 9H8l1-9Z"/>
+            </svg>
+          </div>
+          <h3>Mode Hors Ligne PWA</h3>
+          <p>Fonctionne partout, même sans internet. Progressive Web App complète avec synchronisation automatique en arrière-plan.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <circle cx="11" cy="11" r="8"/>
+              <path d="m21 21-4.35-4.35"/>
+            </svg>
+          </div>
+          <h3>Moteur OSINT Avancé</h3>
+          <p>Recherche multi-sources, synthèse intelligente, scoring de fiabilité. Renseignement professionnel à portée de main.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+            </svg>
+          </div>
+          <h3>Messagerie Intégrée</h3>
+          <p>Communication sécurisée temps réel, conversations privées, intégration complète avec le système.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <line x1="18" x2="18" y1="20" y2="10"/>
+              <line x1="12" x2="12" y1="20" y2="4"/>
+              <line x1="6" x2="6" y1="20" y2="14"/>
+            </svg>
+          </div>
+          <h3>Portail Citoyen</h3>
+          <p>Accès centralisé aux services publics, démarches simplifiées, transparence gouvernementale maximale.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Stats Section -->
+    <section class="stats">
+      <div class="section-header">
+        <h2>Les Chiffres Parlent d'Eux-Mêmes</h2>
+        <p>WebOS Québec n'est pas une promesse, c'est une réalité mesurable</p>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-number">100%</div>
+          <div class="stat-label">Open Source & Gratuit</div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-number">10x</div>
+          <div class="stat-label">Plus Rapide</div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-number">0$</div>
+          <div class="stat-label">Coût de Licence</div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-number">24/7</div>
+          <div class="stat-label">Disponibilité</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Final CTA -->
+    <section class="final-cta">
+      <h2>Le Québec Mérite Mieux</h2>
+      <p>
+        Rejoignez la révolution technologique souveraine.
+        Construisons ensemble l'avenir numérique du Québec.
+      </p>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+      <div class="footer-content">
+        <div class="footer-logo">⚜️</div>
+        <div class="footer-title">WebOS Québec</div>
+        <div class="footer-tagline">Système d'Exploitation Souverain</div>
+
+        <div class="footer-message">
+          Par des rois. Pour le Québec.<br>
+          Durable, indestructible, évolutif — à jamais.
+        </div>
+
+        <div class="footer-copyright">
+          © 2025 WebOS Québec • Souveraineté Numérique • Fierté Québécoise
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>

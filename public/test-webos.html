@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WebOS Québec - Tests</title>
+  <style>
+    body { font-family: system-ui; max-width: 1200px; margin: 40px auto; padding: 20px; background: #f3f4f6; }
+    .header { background: linear-gradient(135deg, #1e40af, #3b82f6); color: white; padding: 30px; border-radius: 12px; margin-bottom: 30px; }
+    .test-section { background: white; padding: 20px; border-radius: 12px; margin-bottom: 20px; }
+    .test-item { display: flex; align-items: center; padding: 12px; border-bottom: 1px solid #e5e7eb; }
+    .status { width: 24px; height: 24px; border-radius: 50%; margin-right: 12px; display: flex; align-items: center; justify-content: center; font-weight: bold; color: white; }
+    .status.pass { background: #10b981; }
+    .status.fail { background: #ef4444; }
+    .status.warn { background: #f59e0b; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>⚜️ WebOS Québec - Tests de Compatibilité</h1>
+  </div>
+  <div class="test-section">
+    <h2>Tests Système</h2>
+    <div id="tests"></div>
+  </div>
+  <div style="text-align: center; margin-top: 30px;">
+    <button onclick="location.href='/webos-quebec.html'" style="background: linear-gradient(to right, #1e40af, #3b82f6); color: white; border: none; padding: 12px 24px; border-radius: 8px; font-size: 16px; cursor: pointer;">
+      Lancer WebOS →
+    </button>
+  </div>
+  <script>
+    const tests = [
+      { name: 'JavaScript ES6+', pass: typeof Promise !== 'undefined' },
+      { name: 'Service Worker', pass: 'serviceWorker' in navigator },
+      { name: 'OPFS', pass: !!navigator.storage?.getDirectory },
+      { name: 'WebAssembly', pass: typeof WebAssembly !== 'undefined' },
+      { name: 'WebGPU', pass: !!navigator.gpu, warn: !navigator.gpu },
+      { name: 'Fetch API', pass: typeof fetch !== 'undefined' },
+      { name: 'LocalStorage', pass: typeof localStorage !== 'undefined' },
+    ];
+    
+    document.getElementById('tests').innerHTML = tests.map(t => `
+      <div class="test-item">
+        <div class="status ${t.pass ? 'pass' : t.warn ? 'warn' : 'fail'}">${t.pass ? '✓' : t.warn ? '⚠' : '✗'}</div>
+        <div>${t.name}</div>
+      </div>
+    `).join('');
+  </script>
+</body>
+</html>

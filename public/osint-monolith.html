@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="fr-CA">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
+  <title>OSINT MONOLITH — Ultra-Advanced Multi-Source Intelligence</title>
+  <meta name="color-scheme" content="dark light" />
+  <meta name="theme-color" content="#0a0a0b" />
+  <style>
+    :root{
+      --bg1:#0a0a0b; --bg2:#121214; --bg3:#1a1a1d; --elev:#222225; --hov:#2a2a2e;
+      --ink:#e4e4e7; --mut:#a1a1aa; --hint:#71717a;
+      --acc:#3b82f6; --acc2:#2563eb; --acc3:#22d3ee;
+      --ok:#10b981; --wrn:#f59e0b; --err:#ef4444;
+      --brd:#27272a; --brd2:#3f3f46;
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    html,body{height:100%;font-family:system-ui,-apple-system,sans-serif;background:var(--bg1);color:var(--ink);overflow-x:hidden}
+
+    .app{min-height:100vh;display:flex;flex-direction:column;overflow-x:hidden;max-width:100vw}
+    .hdr{position:sticky;top:0;z-index:40;background:var(--bg2);border-bottom:1px solid var(--brd);padding:16px 24px;overflow:hidden;max-width:100vw}
+    .logo{font-size:18px;font-weight:700;color:var(--acc);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+    .main{flex:1;max-width:1400px;margin:0 auto;padding:24px;width:100%;overflow-x:hidden}
+    .panel{background:var(--bg2);border:1px solid var(--brd);border-radius:12px;padding:24px;margin-bottom:24px;overflow:hidden;width:100%}
+    .title{font-size:18px;font-weight:700;margin-bottom:16px;color:var(--acc);display:flex;align-items:center;flex-wrap:wrap;gap:8px}
+
+    .srch{display:flex;gap:12px;margin-bottom:24px;flex-wrap:wrap}
+    .q{flex:1;min-width:250px;padding:12px 16px;background:var(--bg3);border:1px solid var(--brd);border-radius:8px;color:var(--ink);font-size:15px;font-weight:400}
+    .q:focus{outline:none;border-color:var(--acc)}
+    .btn{padding:12px 24px;background:var(--acc);border:none;border-radius:8px;color:#fff;font-weight:600;cursor:pointer;white-space:nowrap;font-size:14px}
+    .btn:hover{background:var(--acc2)}
+    .btn:disabled{opacity:0.5;cursor:not-allowed}
+    .btn-news{background:var(--err);position:relative;overflow:hidden}
+    .btn-news:hover{background:#dc2626}
+    .btn-news::before{content:'';position:absolute;top:0;left:-100%;width:100%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.3),transparent);animation:shine 2s infinite}
+    @keyframes shine{to{left:100%}}
+    .news-badge{display:inline-block;padding:2px 6px;background:var(--err);color:#fff;border-radius:4px;font-size:10px;font-weight:700;text-transform:uppercase;margin-left:8px;animation:pulse 1.5s infinite}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.6}}
+
+    .chk{display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap;overflow-x:auto;padding:4px 0}
+    .chk label{display:flex;align-items:center;gap:6px;padding:6px 12px;background:var(--bg3);border:1px solid var(--brd);border-radius:6px;cursor:pointer;white-space:nowrap;font-size:13px;font-weight:500}
+    .chk input{cursor:pointer}
+
+    .results{display:grid;gap:16px;width:100%;overflow:hidden}
+    .res{background:var(--bg3);border:1px solid var(--brd);border-radius:12px;padding:20px;cursor:pointer;transition:all 0.2s;overflow:hidden;width:100%;max-width:100%}
+    .res:hover{background:var(--elev);border-color:var(--brd2);transform:translateY(-2px)}
+    .res-src{display:inline-block;padding:4px 10px;background:var(--acc);color:#fff;border-radius:6px;font-size:11px;font-weight:700;text-transform:uppercase;margin-bottom:10px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .res-title{font-size:17px;font-weight:700;color:var(--ink);margin-bottom:8px;line-height:1.4;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;word-break:break-word}
+    .res-snippet{color:var(--mut);line-height:1.6;margin-bottom:12px;font-size:14px;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;word-break:break-word}
+    .res-url{font-size:11px;color:var(--hint);font-family:'SF Mono',Monaco,monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%;display:block}
+    .res-meta{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap}
+    .badge{padding:4px 10px;background:var(--bg1);border:1px solid var(--brd);border-radius:6px;font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:150px}
+    .timestamp{display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--hint);margin-top:8px}
+    .timestamp svg{width:12px;height:12px}
+    .fresh{color:var(--ok)}
+    .recent{color:var(--wrn)}
+    .old{color:var(--hint)}
+
+    .schema{background:var(--bg3);border:1px solid var(--brd);border-radius:10px;padding:16px;margin-bottom:20px;overflow:hidden;width:100%}
+    .schema-title{font-size:13px;font-weight:700;color:var(--acc);text-transform:uppercase;margin-bottom:10px}
+    .schema-content{color:var(--mut);font-size:14px;line-height:1.6;word-break:break-word}
+    .entities{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+    .entity{padding:4px 10px;background:var(--bg1);border:1px solid var(--brd);border-radius:6px;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px}
+
+    .signals{background:linear-gradient(135deg,#422006,#713f12);border:1px solid var(--wrn);border-radius:10px;padding:16px;margin-bottom:20px;overflow:hidden;width:100%}
+    .signals-title{font-size:13px;font-weight:700;color:var(--wrn);text-transform:uppercase;margin-bottom:10px}
+    .signal{padding:6px 12px;background:rgba(0,0,0,0.3);color:var(--wrn);border-radius:6px;font-size:12px;font-weight:600;display:inline-block;margin:4px;white-space:nowrap}
+
+    .spin{display:inline-block;width:20px;height:20px;border:3px solid var(--brd);border-top-color:var(--acc);border-radius:50%;animation:spin 0.8s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
+
+    .empty{text-align:center;padding:60px 20px;color:var(--mut)}
+    .empty svg{margin:0 auto 20px;opacity:0.5}
+
+    @media (max-width: 768px) {
+      .main{padding:16px}
+      .panel{padding:16px}
+      .srch{flex-direction:column}
+      .q{min-width:100%}
+      .btn{width:100%}
+      .chk{gap:8px;font-size:12px}
+      .chk label{padding:5px 10px;font-size:12px}
+      .logo{font-size:16px}
+      .title{font-size:16px}
+      .res{padding:16px}
+      .res-title{font-size:16px}
+      .res-snippet{font-size:13px}
+    }
+
+    @media (max-width: 480px) {
+      .main{padding:12px}
+      .panel{padding:12px}
+      .hdr{padding:12px 16px}
+      .res-src{font-size:10px;padding:3px 8px}
+      .badge{font-size:11px;padding:3px 8px}
+    }
+
+    ::-webkit-scrollbar{width:8px;height:8px}
+    ::-webkit-scrollbar-track{background:var(--bg2)}
+    ::-webkit-scrollbar-thumb{background:var(--brd2);border-radius:4px}
+    ::-webkit-scrollbar-thumb:hover{background:var(--hint)}
+  </style>
+</head>
+<body>
+<div class="app">
+  <header class="hdr">
+    <div class="logo">⚡ OSINT MONOLITH — Multi-Source Intelligence</div>
+  </header>
+
+  <main class="main">
+    <div class="panel">
+      <div class="title">Search Intelligence Sources <span class="news-badge" id="news-indicator" style="display:none">ACTUALITÉS LIVE</span></div>
+      <div class="srch">
+        <input id="q" class="q" placeholder="Enter search query..." />
+        <button class="btn" id="go">Search</button>
+        <button class="btn btn-news" id="news-toggle">⚡ Mode Actualités</button>
+      </div>
+
+      <div class="chk">
+        <label><input type="checkbox" id="src_wiki" checked> Wikipedia</label>
+        <label><input type="checkbox" id="src_wd" checked> Wikidata</label>
+        <label><input type="checkbox" id="src_ddg" checked> DuckDuckGo</label>
+        <label><input type="checkbox" id="src_hn" checked> Hacker News</label>
+        <label><input type="checkbox" id="src_reddit" checked> Reddit</label>
+        <label><input type="checkbox" id="src_arxiv" checked> arXiv</label>
+        <div style="margin-left:auto;display:flex;gap:8px;align-items:center;">
+          <span style="color:var(--mut);font-size:14px;font-weight:600;">Langue:</span>
+          <label style="background:var(--acc);color:#fff;border-color:var(--acc);"><input type="radio" name="lang" value="fr" checked> FR</label>
+          <label><input type="radio" name="lang" value="en"> EN</label>
+        </div>
+      </div>
+      <div class="chk" style="margin-top:12px;padding-top:12px;border-top:1px solid var(--brd);">
+        <span style="color:var(--mut);font-size:14px;font-weight:600;">Fraîcheur:</span>
+        <label><input type="radio" name="freshness" value="all" checked> Tous</label>
+        <label><input type="radio" name="freshness" value="day"> 24h</label>
+        <label><input type="radio" name="freshness" value="week"> 7j</label>
+        <label><input type="radio" name="freshness" value="month"> 30j</label>
+        <label><input type="radio" name="freshness" value="year"> 1 an</label>
+      </div>
+    </div>
+
+    <div id="schema-container"></div>
+    <div id="signals-container"></div>
+    <div id="results" class="results"></div>
+  </main>
+</div>
+
+<script type="module">
+const $ = s => document.querySelector(s);
+const API_URL = 'https://gwcpuwihjouusnohkmcy.supabase.co/functions/v1/osint-aggregator';
+
+let newsMode = false;
+
+$('#news-toggle').addEventListener('click', () => {
+  newsMode = !newsMode;
+  const btn = $('#news-toggle');
+  const indicator = $('#news-indicator');
+
+  if (newsMode) {
+    btn.textContent = '📰 Mode Normal';
+    btn.classList.remove('btn-news');
+    btn.style.background = 'var(--ok)';
+    indicator.style.display = 'inline-block';
+  } else {
+    btn.textContent = '⚡ Mode Actualités';
+    btn.classList.add('btn-news');
+    btn.style.background = '';
+    indicator.style.display = 'none';
+  }
+});
+
+async function search() {
+  const query = $('#q').value.trim();
+  if (!query) return;
+
+  const sources = {
+    wikipedia: $('#src_wiki').checked,
+    wikidata: $('#src_wd').checked,
+    duckduckgo: $('#src_ddg').checked,
+    hackernews: $('#src_hn').checked,
+    reddit: $('#src_reddit').checked,
+    arxiv: $('#src_arxiv').checked
+  };
+
+  const lang = document.querySelector('input[name="lang"]:checked')?.value || 'fr';
+
+  const btn = $('#go');
+  btn.disabled = true;
+  btn.textContent = newsMode ? 'Recherche d\'actualités...' : 'Searching...';
+
+  $('#results').innerHTML = `<div class="empty"><div class="spin"></div><p>${newsMode ? 'Recherche des dernières actualités...' : 'Searching across multiple sources...'}</p></div>`;
+  $('#schema-container').innerHTML = '';
+  $('#signals-container').innerHTML = '';
+
+  try {
+    const response = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query, sources, lang, limit: 50, newsMode })
+    });
+
+    const data = await response.json();
+
+    if (data.error) {
+      $('#results').innerHTML = `<div class="empty"><p>Error: ${data.error}</p></div>`;
+      return;
+    }
+
+    let results = data.results || [];
+    const schema = data.schema || {};
+    const signals = data.signals || [];
+
+    results = filterResultsByFreshness(results);
+
+    if (results.length === 0) {
+      $('#results').innerHTML = '<div class="empty"><p>No results found. Try a different query or change freshness filter.</p></div>';
+      return;
+    }
+
+    renderSchema(schema);
+    renderSignals(signals);
+    renderResults(results);
+
+  } catch (error) {
+    console.error('Search error:', error);
+    $('#results').innerHTML = `<div class="empty"><p>Error: ${error.message}</p></div>`;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Search';
+  }
+}
+
+function filterResultsByFreshness(results) {
+  const freshness = document.querySelector('input[name="freshness"]:checked')?.value || 'all';
+  if (freshness === 'all') return results;
+
+  const now = new Date();
+  const cutoffs = {
+    day: 1,
+    week: 7,
+    month: 30,
+    year: 365
+  };
+
+  const maxDays = cutoffs[freshness];
+  if (!maxDays) return results;
+
+  return results.filter(r => {
+    if (!r.timestamp) return true;
+    const date = new Date(r.timestamp);
+    const diffDays = Math.floor((now - date) / (1000 * 60 * 60 * 24));
+    return diffDays <= maxDays;
+  });
+}
+
+function renderSchema(schema) {
+  if (!schema.sources || schema.sources.length === 0) return;
+
+  const entities = schema.entities || [];
+  const entitiesHTML = entities.length > 0
+    ? '<div class="entities">' + entities.map(e => `<span class="entity">${e.entity} (${e.count})</span>`).join('') + '</div>'
+    : '';
+
+  $('#schema-container').innerHTML = `
+    <div class="schema">
+      <div class="schema-title">Search Context</div>
+      <div class="schema-content">
+        <strong>Sources:</strong> ${schema.sources.join(', ')}<br>
+        <strong>Total Results:</strong> ${schema.total_results || 0}
+        ${entitiesHTML}
+      </div>
+    </div>
+  `;
+}
+
+function renderSignals(signals) {
+  if (signals.length === 0) return;
+
+  const signalsHTML = signals.map(s => `<span class="signal">${s.signal} ×${s.strength}</span>`).join('');
+
+  $('#signals-container').innerHTML = `
+    <div class="signals">
+      <div class="signals-title">Strong Signals (Repetition)</div>
+      ${signalsHTML}
+    </div>
+  `;
+}
+
+function formatTimestamp(timestamp) {
+  if (!timestamp) return null;
+
+  const date = new Date(timestamp);
+  const now = new Date();
+  const diffMs = now - date;
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+  const diffMinutes = Math.floor(diffMs / (1000 * 60));
+
+  let ageClass = 'old';
+  let ageText = '';
+
+  if (diffMinutes < 60) {
+    ageText = `${diffMinutes}m ago`;
+    ageClass = 'fresh';
+  } else if (diffHours < 24) {
+    ageText = `${diffHours}h ago`;
+    ageClass = 'fresh';
+  } else if (diffDays < 7) {
+    ageText = `${diffDays}d ago`;
+    ageClass = 'recent';
+  } else if (diffDays < 30) {
+    ageText = `${Math.floor(diffDays / 7)}w ago`;
+    ageClass = 'recent';
+  } else if (diffDays < 365) {
+    ageText = `${Math.floor(diffDays / 30)}mo ago`;
+    ageClass = 'old';
+  } else {
+    ageText = `${Math.floor(diffDays / 365)}y ago`;
+    ageClass = 'old';
+  }
+
+  return { ageClass, ageText, fullDate: date.toLocaleString() };
+}
+
+function renderResults(results) {
+  const sourceColors = {
+    'Wikipedia': '#3b82f6',
+    'Wikidata': '#8b5cf6',
+    'DuckDuckGo': '#ef4444',
+    'Hacker News': '#f97316',
+    'Reddit': '#ea580c',
+    'arXiv': '#10b981',
+    'Google News': '#ef4444',
+    'Bing News': '#0078d4'
+  };
+
+  const html = results.map(r => {
+    const color = sourceColors[r.source] || '#6b7280';
+    const metaHTML = [];
+
+    if (r.score) metaHTML.push(`<span class="badge">Score: ${r.score}</span>`);
+    if (r.metadata?.points) metaHTML.push(`<span class="badge">${r.metadata.points} pts</span>`);
+    if (r.metadata?.comments) metaHTML.push(`<span class="badge">${r.metadata.comments} comments</span>`);
+
+    let timestampHTML = '';
+    if (r.timestamp) {
+      const timeData = formatTimestamp(r.timestamp);
+      if (timeData) {
+        timestampHTML = `
+          <div class="timestamp ${timeData.ageClass}" title="${timeData.fullDate}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <polyline points="12 6 12 12 16 14"></polyline>
+            </svg>
+            ${timeData.ageText}
+          </div>
+        `;
+      }
+    }
+
+    return `
+      <div class="res" onclick="window.open('${r.url}', '_blank')">
+        <div class="res-src" style="background:${color}">${r.source}</div>
+        <div class="res-title">${r.title}</div>
+        <div class="res-snippet">${r.snippet || ''}</div>
+        <div class="res-url">${r.url}</div>
+        ${timestampHTML}
+        ${metaHTML.length > 0 ? `<div class="res-meta">${metaHTML.join('')}</div>` : ''}
+      </div>
+    `;
+  }).join('');
+
+  $('#results').innerHTML = html;
+}
+
+$('#go').addEventListener('click', search);
+$('#q').addEventListener('keypress', e => { if (e.key === 'Enter') search(); });
+
+console.log('OSINT MONOLITH Ready');
+</script>
+</body>
+</html>
