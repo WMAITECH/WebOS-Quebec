@@ -4730,19 +4730,222 @@
       },
 
       OSINT: {
-        async open() {
-          const content = `<iframe src="osint-monolith.html" style="width: 100%; height: 100%; border: none;"></iframe>`;
+        newsMode: false,
 
-          WindowManager.create('osint', 'OSINT MONOLITH - Multi-Source Intelligence', content, {
+        async open() {
+          const content = `
+            <style>
+              .osint-container { height: 100%; display: flex; flex-direction: column; background: #0a0a0b; color: #e4e4e7; overflow: hidden; }
+              .osint-header { padding: 16px 24px; background: #121214; border-bottom: 1px solid #27272a; }
+              .osint-logo { font-size: 18px; font-weight: 700; color: #3b82f6; }
+              .osint-main { flex: 1; padding: 24px; overflow-y: auto; }
+              .osint-panel { background: #121214; border: 1px solid #27272a; border-radius: 12px; padding: 24px; margin-bottom: 24px; }
+              .osint-title { font-size: 18px; font-weight: 700; margin-bottom: 16px; color: #3b82f6; display: flex; align-items: center; gap: 8px; }
+              .osint-search { display: flex; gap: 12px; margin-bottom: 24px; flex-wrap: wrap; }
+              .osint-input { flex: 1; min-width: 250px; padding: 12px 16px; background: #1a1a1d; border: 1px solid #27272a; border-radius: 8px; color: #e4e4e7; font-size: 15px; }
+              .osint-input:focus { outline: none; border-color: #3b82f6; }
+              .osint-btn { padding: 12px 24px; background: #3b82f6; border: none; border-radius: 8px; color: white; font-weight: 600; cursor: pointer; white-space: nowrap; font-size: 14px; }
+              .osint-btn:hover { background: #2563eb; }
+              .osint-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+              .osint-btn-news { background: #ef4444; position: relative; overflow: hidden; }
+              .osint-btn-news:hover { background: #dc2626; }
+              .osint-chk { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+              .osint-chk label { display: flex; align-items: center; gap: 6px; padding: 6px 12px; background: #1a1a1d; border: 1px solid #27272a; border-radius: 6px; cursor: pointer; white-space: nowrap; font-size: 13px; font-weight: 500; }
+              .osint-chk input { cursor: pointer; }
+              .osint-results { display: grid; gap: 16px; }
+              .osint-result { background: #1a1a1d; border: 1px solid #27272a; border-radius: 12px; padding: 20px; cursor: pointer; transition: all 0.2s; }
+              .osint-result:hover { background: #222225; border-color: #3f3f46; transform: translateY(-2px); }
+              .osint-result-src { display: inline-block; padding: 4px 10px; color: white; border-radius: 6px; font-size: 11px; font-weight: 700; text-transform: uppercase; margin-bottom: 10px; }
+              .osint-result-title { font-size: 17px; font-weight: 700; color: #e4e4e7; margin-bottom: 8px; line-height: 1.4; }
+              .osint-result-snippet { color: #a1a1aa; line-height: 1.6; margin-bottom: 12px; font-size: 14px; }
+              .osint-result-url { font-size: 11px; color: #71717a; font-family: monospace; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+              .osint-empty { text-align: center; padding: 60px 20px; color: #a1a1aa; }
+              .osint-spinner { display: inline-block; width: 20px; height: 20px; border: 3px solid #27272a; border-top-color: #3b82f6; border-radius: 50%; animation: spin 0.8s linear infinite; }
+              @keyframes spin { to { transform: rotate(360deg); } }
+              .osint-badge { padding: 4px 10px; background: #0a0a0b; border: 1px solid #27272a; border-radius: 6px; font-size: 12px; font-weight: 600; white-space: nowrap; display: inline-block; margin-right: 8px; margin-top: 8px; }
+            </style>
+            <div class="osint-container">
+              <div class="osint-main">
+                <div class="osint-panel">
+                  <div class="osint-title">Recherche Multi-Sources Intelligence</div>
+                  <div class="osint-search">
+                    <input id="osint-query" class="osint-input" placeholder="Entrez votre requête de recherche..." />
+                    <button class="osint-btn" id="osint-search-btn">Rechercher</button>
+                    <button class="osint-btn osint-btn-news" id="osint-news-toggle">⚡ Mode Actualités</button>
+                  </div>
+                  <div class="osint-chk">
+                    <label><input type="checkbox" id="src_wiki" checked> Wikipedia</label>
+                    <label><input type="checkbox" id="src_wd" checked> Wikidata</label>
+                    <label><input type="checkbox" id="src_ddg" checked> DuckDuckGo</label>
+                    <label><input type="checkbox" id="src_hn" checked> Hacker News</label>
+                    <label><input type="checkbox" id="src_reddit" checked> Reddit</label>
+                    <label><input type="checkbox" id="src_arxiv" checked> arXiv</label>
+                    <div style="margin-left:auto;display:flex;gap:8px;align-items:center;">
+                      <span style="color:#a1a1aa;font-size:14px;font-weight:600;">Langue:</span>
+                      <label style="background:#3b82f6;color:white;border-color:#3b82f6;"><input type="radio" name="osint_lang" value="fr" checked> FR</label>
+                      <label><input type="radio" name="osint_lang" value="en"> EN</label>
+                    </div>
+                  </div>
+                  <div class="osint-chk" style="margin-top:12px;padding-top:12px;border-top:1px solid #27272a;">
+                    <span style="color:#a1a1aa;font-size:14px;font-weight:600;">Fraîcheur:</span>
+                    <label><input type="radio" name="osint_fresh" value="all" checked> Tous</label>
+                    <label><input type="radio" name="osint_fresh" value="day"> 24h</label>
+                    <label><input type="radio" name="osint_fresh" value="week"> 7j</label>
+                    <label><input type="radio" name="osint_fresh" value="month"> 30j</label>
+                    <label><input type="radio" name="osint_fresh" value="year"> 1 an</label>
+                  </div>
+                </div>
+                <div id="osint-results-container" class="osint-results"></div>
+              </div>
+            </div>
+          `;
+
+          WindowManager.create('osint', 'OSINT Intelligence Multi-Sources', content, {
             width: 1400,
-            height: 900,
-            onClose: () => {
-              const root = document.getElementById('osint-app-root');
-              if (root) {
-                root.innerHTML = '';
-              }
-            }
+            height: 900
           });
+
+          setTimeout(() => {
+            const searchBtn = document.getElementById('osint-search-btn');
+            const newsToggle = document.getElementById('osint-news-toggle');
+            const queryInput = document.getElementById('osint-query');
+
+            if (newsToggle) {
+              newsToggle.addEventListener('click', () => {
+                this.newsMode = !this.newsMode;
+                newsToggle.textContent = this.newsMode ? '📰 Mode Normal' : '⚡ Mode Actualités';
+                newsToggle.style.background = this.newsMode ? '#10b981' : '#ef4444';
+              });
+            }
+
+            if (searchBtn) {
+              searchBtn.addEventListener('click', () => this.search());
+            }
+
+            if (queryInput) {
+              queryInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') this.search();
+              });
+            }
+          }, 100);
+        },
+
+        async search() {
+          const query = document.getElementById('osint-query')?.value.trim();
+          if (!query) return;
+
+          const sources = {
+            wikipedia: document.getElementById('src_wiki')?.checked || false,
+            wikidata: document.getElementById('src_wd')?.checked || false,
+            duckduckgo: document.getElementById('src_ddg')?.checked || false,
+            hackernews: document.getElementById('src_hn')?.checked || false,
+            reddit: document.getElementById('src_reddit')?.checked || false,
+            arxiv: document.getElementById('src_arxiv')?.checked || false
+          };
+
+          const lang = document.querySelector('input[name="osint_lang"]:checked')?.value || 'fr';
+          const freshness = document.querySelector('input[name="osint_fresh"]:checked')?.value || 'all';
+
+          const btn = document.getElementById('osint-search-btn');
+          const container = document.getElementById('osint-results-container');
+
+          if (btn) btn.disabled = true;
+          if (btn) btn.textContent = 'Recherche en cours...';
+          if (container) container.innerHTML = '<div class="osint-empty"><div class="osint-spinner"></div><p>Recherche en cours...</p></div>';
+
+          try {
+            const response = await fetch(`${CONFIG.supabase.url}/functions/v1/osint-aggregator`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${CONFIG.supabase.anonKey}`
+              },
+              body: JSON.stringify({ query, sources, lang, limit: 50, newsMode: this.newsMode })
+            });
+
+            const data = await response.json();
+
+            if (data.error) {
+              if (container) container.innerHTML = `<div class="osint-empty"><p>Erreur: ${data.error}</p></div>`;
+              return;
+            }
+
+            let results = data.results || [];
+            results = this.filterResultsByFreshness(results, freshness);
+
+            if (results.length === 0) {
+              if (container) container.innerHTML = '<div class="osint-empty"><p>Aucun résultat trouvé. Essayez une autre requête.</p></div>';
+              return;
+            }
+
+            this.renderResults(results, container);
+
+            if (currentUser) {
+              await supabaseClient.from('osint_searches').insert([{
+                user_id: currentUser.id,
+                query: query,
+                sources_used: Object.keys(sources).filter(k => sources[k]),
+                results_count: results.length,
+                language: lang
+              }]);
+            }
+
+          } catch (error) {
+            console.error('OSINT search error:', error);
+            if (container) container.innerHTML = `<div class="osint-empty"><p>Erreur: ${error.message}</p></div>`;
+          } finally {
+            if (btn) btn.disabled = false;
+            if (btn) btn.textContent = 'Rechercher';
+          }
+        },
+
+        filterResultsByFreshness(results, freshness) {
+          if (freshness === 'all') return results;
+
+          const now = new Date();
+          const cutoffs = { day: 1, week: 7, month: 30, year: 365 };
+          const maxDays = cutoffs[freshness];
+          if (!maxDays) return results;
+
+          return results.filter(r => {
+            if (!r.timestamp) return true;
+            const date = new Date(r.timestamp);
+            const diffDays = Math.floor((now - date) / (1000 * 60 * 60 * 24));
+            return diffDays <= maxDays;
+          });
+        },
+
+        renderResults(results, container) {
+          const sourceColors = {
+            'Wikipedia': '#3b82f6',
+            'Wikidata': '#8b5cf6',
+            'DuckDuckGo': '#ef4444',
+            'Hacker News': '#f97316',
+            'Reddit': '#ea580c',
+            'arXiv': '#10b981',
+            'Google News': '#ef4444',
+            'Bing News': '#0078d4'
+          };
+
+          const html = results.map(r => {
+            const color = sourceColors[r.source] || '#6b7280';
+            const badges = [];
+            if (r.score) badges.push(`<span class="osint-badge">Score: ${r.score}</span>`);
+            if (r.metadata?.points) badges.push(`<span class="osint-badge">${r.metadata.points} pts</span>`);
+            if (r.metadata?.comments) badges.push(`<span class="osint-badge">${r.metadata.comments} commentaires</span>`);
+
+            return `
+              <div class="osint-result" onclick="window.open('${r.url}', '_blank')">
+                <div class="osint-result-src" style="background:${color}">${r.source}</div>
+                <div class="osint-result-title">${r.title}</div>
+                <div class="osint-result-snippet">${r.snippet || ''}</div>
+                <div class="osint-result-url">${r.url}</div>
+                ${badges.length > 0 ? '<div>' + badges.join('') + '</div>' : ''}
+              </div>
+            `;
+          }).join('');
+
+          if (container) container.innerHTML = html;
         }
       },
 
@@ -6779,9 +6982,359 @@
       }, 100);
     }
 
-    function openProfileSettings() {
-      const content = `<iframe src="profile-settings.html" style="width: 100%; height: 100%; border: none;"></iframe>`;
+    async function openProfileSettings() {
+      if (!currentUser) {
+        alert('Vous devez être connecté');
+        return;
+      }
+
+      // Charger le profil utilisateur
+      const { data: userProfile } = await supabaseClient
+        .from('users')
+        .select('*')
+        .eq('id', currentUser.id)
+        .maybeSingle();
+
+      const profile = userProfile || {};
+
+      const content = `
+        <style>
+          .profile-container { padding: 24px; background: #09090b; color: #fafafa; height: 100%; overflow-y: auto; }
+          .profile-section { background: #18181b; border: 1px solid #27272a; border-radius: 12px; padding: 24px; margin-bottom: 24px; }
+          .profile-section-title { font-size: 18px; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+          .profile-info-row { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #27272a; }
+          .profile-info-row:last-child { border-bottom: none; }
+          .profile-info-label { color: #a1a1aa; font-size: 14px; }
+          .profile-info-value { font-weight: 600; }
+          .profile-badge { display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; border-radius: 6px; font-size: 12px; font-weight: 600; }
+          .profile-badge.success { background: #10b98120; color: #10b981; }
+          .profile-badge.warning { background: #f59e0b20; color: #f59e0b; }
+          .profile-phone-section { background: #27272a; border-radius: 8px; padding: 16px; margin-top: 16px; }
+          .profile-input-group { margin-bottom: 16px; }
+          .profile-input-group label { display: block; font-size: 14px; font-weight: 600; color: #a1a1aa; margin-bottom: 8px; }
+          .profile-input-group input { width: 100%; padding: 12px; background: #09090b; border: 1px solid #3f3f46; border-radius: 8px; color: #fafafa; font-size: 15px; outline: none; }
+          .profile-input-group input:focus { border-color: #3b82f6; }
+          .profile-btn { padding: 12px 24px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; transition: opacity 0.2s; font-size: 15px; width: 100%; }
+          .profile-btn:hover { opacity: 0.9; }
+          .profile-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+          .profile-btn-primary { background: #3b82f6; color: white; }
+          .profile-btn-success { background: #10b981; color: white; }
+          .profile-btn-danger { background: #ef4444; color: white; }
+          .profile-btn-secondary { background: transparent; color: #a1a1aa; border: 1px solid #3f3f46; }
+          .profile-alert { padding: 12px 16px; border-radius: 8px; margin-bottom: 16px; display: flex; align-items: start; gap: 12px; }
+          .profile-alert.error { background: #ef444420; border: 1px solid #ef444440; color: #ef4444; }
+          .profile-alert.success { background: #10b98120; border: 1px solid #10b98140; color: #10b981; }
+          .profile-toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 16px 0; }
+          .profile-toggle-label { font-weight: 600; }
+          .profile-toggle-desc { font-size: 13px; color: #a1a1aa; margin-top: 4px; }
+          .profile-switch { position: relative; width: 48px; height: 24px; background: #27272a; border-radius: 12px; cursor: pointer; transition: background 0.2s; }
+          .profile-switch.active { background: #10b981; }
+          .profile-switch.disabled { opacity: 0.5; cursor: not-allowed; }
+          .profile-switch::after { content: ''; position: absolute; top: 2px; left: 2px; width: 20px; height: 20px; background: white; border-radius: 50%; transition: transform 0.2s; }
+          .profile-switch.active::after { transform: translateX(24px); }
+        </style>
+        <div class="profile-container">
+          <div class="profile-section">
+            <div class="profile-section-title">Informations du compte</div>
+            <div class="profile-info-row">
+              <span class="profile-info-label">Email</span>
+              <span class="profile-info-value">${currentUser.email}</span>
+            </div>
+            <div class="profile-info-row">
+              <span class="profile-info-label">ID Utilisateur</span>
+              <span class="profile-info-value" style="font-size:12px;font-family:monospace">${currentUser.id.substring(0, 8)}...</span>
+            </div>
+            <div class="profile-info-row">
+              <span class="profile-info-label">Nom complet</span>
+              <span class="profile-info-value">${profile.full_name || '<span style="color:#71717a">Non défini</span>'}</span>
+            </div>
+            <div id="nameEditContainer" class="profile-phone-section" style="display:none">
+              <div id="nameAlertContainer"></div>
+              <div class="profile-input-group">
+                <label>Nouveau nom complet</label>
+                <input type="text" id="nameInput" placeholder="Votre nom complet" value="${profile.full_name || ''}" />
+              </div>
+              <button class="profile-btn profile-btn-primary" style="margin-bottom:12px" id="saveNameBtn">
+                Enregistrer
+              </button>
+              <button class="profile-btn profile-btn-secondary" id="cancelNameBtn">
+                Annuler
+              </button>
+            </div>
+            <div style="margin-top:16px">
+              <button class="profile-btn profile-btn-primary" id="editNameBtn">
+                Modifier le nom
+              </button>
+            </div>
+          </div>
+
+          <div class="profile-section">
+            <div class="profile-section-title">Sécurité - Authentification à deux facteurs</div>
+            <div class="profile-toggle-row">
+              <div>
+                <div class="profile-toggle-label">Double authentification (2FA)</div>
+                <div class="profile-toggle-desc">
+                  ${profile.two_factor_enabled ? 'Activée - Code SMS requis à la connexion' : 'Désactivée - Nécessite un numéro vérifié'}
+                </div>
+              </div>
+              <div class="profile-switch ${profile.two_factor_enabled ? 'active' : ''} ${!profile.phone_verified ? 'disabled' : ''}" id="toggle2FASwitch"></div>
+            </div>
+          </div>
+
+          <div class="profile-section">
+            <div class="profile-section-title">Numéro de téléphone</div>
+            ${profile.phone_number ? `
+              <div class="profile-info-row">
+                <span class="profile-info-label">Numéro</span>
+                <span class="profile-info-value">${profile.phone_number}</span>
+              </div>
+              <div class="profile-info-row">
+                <span class="profile-info-label">Statut</span>
+                <span class="profile-badge ${profile.phone_verified ? 'success' : 'warning'}">
+                  ${profile.phone_verified ? '✓ Vérifié' : '⚠ Non vérifié'}
+                </span>
+              </div>
+              ${!profile.phone_verified ? `
+                <div class="profile-phone-section">
+                  <button class="profile-btn profile-btn-primary" id="resendBtn">
+                    Renvoyer le code de vérification
+                  </button>
+                </div>
+              ` : ''}
+              <div class="profile-phone-section">
+                <button class="profile-btn profile-btn-danger" id="removePhoneBtn">
+                  Retirer le numéro
+                </button>
+              </div>
+            ` : `
+              <div class="profile-phone-section">
+                <div id="phoneAlertContainer"></div>
+                <div class="profile-input-group">
+                  <label>Numéro de téléphone</label>
+                  <input type="tel" id="phoneInput" placeholder="+1 514-555-0123" />
+                  <div style="font-size: 12px; color: #71717a; margin-top: 4px;">Format: +1 XXX-XXX-XXXX (Québec/Canada)</div>
+                </div>
+                <button class="profile-btn profile-btn-primary" id="sendCodeBtn">
+                  Envoyer le code de vérification
+                </button>
+              </div>
+            `}
+          </div>
+        </div>
+      `;
+
       WindowManager.create('profile-settings', 'Profil & Sécurité', content, { width: 700, height: 800 });
+
+      setTimeout(() => {
+        // Modification du nom
+        const editBtn = document.getElementById('editNameBtn');
+        const saveBtn = document.getElementById('saveNameBtn');
+        const cancelBtn = document.getElementById('cancelNameBtn');
+        const nameEditContainer = document.getElementById('nameEditContainer');
+
+        if (editBtn) {
+          editBtn.addEventListener('click', () => {
+            editBtn.style.display = 'none';
+            nameEditContainer.style.display = 'block';
+          });
+        }
+
+        if (cancelBtn) {
+          cancelBtn.addEventListener('click', () => {
+            nameEditContainer.style.display = 'none';
+            editBtn.style.display = 'block';
+          });
+        }
+
+        if (saveBtn) {
+          saveBtn.addEventListener('click', async () => {
+            const nameInput = document.getElementById('nameInput');
+            const newName = nameInput?.value.trim();
+            const alertContainer = document.getElementById('nameAlertContainer');
+
+            if (!newName) {
+              if (alertContainer) alertContainer.innerHTML = '<div class="profile-alert error">Le nom ne peut pas être vide</div>';
+              return;
+            }
+
+            try {
+              const { error } = await supabaseClient
+                .from('users')
+                .update({ full_name: newName })
+                .eq('id', currentUser.id);
+
+              if (error) throw error;
+
+              if (alertContainer) alertContainer.innerHTML = '<div class="profile-alert success">Nom mis à jour avec succès</div>';
+              setTimeout(() => {
+                WindowManager.close('profile-settings');
+                openProfileSettings();
+              }, 1500);
+            } catch (error) {
+              if (alertContainer) alertContainer.innerHTML = `<div class="profile-alert error">Erreur: ${error.message}</div>`;
+            }
+          });
+        }
+
+        // Toggle 2FA
+        const toggle2FA = document.getElementById('toggle2FASwitch');
+        if (toggle2FA && profile.phone_verified) {
+          toggle2FA.addEventListener('click', async () => {
+            const newValue = !profile.two_factor_enabled;
+            try {
+              const { error } = await supabaseClient
+                .from('users')
+                .update({ two_factor_enabled: newValue })
+                .eq('id', currentUser.id);
+
+              if (error) throw error;
+
+              await Notifications.createNotification(
+                '2FA ' + (newValue ? 'Activée' : 'Désactivée'),
+                'Double authentification ' + (newValue ? 'activée' : 'désactivée'),
+                'success',
+                'security'
+              );
+
+              setTimeout(() => {
+                WindowManager.close('profile-settings');
+                openProfileSettings();
+              }, 1000);
+            } catch (error) {
+              alert('Erreur: ' + error.message);
+            }
+          });
+        }
+
+        // Envoyer code de vérification
+        const sendCodeBtn = document.getElementById('sendCodeBtn');
+        if (sendCodeBtn) {
+          sendCodeBtn.addEventListener('click', async () => {
+            const phoneInput = document.getElementById('phoneInput');
+            const phone = phoneInput?.value.trim();
+            const alertContainer = document.getElementById('phoneAlertContainer');
+
+            if (!phone) {
+              if (alertContainer) alertContainer.innerHTML = '<div class="profile-alert error">Le numéro de téléphone est requis</div>';
+              return;
+            }
+
+            try {
+              sendCodeBtn.disabled = true;
+              sendCodeBtn.textContent = 'Envoi en cours...';
+
+              const response = await fetch(`${CONFIG.supabase.url}/functions/v1/send-sms-verification`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${CONFIG.supabase.anonKey}`
+                },
+                body: JSON.stringify({ phone_number: phone })
+              });
+
+              const data = await response.json();
+
+              if (data.error) {
+                throw new Error(data.error);
+              }
+
+              if (alertContainer) alertContainer.innerHTML = '<div class="profile-alert success">Code de vérification envoyé!</div>';
+
+              // Sauvegarder le numéro
+              await supabaseClient
+                .from('users')
+                .update({ phone_number: phone, phone_verified: false })
+                .eq('id', currentUser.id);
+
+              setTimeout(() => {
+                WindowManager.close('profile-settings');
+                openProfileSettings();
+              }, 1500);
+
+            } catch (error) {
+              if (alertContainer) alertContainer.innerHTML = `<div class="profile-alert error">Erreur: ${error.message}</div>`;
+            } finally {
+              sendCodeBtn.disabled = false;
+              sendCodeBtn.textContent = 'Envoyer le code de vérification';
+            }
+          });
+        }
+
+        // Retirer le numéro
+        const removePhoneBtn = document.getElementById('removePhoneBtn');
+        if (removePhoneBtn) {
+          removePhoneBtn.addEventListener('click', async () => {
+            if (!confirm('Êtes-vous sûr de vouloir retirer votre numéro de téléphone?')) return;
+
+            try {
+              const { error } = await supabaseClient
+                .from('users')
+                .update({ phone_number: null, phone_verified: false, two_factor_enabled: false })
+                .eq('id', currentUser.id);
+
+              if (error) throw error;
+
+              await Notifications.createNotification(
+                'Numéro retiré',
+                'Votre numéro de téléphone a été retiré',
+                'info',
+                'security'
+              );
+
+              setTimeout(() => {
+                WindowManager.close('profile-settings');
+                openProfileSettings();
+              }, 1000);
+            } catch (error) {
+              alert('Erreur: ' + error.message);
+            }
+          });
+        }
+
+        // Renvoyer code
+        const resendBtn = document.getElementById('resendBtn');
+        if (resendBtn) {
+          resendBtn.addEventListener('click', async () => {
+            try {
+              resendBtn.disabled = true;
+              resendBtn.textContent = 'Envoi en cours...';
+
+              const response = await fetch(`${CONFIG.supabase.url}/functions/v1/send-sms-verification`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${CONFIG.supabase.anonKey}`
+                },
+                body: JSON.stringify({ phone_number: profile.phone_number })
+              });
+
+              const data = await response.json();
+
+              if (data.error) {
+                throw new Error(data.error);
+              }
+
+              await Notifications.createNotification(
+                'Code envoyé',
+                'Un nouveau code a été envoyé',
+                'success',
+                'security'
+              );
+
+              resendBtn.textContent = 'Code envoyé!';
+              setTimeout(() => {
+                resendBtn.disabled = false;
+                resendBtn.textContent = 'Renvoyer le code de vérification';
+              }, 3000);
+
+            } catch (error) {
+              alert('Erreur: ' + error.message);
+              resendBtn.disabled = false;
+              resendBtn.textContent = 'Renvoyer le code de vérification';
+            }
+          });
+        }
+      }, 100);
     }
 
     // ============================================
