@@ -4763,11 +4763,26 @@
               .osint-spinner { display: inline-block; width: 20px; height: 20px; border: 3px solid #27272a; border-top-color: #3b82f6; border-radius: 50%; animation: spin 0.8s linear infinite; }
               @keyframes spin { to { transform: rotate(360deg); } }
               .osint-badge { padding: 4px 10px; background: #0a0a0b; border: 1px solid #27272a; border-radius: 6px; font-size: 12px; font-weight: 600; white-space: nowrap; display: inline-block; margin-right: 8px; margin-top: 8px; }
+              .osint-schema { background: #1a1a1d; border: 1px solid #27272a; border-radius: 10px; padding: 16px; margin-bottom: 20px; }
+              .osint-schema-title { font-size: 13px; font-weight: 700; color: #3b82f6; text-transform: uppercase; margin-bottom: 10px; }
+              .osint-schema-content { color: #a1a1aa; font-size: 14px; line-height: 1.6; }
+              .osint-entities { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+              .osint-entity { padding: 4px 10px; background: #0a0a0b; border: 1px solid #27272a; border-radius: 6px; font-size: 12px; white-space: nowrap; }
+              .osint-signals { background: linear-gradient(135deg, #422006, #713f12); border: 1px solid #f59e0b; border-radius: 10px; padding: 16px; margin-bottom: 20px; }
+              .osint-signals-title { font-size: 13px; font-weight: 700; color: #f59e0b; text-transform: uppercase; margin-bottom: 10px; }
+              .osint-signal { padding: 6px 12px; background: rgba(0,0,0,0.3); color: #f59e0b; border-radius: 6px; font-size: 12px; font-weight: 600; display: inline-block; margin: 4px; }
+              .osint-timestamp { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; color: #71717a; margin-top: 8px; }
+              .osint-timestamp svg { width: 12px; height: 12px; }
+              .osint-timestamp.fresh { color: #10b981; }
+              .osint-timestamp.recent { color: #f59e0b; }
+              .osint-timestamp.old { color: #71717a; }
+              .osint-news-badge { display: inline-block; padding: 2px 6px; background: #ef4444; color: white; border-radius: 4px; font-size: 10px; font-weight: 700; text-transform: uppercase; margin-left: 8px; animation: pulse 1.5s infinite; }
+              @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
             </style>
             <div class="osint-container">
               <div class="osint-main">
                 <div class="osint-panel">
-                  <div class="osint-title">Recherche Multi-Sources Intelligence</div>
+                  <div class="osint-title">Recherche Multi-Sources Intelligence <span class="osint-news-badge" id="osint-news-indicator" style="display:none">ACTUALITÉS LIVE</span></div>
                   <div class="osint-search">
                     <input id="osint-query" class="osint-input" placeholder="Entrez votre requête de recherche..." />
                     <button class="osint-btn" id="osint-search-btn">Rechercher</button>
@@ -4795,6 +4810,8 @@
                     <label><input type="radio" name="osint_fresh" value="year"> 1 an</label>
                   </div>
                 </div>
+                <div id="osint-schema-container"></div>
+                <div id="osint-signals-container"></div>
                 <div id="osint-results-container" class="osint-results"></div>
               </div>
             </div>
@@ -4809,12 +4826,22 @@
             const searchBtn = document.getElementById('osint-search-btn');
             const newsToggle = document.getElementById('osint-news-toggle');
             const queryInput = document.getElementById('osint-query');
+            const newsIndicator = document.getElementById('osint-news-indicator');
 
             if (newsToggle) {
               newsToggle.addEventListener('click', () => {
                 this.newsMode = !this.newsMode;
-                newsToggle.textContent = this.newsMode ? '📰 Mode Normal' : '⚡ Mode Actualités';
-                newsToggle.style.background = this.newsMode ? '#10b981' : '#ef4444';
+                if (this.newsMode) {
+                  newsToggle.textContent = '📰 Mode Normal';
+                  newsToggle.style.background = '#10b981';
+                  newsToggle.classList.remove('osint-btn-news');
+                  if (newsIndicator) newsIndicator.style.display = 'inline-block';
+                } else {
+                  newsToggle.textContent = '⚡ Mode Actualités';
+                  newsToggle.style.background = '#ef4444';
+                  newsToggle.classList.add('osint-btn-news');
+                  if (newsIndicator) newsIndicator.style.display = 'none';
+                }
               });
             }
 
@@ -4848,10 +4875,14 @@
 
           const btn = document.getElementById('osint-search-btn');
           const container = document.getElementById('osint-results-container');
+          const schemaContainer = document.getElementById('osint-schema-container');
+          const signalsContainer = document.getElementById('osint-signals-container');
 
           if (btn) btn.disabled = true;
           if (btn) btn.textContent = 'Recherche en cours...';
           if (container) container.innerHTML = '<div class="osint-empty"><div class="osint-spinner"></div><p>Recherche en cours...</p></div>';
+          if (schemaContainer) schemaContainer.innerHTML = '';
+          if (signalsContainer) signalsContainer.innerHTML = '';
 
           try {
             const response = await fetch(`${CONFIG.supabase.url}/functions/v1/osint-aggregator`, {
@@ -4871,6 +4902,9 @@
             }
 
             let results = data.results || [];
+            const schema = data.schema || {};
+            const signals = data.signals || [];
+
             results = this.filterResultsByFreshness(results, freshness);
 
             if (results.length === 0) {
@@ -4878,6 +4912,8 @@
               return;
             }
 
+            this.renderSchema(schema, schemaContainer);
+            this.renderSignals(signals, signalsContainer);
             this.renderResults(results, container);
 
             if (currentUser) {
@@ -4897,6 +4933,79 @@
             if (btn) btn.disabled = false;
             if (btn) btn.textContent = 'Rechercher';
           }
+        },
+
+        renderSchema(schema, container) {
+          if (!schema.sources || schema.sources.length === 0) return;
+
+          const entities = schema.entities || [];
+          const entitiesHTML = entities.length > 0
+            ? '<div class="osint-entities">' + entities.map(e => `<span class="osint-entity">${e.entity} (${e.count})</span>`).join('') + '</div>'
+            : '';
+
+          if (container) {
+            container.innerHTML = `
+              <div class="osint-schema">
+                <div class="osint-schema-title">Contexte de Recherche</div>
+                <div class="osint-schema-content">
+                  <strong>Sources:</strong> ${schema.sources.join(', ')}<br>
+                  <strong>Total Résultats:</strong> ${schema.total_results || 0}
+                  ${entitiesHTML}
+                </div>
+              </div>
+            `;
+          }
+        },
+
+        renderSignals(signals, container) {
+          if (!signals || signals.length === 0) return;
+
+          const signalsHTML = signals.map(s => `<span class="osint-signal">${s.signal} ×${s.strength}</span>`).join('');
+
+          if (container) {
+            container.innerHTML = `
+              <div class="osint-signals">
+                <div class="osint-signals-title">Signaux Forts (Répétition)</div>
+                ${signalsHTML}
+              </div>
+            `;
+          }
+        },
+
+        formatTimestamp(timestamp) {
+          if (!timestamp) return null;
+
+          const date = new Date(timestamp);
+          const now = new Date();
+          const diffMs = now - date;
+          const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+          const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+          const diffMinutes = Math.floor(diffMs / (1000 * 60));
+
+          let ageClass = 'old';
+          let ageText = '';
+
+          if (diffMinutes < 60) {
+            ageText = `${diffMinutes}m`;
+            ageClass = 'fresh';
+          } else if (diffHours < 24) {
+            ageText = `${diffHours}h`;
+            ageClass = 'fresh';
+          } else if (diffDays < 7) {
+            ageText = `${diffDays}j`;
+            ageClass = 'recent';
+          } else if (diffDays < 30) {
+            ageText = `${Math.floor(diffDays / 7)}sem`;
+            ageClass = 'recent';
+          } else if (diffDays < 365) {
+            ageText = `${Math.floor(diffDays / 30)}mois`;
+            ageClass = 'old';
+          } else {
+            ageText = `${Math.floor(diffDays / 365)}an`;
+            ageClass = 'old';
+          }
+
+          return { ageClass, ageText, fullDate: date.toLocaleString('fr-CA') };
         },
 
         filterResultsByFreshness(results, freshness) {
@@ -4934,12 +5043,29 @@
             if (r.metadata?.points) badges.push(`<span class="osint-badge">${r.metadata.points} pts</span>`);
             if (r.metadata?.comments) badges.push(`<span class="osint-badge">${r.metadata.comments} commentaires</span>`);
 
+            let timestampHTML = '';
+            if (r.timestamp) {
+              const timeData = this.formatTimestamp(r.timestamp);
+              if (timeData) {
+                timestampHTML = `
+                  <div class="osint-timestamp ${timeData.ageClass}" title="${timeData.fullDate}">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <circle cx="12" cy="12" r="10"></circle>
+                      <polyline points="12 6 12 12 16 14"></polyline>
+                    </svg>
+                    ${timeData.ageText}
+                  </div>
+                `;
+              }
+            }
+
             return `
               <div class="osint-result" onclick="window.open('${r.url}', '_blank')">
                 <div class="osint-result-src" style="background:${color}">${r.source}</div>
                 <div class="osint-result-title">${r.title}</div>
                 <div class="osint-result-snippet">${r.snippet || ''}</div>
                 <div class="osint-result-url">${r.url}</div>
+                ${timestampHTML}
                 ${badges.length > 0 ? '<div>' + badges.join('') + '</div>' : ''}
               </div>
             `;
