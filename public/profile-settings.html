@@ -147,6 +147,25 @@
       font-size:13px; color:var(--mut);
       line-height:1.5;
     }
+    .danger-zone {
+      background:#450a0a; border:1px solid #991b1b;
+      border-radius:12px; padding:20px; margin-top:16px;
+    }
+    .danger-zone-title {
+      color:#fca5a5; font-weight:700; font-size:18px;
+      margin-bottom:8px; display:flex; align-items:center; gap:8px;
+    }
+    .danger-zone-text {
+      color:#fecaca; font-size:13px; line-height:1.5;
+      margin-bottom:16px;
+    }
+    .confirm-input {
+      width:100%; padding:12px; background:var(--bg1);
+      border:1px solid #991b1b; border-radius:8px;
+      color:var(--ink); font-size:14px; margin-bottom:12px;
+      outline:none;
+    }
+    .confirm-input:focus { border-color:#dc2626 }
   </style>
 </head>
 <body>
@@ -221,6 +240,10 @@
       // Section 3: Numéro de téléphone
       const phoneSection = createPhoneSection();
       content.appendChild(phoneSection);
+
+      // Section 4: Suppression du compte
+      const deleteSection = createDeleteAccountSection();
+      content.appendChild(deleteSection);
     }
 
     function createAccountSection() {
@@ -674,6 +697,109 @@
       `;
 
       setTimeout(() => container.innerHTML = '', 5000);
+    }
+
+    function createDeleteAccountSection() {
+      const section = document.createElement('div');
+      section.className = 'section';
+      section.innerHTML = `
+        <div class="section-title">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+          </svg>
+          Zone de danger
+        </div>
+        <div class="danger-zone">
+          <div class="danger-zone-title">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M3 6h18M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2M10 11v6M14 11v6"/>
+            </svg>
+            Supprimer définitivement le compte
+          </div>
+          <div class="danger-zone-text">
+            <strong>ATTENTION:</strong> Cette action est irréversible!
+            <br><br>
+            La suppression de votre compte entraînera:
+            <ul style="margin:10px 0; padding-left:20px; list-style:disc">
+              <li>Suppression de toutes vos conversations</li>
+              <li>Suppression de tous vos messages</li>
+              <li>Suppression de toutes vos pièces jointes</li>
+              <li>Déconnexion immédiate</li>
+            </ul>
+          </div>
+          <div id="deleteAccountForm">
+            <input
+              type="text"
+              id="deleteConfirmInput"
+              class="confirm-input"
+              placeholder="Tapez SUPPRIMER pour confirmer"
+            />
+            <button
+              class="btn btn-danger"
+              style="width:100%"
+              id="deleteAccountBtn"
+              disabled
+            >
+              Supprimer mon compte
+            </button>
+          </div>
+        </div>
+      `;
+
+      setTimeout(() => {
+        const confirmInput = document.getElementById('deleteConfirmInput');
+        const deleteBtn = document.getElementById('deleteAccountBtn');
+
+        if (confirmInput && deleteBtn) {
+          confirmInput.addEventListener('input', (e) => {
+            deleteBtn.disabled = e.target.value.trim() !== 'SUPPRIMER';
+          });
+
+          deleteBtn.addEventListener('click', deleteAccount);
+        }
+      }, 0);
+
+      return section;
+    }
+
+    async function deleteAccount() {
+      const confirmInput = document.getElementById('deleteConfirmInput');
+      if (!confirmInput || confirmInput.value.trim() !== 'SUPPRIMER') {
+        alert('Veuillez taper SUPPRIMER pour confirmer');
+        return;
+      }
+
+      if (!confirm('Êtes-vous absolument sûr? Cette action est IRRÉVERSIBLE.')) {
+        return;
+      }
+
+      const deleteBtn = document.getElementById('deleteAccountBtn');
+      if (deleteBtn) deleteBtn.disabled = true;
+
+      try {
+        const { error: deleteError } = await supabase
+          .from('users')
+          .delete()
+          .eq('id', currentUser.id);
+
+        if (deleteError) {
+          throw deleteError;
+        }
+
+        await supabase.auth.signOut();
+
+        alert('Votre compte a été supprimé avec succès. Vous allez être redirigé.');
+
+        if (window.parent !== window) {
+          window.parent.location.reload();
+        } else {
+          window.location.reload();
+        }
+      } catch (err) {
+        console.error('Delete account error:', err);
+        alert('Erreur: ' + (err.message || 'Impossible de supprimer le compte'));
+        if (deleteBtn) deleteBtn.disabled = false;
+      }
     }
 
     init();
