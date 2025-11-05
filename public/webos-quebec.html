@@ -4886,6 +4886,8 @@
                   .select('user_id, users(id, email, full_name, phone_number, phone_verified)')
                   .eq('conversation_id', c.id);
 
+                console.log('Raw participants for conversation', c.id, ':', participants);
+
                 const { data: lastMsg } = await supabaseClient
                   .from('messages')
                   .select('*')
@@ -4894,7 +4896,10 @@
                   .limit(1)
                   .maybeSingle();
 
-                return { ...c, participants: participants?.map(p => p.users) || [], last_message: lastMsg };
+                const mappedParticipants = participants?.map(p => p.users).filter(u => u) || [];
+                console.log('Mapped participants for conversation', c.id, ':', mappedParticipants);
+
+                return { ...c, participants: mappedParticipants, last_message: lastMsg };
               }));
 
               this.renderConversations();
@@ -4914,8 +4919,17 @@
           }
 
           container.innerHTML = this.conversations.map(c => {
-            const others = c.participants.filter(p => p.id !== currentUser.id);
-            const name = c.type === 'group' ? c.name || `Groupe (${c.participants.length})` : others[0]?.full_name || others[0]?.email || 'Utilisateur';
+            const others = c.participants.filter(p => p && p.id !== currentUser.id);
+            const otherUser = others[0];
+
+            let name = 'Utilisateur';
+            if (c.type === 'group') {
+              name = c.name || `Groupe (${c.participants.length})`;
+            } else if (otherUser) {
+              name = otherUser.full_name || otherUser.email || 'Utilisateur';
+            }
+
+            console.log('Conversation:', c.id, 'Other user:', otherUser, 'Name:', name);
             const phone = others[0]?.phone_number;
             const verified = others[0]?.phone_verified;
             const last = c.last_message?.content || '';
