@@ -175,18 +175,34 @@
       background: rgba(30, 64, 175, 0.95);
       backdrop-filter: blur(10px);
       display: flex;
-      justify-content: space-between;
       align-items: center;
-      padding: 0 20px;
       color: white;
       z-index: 9999;
       box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+      overflow-x: auto;
+      overflow-y: hidden;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+    }
+
+    .topbar::-webkit-scrollbar {
+      display: none;
+    }
+
+    .topbar-container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      min-width: 100%;
+      padding: 0 20px;
+      gap: 20px;
     }
 
     .topbar-left, .topbar-right {
       display: flex;
       gap: 20px;
       align-items: center;
+      flex-shrink: 0;
     }
 
     .topbar-item {
@@ -195,10 +211,84 @@
       border-radius: 6px;
       transition: background 0.2s;
       font-size: 14px;
+      white-space: nowrap;
+      flex-shrink: 0;
     }
 
     .topbar-item:hover {
       background: rgba(255, 255, 255, 0.1);
+    }
+
+    .calendar-popup {
+      position: fixed;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+      padding: 16px;
+      z-index: 10000;
+      color: #1e40af;
+      min-width: 280px;
+    }
+
+    .calendar-header {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 12px;
+      text-align: center;
+      color: #1e40af;
+    }
+
+    .calendar-date {
+      font-size: 32px;
+      font-weight: 700;
+      text-align: center;
+      color: #3b82f6;
+      margin-bottom: 8px;
+    }
+
+    .calendar-day {
+      font-size: 14px;
+      text-align: center;
+      color: #64748b;
+      margin-bottom: 12px;
+    }
+
+    .calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 4px;
+      margin-top: 12px;
+    }
+
+    .calendar-grid-header {
+      font-size: 11px;
+      font-weight: 600;
+      text-align: center;
+      padding: 4px;
+      color: #64748b;
+    }
+
+    .calendar-grid-day {
+      font-size: 12px;
+      text-align: center;
+      padding: 6px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .calendar-grid-day:hover {
+      background: #eff6ff;
+    }
+
+    .calendar-grid-day.today {
+      background: #3b82f6;
+      color: white;
+      font-weight: 700;
+    }
+
+    .calendar-grid-day.other-month {
+      color: #cbd5e1;
     }
 
     .loading-screen {
@@ -561,22 +651,24 @@
 
   <!-- Top Bar -->
   <div id="topbar" class="topbar" style="display: none;">
-    <div class="topbar-left">
-      <div class="topbar-item" style="display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 16px;">
-        <span style="font-size: 20px;">⚜️</span>
-        <span>WebOS Québec</span>
+    <div class="topbar-container">
+      <div class="topbar-left">
+        <div class="topbar-item" style="display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 16px;">
+          <span style="font-size: 20px;">⚜️</span>
+          <span>WebOS Québec</span>
+        </div>
+        <div class="topbar-item" onclick="WebOS.showAbout()">À propos</div>
+        <div class="topbar-item" onclick="WebOS.showSettings()">Préférences</div>
       </div>
-      <div class="topbar-item" onclick="WebOS.showAbout()">À propos</div>
-      <div class="topbar-item" onclick="WebOS.showSettings()">Préférences</div>
-    </div>
-    <div class="topbar-right">
-      <div class="topbar-item" id="sovereignBadge" style="background:rgba(15,118,110,.15);border:1px solid rgba(45,212,191,.45);border-radius:9999px;display:flex;gap:6px;align-items:center;font-size:11px;">
-        <span style="width:6px;height:6px;border-radius:9999px;background:#22c55e;display:inline-block;"></span>
-        <span>Souverain · Offline</span>
+      <div class="topbar-right">
+        <div class="topbar-item" id="sovereignBadge" style="background:rgba(15,118,110,.15);border:1px solid rgba(45,212,191,.45);border-radius:9999px;display:flex;gap:6px;align-items:center;font-size:11px;">
+          <span style="width:6px;height:6px;border-radius:9999px;background:#22c55e;display:inline-block;"></span>
+          <span>Souverain · Offline</span>
+        </div>
+        <div class="topbar-item" id="aiStatus">IA: Non chargée</div>
+        <div class="topbar-item" id="systemTime" onclick="WebOS.toggleCalendar(event)">--:--</div>
+        <div class="topbar-item" onclick="WebOS.Auth.logout()">Déconnexion</div>
       </div>
-      <div class="topbar-item" id="aiStatus">IA: Non chargée</div>
-      <div class="topbar-item" id="systemTime">--:--</div>
-      <div class="topbar-item" onclick="WebOS.Auth.logout()">Déconnexion</div>
     </div>
   </div>
 
@@ -7442,11 +7534,63 @@
       }
     }
 
+    function setupTopbarScroll() {
+      const topbar = document.getElementById('topbar');
+      if (!topbar) return;
+
+      let isDown = false;
+      let startX;
+      let scrollLeft;
+
+      topbar.addEventListener('mousedown', (e) => {
+        if (e.target.closest('.topbar-item')) return;
+        isDown = true;
+        topbar.style.cursor = 'grabbing';
+        startX = e.pageX - topbar.offsetLeft;
+        scrollLeft = topbar.scrollLeft;
+      });
+
+      topbar.addEventListener('mouseleave', () => {
+        isDown = false;
+        topbar.style.cursor = 'default';
+      });
+
+      topbar.addEventListener('mouseup', () => {
+        isDown = false;
+        topbar.style.cursor = 'default';
+      });
+
+      topbar.addEventListener('mousemove', (e) => {
+        if (!isDown) return;
+        e.preventDefault();
+        const x = e.pageX - topbar.offsetLeft;
+        const walk = (x - startX) * 2;
+        topbar.scrollLeft = scrollLeft - walk;
+      });
+
+      let touchStartX = 0;
+      let touchScrollLeft = 0;
+
+      topbar.addEventListener('touchstart', (e) => {
+        if (e.target.closest('.topbar-item')) return;
+        touchStartX = e.touches[0].pageX;
+        touchScrollLeft = topbar.scrollLeft;
+      }, { passive: true });
+
+      topbar.addEventListener('touchmove', (e) => {
+        const touchX = e.touches[0].pageX;
+        const walk = (touchStartX - touchX) * 1.5;
+        topbar.scrollLeft = touchScrollLeft + walk;
+      }, { passive: true });
+    }
+
     async function showDesktop() {
       document.getElementById('loginScreen').style.display = 'none';
       document.getElementById('desktop').style.display = 'block';
       document.getElementById('topbar').style.display = 'flex';
       document.getElementById('dock').style.display = 'flex';
+
+      setupTopbarScroll();
 
       setInterval(updateSystemTime, 1000);
       updateSystemTime();
@@ -8418,6 +8562,74 @@
     })();
 
     // Make global objects available
+    let calendarPopup = null;
+
+    function toggleCalendar(event) {
+      if (calendarPopup) {
+        calendarPopup.remove();
+        calendarPopup = null;
+        return;
+      }
+
+      const now = new Date();
+      const days = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
+      const months = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
+
+      const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+      const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+      const prevLastDay = new Date(now.getFullYear(), now.getMonth(), 0);
+
+      const firstDayIndex = firstDay.getDay();
+      const lastDayDate = lastDay.getDate();
+      const prevLastDayDate = prevLastDay.getDate();
+
+      let daysHTML = '';
+
+      for (let x = firstDayIndex; x > 0; x--) {
+        daysHTML += `<div class="calendar-grid-day other-month">${prevLastDayDate - x + 1}</div>`;
+      }
+
+      for (let i = 1; i <= lastDayDate; i++) {
+        const isToday = i === now.getDate();
+        daysHTML += `<div class="calendar-grid-day ${isToday ? 'today' : ''}">${i}</div>`;
+      }
+
+      const popup = document.createElement('div');
+      popup.className = 'calendar-popup';
+      popup.innerHTML = `
+        <div class="calendar-header">${months[now.getMonth()]} ${now.getFullYear()}</div>
+        <div class="calendar-date">${now.getDate()}</div>
+        <div class="calendar-day">${days[now.getDay()]}</div>
+        <div class="calendar-grid">
+          <div class="calendar-grid-header">D</div>
+          <div class="calendar-grid-header">L</div>
+          <div class="calendar-grid-header">M</div>
+          <div class="calendar-grid-header">M</div>
+          <div class="calendar-grid-header">J</div>
+          <div class="calendar-grid-header">V</div>
+          <div class="calendar-grid-header">S</div>
+          ${daysHTML}
+        </div>
+      `;
+
+      const rect = event.target.getBoundingClientRect();
+      popup.style.top = `${rect.bottom + 8}px`;
+      popup.style.right = '20px';
+
+      document.body.appendChild(popup);
+      calendarPopup = popup;
+
+      setTimeout(() => {
+        document.addEventListener('click', function closeCalendar(e) {
+          if (calendarPopup && !calendarPopup.contains(e.target) && !event.target.contains(e.target)) {
+            calendarPopup.remove();
+            calendarPopup = null;
+            document.removeEventListener('click', closeCalendar);
+          }
+        });
+      }, 100);
+    }
+
     window.WebOS = {
       Kernel,
       WindowManager,
@@ -8432,7 +8644,8 @@
       Logger,
       showAbout,
       showSettings,
-      openProfileSettings
+      openProfileSettings,
+      toggleCalendar
     };
 
     console.log('WebOS Québec v1.0 - Système de logs activé');
