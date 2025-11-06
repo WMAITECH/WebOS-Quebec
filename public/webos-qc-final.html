@@ -1940,7 +1940,33 @@
 
     async function initSupabase() {
       const { createClient } = await import('@supabase/supabase-js');
-      supabaseClient = createClient(CONFIG.supabase.url, CONFIG.supabase.anonKey);
+      supabaseClient = createClient(CONFIG.supabase.url, CONFIG.supabase.anonKey, {
+        auth: {
+          persistSession: true,
+          autoRefreshToken: true,
+          detectSessionInUrl: true,
+          storageKey: 'webos-qc-auth-token',
+          storage: window.localStorage
+        }
+      });
+
+      // Listen for auth state changes
+      supabaseClient.auth.onAuthStateChange((event, session) => {
+        console.log('[AUTH] State change:', event);
+        if (event === 'SIGNED_OUT') {
+          currentUser = null;
+          localStorage.removeItem('webos-qc-auth-token');
+          showLandingPage();
+        } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+          if (session) {
+            currentUser = session.user;
+          }
+        } else if (event === 'USER_UPDATED') {
+          if (session) {
+            currentUser = session.user;
+          }
+        }
+      });
 
       // Check for existing session
       try {
@@ -1948,6 +1974,12 @@
 
         if (error) {
           console.warn('[AUTH] Error getting session:', error.message);
+          // Si le refresh token est invalide, nettoyer le storage
+          if (error.message.includes('Refresh Token')) {
+            console.log('[AUTH] Clearing invalid session data');
+            await supabaseClient.auth.signOut();
+            localStorage.removeItem('webos-qc-auth-token');
+          }
           return false;
         }
 
@@ -1959,6 +1991,13 @@
         return false;
       } catch (err) {
         console.warn('[AUTH] Exception getting session:', err);
+        // Nettoyer en cas d'erreur
+        try {
+          await supabaseClient.auth.signOut();
+          localStorage.removeItem('webos-qc-auth-token');
+        } catch (cleanupErr) {
+          console.warn('[AUTH] Cleanup error:', cleanupErr);
+        }
         return false;
       }
     }
