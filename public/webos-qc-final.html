@@ -909,15 +909,25 @@
       };
     })();
 
-    if (!SecurityVault.init()) {
+    console.log('[WEBOS-QC] Step 1: Initializing SecurityVault...');
+    const vaultInitResult = SecurityVault.init();
+    console.log('[WEBOS-QC] SecurityVault init result:', vaultInitResult);
+
+    if (!vaultInitResult) {
+      console.error('[WEBOS-QC] FAILED: SecurityVault initialization');
       throw new Error('[SECURITY] Failed to initialize security vault');
     }
 
+    console.log('[WEBOS-QC] Step 2: Getting credentials...');
     const _credentials = SecurityVault.getCredentials();
+    console.log('[WEBOS-QC] Credentials obtained:', !!_credentials);
+
     if (!_credentials) {
+      console.error('[WEBOS-QC] FAILED: Could not obtain credentials');
       throw new Error('[SECURITY] Failed to obtain credentials');
     }
 
+    console.log('[WEBOS-QC] Step 3: Creating CONFIG object...');
     const CONFIG = {
       supabase: {
         url: _credentials.url,
