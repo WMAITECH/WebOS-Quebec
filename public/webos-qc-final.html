@@ -737,7 +737,7 @@
   <script type="importmap">
   {
     "imports": {
-      "@supabase/supabase-js": "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm",
+      "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2.47.10",
       "@mlc-ai/web-llm": "https://esm.run/@mlc-ai/web-llm@0.2.79"
     }
   }
@@ -2480,12 +2480,17 @@
 
       // Check for existing session
       try {
+        console.log('[AUTH] Checking for existing session...');
         const { data: { session }, error } = await supabaseClient.auth.getSession();
+
+        console.log('[AUTH] getSession result - error:', error);
+        console.log('[AUTH] getSession result - session:', !!session);
 
         if (error) {
           console.warn('[AUTH] Error getting session:', error.message);
+          console.log('[AUTH] Error details:', JSON.stringify(error, null, 2));
           // Si le refresh token est invalide, nettoyer le storage
-          if (error.message.includes('Refresh Token')) {
+          if (error.message.includes('Refresh Token') || error.message.includes('Invalid API')) {
             console.log('[AUTH] Clearing invalid session data');
             await supabaseClient.auth.signOut();
             localStorage.removeItem('webos-qc-auth-token');
