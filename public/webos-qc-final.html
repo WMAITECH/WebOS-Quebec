@@ -5900,6 +5900,16 @@
 
           try {
             console.log('[Messages] Creating conversation with users:', this.selectedUsers);
+
+            // Vérifier l'authentification
+            const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+            if (authError || !user) {
+              console.error('[Messages] Not authenticated:', authError);
+              alert('Vous devez être connecté pour créer une conversation');
+              return;
+            }
+            console.log('[Messages] Authenticated as:', user.id);
+
             const type = this.selectedUsers.length === 1 ? 'direct' : 'group';
 
             const conversationName = type === 'direct'
@@ -5911,7 +5921,7 @@
               .insert({
                 type,
                 name: conversationName,
-                created_by: currentUser.id
+                created_by: user.id
               })
               .select()
               .single();
@@ -5924,7 +5934,7 @@
 
             if (convo) {
               console.log('[Messages] Conversation created:', convo.id);
-              const participants = [currentUser.id, ...this.selectedUsers].map(userId => ({
+              const participants = [user.id, ...this.selectedUsers].map(userId => ({
                 conversation_id: convo.id,
                 user_id: userId
               }));
