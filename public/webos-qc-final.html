@@ -15,7 +15,32 @@
   <meta name="format-detection" content="telephone=no">
 
   <!-- Security Headers -->
-  <!-- CSP désactivé temporairement pour WebLLM -->
+  <!-- DIFF: CSP durcie + mode souverain -->
+  <script>
+    window.__WEBOS_SECURITY__ = {
+      offlineStrict: true,
+      allowedOrigins: [location.origin],
+      version: "1.0.0-hard"
+    };
+
+    (function applyCSP() {
+      if (!window.__WEBOS_SECURITY__.offlineStrict) return;
+      const meta = document.createElement("meta");
+      meta.httpEquiv = "Content-Security-Policy";
+      meta.content = [
+        "default-src 'self' blob: data:",
+        "script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'",
+        "style-src 'self' 'unsafe-inline'",
+        "img-src 'self' data: blob:",
+        "connect-src 'self'",
+        "object-src 'none'",
+        "frame-src 'none'",
+        "base-uri 'none'",
+        "form-action 'self'"
+      ].join("; ");
+      document.head.appendChild(meta);
+    })();
+  </script>
 
   <title>WebOS Québec FINAL - Système d'Exploitation Souverain Avancé v2.0</title>
 
@@ -545,6 +570,10 @@
       <div class="topbar-item" onclick="WebOS.showSettings()">Préférences</div>
     </div>
     <div class="topbar-right">
+      <div class="topbar-item" id="sovereignBadge" style="background:rgba(15,118,110,.15);border:1px solid rgba(45,212,191,.45);border-radius:9999px;display:flex;gap:6px;align-items:center;font-size:11px;">
+        <span style="width:6px;height:6px;border-radius:9999px;background:#22c55e;display:inline-block;"></span>
+        <span>Souverain · Offline</span>
+      </div>
       <div class="topbar-item" id="aiStatus">IA: Non chargée</div>
       <div class="topbar-item" id="systemTime">--:--</div>
       <div class="topbar-item" onclick="WebOS.Auth.logout()">Déconnexion</div>
@@ -610,6 +639,11 @@
         <polyline points="22,6 12,13 2,6"></polyline>
       </svg>
     </div>
+    <div class="dock-item" onclick="WebOS.Apps.Admin && WebOS.Apps.Admin.open()" title="Admin Système">
+      <svg width="30" height="30" viewBox="0 0 24 24" stroke="#0f172a" fill="none" stroke-width="2">
+        <path d="M12 1l3 5.2 5.8.9-4.2 4.1 1 5.8L12 15.8 6.4 17l1-5.8L3.2 7.1 9 6.2z"/>
+      </svg>
+    </div>
   </div>
 
   <!-- Import Maps for ES Modules -->
@@ -640,6 +674,54 @@
         contextWindow: 8192
       }
     };
+
+    setInterval(() => {
+      const b = document.getElementById("sovereignBadge");
+      if (!b) return;
+      const online = navigator.onLine;
+      b.firstElementChild.style.background = online ? "#f97316" : "#22c55e";
+      b.lastElementChild.textContent = online ? "Souverain · Liaison" : "Souverain · Offline";
+    }, 4000);
+
+    const AIBus = {
+      state: {
+        localReady: false,
+        lastError: null
+      },
+      async init() {
+        const statusEl = document.getElementById("aiStatus");
+        try {
+          const { CreateMLCEngine } = await import("@mlc-ai/web-llm");
+          this.engine = await CreateMLCEngine(CONFIG.webllm.model, {
+            initProgressCallback: (p) => {
+              if (statusEl) statusEl.textContent = `IA: chargement ${Math.floor(p * 100)}%`;
+            }
+          });
+          this.state.localReady = true;
+          if (statusEl) statusEl.textContent = "IA: locale prête";
+        } catch (err) {
+          this.state.lastError = err.message;
+          if (statusEl) statusEl.textContent = "IA: mode fallback";
+        }
+      },
+      async chat(prompt) {
+        if (this.state.localReady && this.engine) {
+          return await this.engine.chat.completions.create({
+            messages: [{ role: "user", content: prompt }]
+          });
+        }
+        return {
+          choices: [{
+            message: {
+              role: "assistant",
+              content: "Le moteur IA local est indisponible. Le système reste pleinement opérationnel en mode souverain offline."
+            }
+          }]
+        };
+      }
+    };
+
+    AIBus.init();
 
     // ============================================
     // ADVANCED FILE MANAGER
@@ -1296,6 +1378,7 @@
           };
 
           const serialized = serializeSnapshot(snapshotData);
+          snapshotData.metadata.seal = await sealSnapshot(serialized);
 
           let exportData;
           if (password) {
@@ -1341,6 +1424,14 @@
           }
 
           const snapshotData = deserializeSnapshot(snapshotBuffer);
+
+          if (snapshotData.metadata && snapshotData.metadata.seal) {
+            const rehash = await crypto.subtle.digest("SHA-256", snapshotBuffer);
+            const rehashHex = Array.from(new Uint8Array(rehash)).map(b => b.toString(16).padStart(2, "0")).join("");
+            if (rehashHex !== snapshotData.metadata.seal.hash) {
+              throw new Error("Snapshot altéré ou non authentique (seal mismatch)");
+            }
+          }
 
           const calculatedChecksum = await calculateChecksum(snapshotData.files);
           if (calculatedChecksum !== snapshotData.metadata.checksum) {
@@ -1678,6 +1769,16 @@
         return { encrypted: header.encrypted, data, iv, salt };
       }
 
+      async function sealSnapshot(buffer) {
+        const hashBuffer = await crypto.subtle.digest("SHA-256", buffer);
+        const hashHex = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, "0")).join("");
+        return {
+          sealedAt: Date.now(),
+          hash: hashHex,
+          algo: "SHA-256"
+        };
+      }
+
       return {
         createSnapshot,
         restoreSnapshot,
@@ -1746,7 +1847,7 @@
               <div class="window-control close"></div>
             </div>
           </div>
-          <div class="window-content" id="window-content-${id}">
+          <div class="window-content" id="window-content-${id}" data-sandbox="true">
             ${content}
           </div>
           <div class="resize-handle se" data-direction="se"></div>
@@ -2021,8 +2122,35 @@
 
         getContent(id) {
           return document.getElementById(`window-content-${id}`);
+        },
+
+        setContent(id, html) {
+          const w = windows.get(id);
+          if (!w) return;
+          const c = w.element.querySelector('.window-content');
+          c.innerHTML = sanitizeHTML(html);
+        },
+
+        closeAll() {
+          windows.forEach((w, id) => {
+            w.element.remove();
+            windows.delete(id);
+          });
+          Kernel.emit('window:closed:all', {});
         }
       };
+
+      function sanitizeHTML(html) {
+        return html.replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, "");
+      }
+
+      window.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && e.ctrlKey) {
+          WindowManager.closeAll && WindowManager.closeAll();
+        }
+      });
+
+      return WindowManager;
     })();
 
     // Make WindowManager global for onclick handlers
@@ -3197,6 +3325,40 @@
     // APPLICATIONS
     // ============================================
     const Apps = {
+      Admin: {
+        open() {
+          const logs = Logger.getLogs().slice(0, 200);
+          const perf = PerformanceMonitor.getReport();
+          const html = `
+            <div style="font-family: system-ui, sans-serif; padding: 20px;">
+              <h2 style="margin-bottom: 20px; color: #1e40af; font-size: 24px; font-weight: 700;">Administration WebOS Québec</h2>
+
+              <h3 style="margin-top: 24px; margin-bottom: 12px; font-size: 18px; font-weight: 600;">Journal système</h3>
+              <div style="max-height: 240px; overflow:auto; background:#0f172a; color:#e2e8f0; padding:16px; border-radius:8px; font-family: 'Courier New', monospace; font-size: 12px; line-height: 1.6;">
+                ${logs.map(l => `<div style="margin-bottom: 4px;">[${new Date(l.timestamp).toLocaleTimeString()}] <b style="color: ${l.level === 'error' ? '#ef4444' : l.level === 'warn' ? '#f59e0b' : '#10b981'};">${l.level.toUpperCase()}</b> — ${l.message}</div>`).join("")}
+              </div>
+
+              <h3 style="margin-top: 24px; margin-bottom: 12px; font-size: 18px; font-weight: 600;">Performance & Métriques</h3>
+              <pre style="background:#111827; color:#e2e8f0; padding:16px; border-radius:8px; max-height:200px; overflow:auto; font-size: 12px; line-height: 1.5;">${JSON.stringify(perf.summary, null, 2)}</pre>
+
+              <h3 style="margin-top: 24px; margin-bottom: 12px; font-size: 18px; font-weight: 600;">Sécurité</h3>
+              <div style="background: linear-gradient(135deg, #eff6ff, #dbeafe); padding: 16px; border-radius: 8px; border-left: 4px solid #3b82f6;">
+                <p style="margin-bottom: 8px;"><strong>Mode:</strong> ${window.__WEBOS_SECURITY__.offlineStrict ? 'Souverain Offline' : 'Standard'}</p>
+                <p style="margin-bottom: 8px;"><strong>CSP:</strong> ${window.__WEBOS_SECURITY__.offlineStrict ? 'Activé (Durci)' : 'Désactivé'}</p>
+                <p style="margin-bottom: 8px;"><strong>Version:</strong> ${window.__WEBOS_SECURITY__.version}</p>
+                <p><strong>État réseau:</strong> ${navigator.onLine ? 'En ligne' : 'Hors ligne'}</p>
+              </div>
+
+              <div style="display: flex; gap: 12px; margin-top: 24px;">
+                <button onclick="PerformanceMonitor.clear(); alert('Métriques purgées');" style="flex: 1; padding: 12px; background:#ef4444; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 14px;">Purger métriques</button>
+                <button onclick="Logger.clearLogs(); alert('Logs purgés');" style="flex: 1; padding: 12px; background:#f59e0b; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 14px;">Purger logs</button>
+                <button onclick="location.reload();" style="flex: 1; padding: 12px; background:#10b981; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 14px;">Redémarrer</button>
+              </div>
+            </div>
+          `;
+          WindowManager.create("admin-panel", "Console d'administration", html, { width: 820, height: 680 });
+        }
+      },
       Portal: {
         open() {
           const content = `
