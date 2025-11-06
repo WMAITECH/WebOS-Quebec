@@ -790,6 +790,8 @@
         const host = window.location.hostname;
         const protocol = window.location.protocol;
 
+        console.log('[SecurityVault] Origin check:', { host, protocol });
+
         const isLocalDev = (
           host === 'localhost' ||
           host === '127.0.0.1' ||
@@ -799,7 +801,10 @@
 
         const isAllowedDomain = host.includes('gwcpuwihjouusnohkmcy.supabase.co');
 
-        return isLocalDev || isAllowedDomain;
+        const isValid = isLocalDev || isAllowedDomain;
+        console.log('[SecurityVault] Validation result:', isValid);
+
+        return isValid;
       }
 
       function _checkAbuse() {
