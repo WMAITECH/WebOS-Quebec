@@ -751,25 +751,37 @@
     // SECURITY LAYER: Multi-layer key protection
     // ============================================
     const SecurityVault = (() => {
-      const _obfuscated = [
-        'ZXlKaGJHY2lPaUpJVXpJMU5pSXNJblI1Y0NJNklrcFhWQ0o5LmV5SnBj',
-        'M05pOiJjM1Z3WVdKaGMyVWlMQ0p5WldZaU9pSm5kMk53ZFhkcGFHcHZk',
-        'WFZ6Ym05b2EyMWplU0lzSW5KdmJHVWlPaUpoYm05dUlpd2lhV0YwSWpv',
-        'eE56WXlNVGcxTlRFd0xDSmxlSEFpT2pJd056YzNOakUxTVRCOS5FOWNEb',
-        'XlBbUh2Y0lWTmJ2ekJWN01LbHFwTGNoQU1FOWkySktzTmN1UE80'
-      ];
+      const _k1 = 'ZXlKaGJHY2lPaUpJVXpJMU5pSXNJblI1Y0NJNklrcFhWQ0o5';
+      const _k2 = 'LmV5SnBjM01pT2lKemRYQmhZbUZ6WlNJc0luSmxaaUk2SW1kM1kzQjFkMmxvYW05MWRYTnViMmhyYldONUlpd2ljbTlzWlNJNkltRnViMjRpTENKcFlYUWlPakUzTmpJeE9EVTFNVEF';
+      const _k3 = 'TENKbGVIQWlPakl3TnpjM05qRTFNVEI5';
+      const _k4 = 'LkU5Y0RteUFtSHZjSVZOYnZ6QlY3TUtscXBMY2hBTUU5aTJKS3NOY3VQTTQ=';
 
-      const _domain = ['aHR0cHM6Ly9nd2NwdXdpaGpvdXVzbm9oa21jeS5zdXBhYmFzZS5jbw=='];
+      const _domain = 'aHR0cHM6Ly9nd2NwdXdpaGpvdXVzbm9oa21jeS5zdXBhYmFzZS5jbw==';
 
       let _initialized = false;
       let _sessionToken = null;
       let _failCount = 0;
       const _maxFails = 5;
 
-      function _decode(parts) {
+      function _decode(str) {
         try {
-          return atob(parts.join(''));
-        } catch {
+          return atob(str);
+        } catch (e) {
+          console.error('[SecurityVault] Decode error:', e);
+          return null;
+        }
+      }
+
+      function _assembleKey() {
+        try {
+          const parts = [_decode(_k1), _decode(_k2), _decode(_k3), _decode(_k4)];
+          if (parts.some(p => !p)) {
+            console.error('[SecurityVault] Failed to decode key parts');
+            return null;
+          }
+          return parts.join('');
+        } catch (e) {
+          console.error('[SecurityVault] Assembly error:', e);
           return null;
         }
       }
@@ -864,13 +876,15 @@
             return null;
           }
 
-          const key = _decode(_obfuscated);
+          const key = _assembleKey();
           const url = _decode(_domain);
 
           if (!key || !url) {
             console.error('[SECURITY] Credential decode failed');
             return null;
           }
+
+          console.log('[SecurityVault] Credentials assembled successfully');
 
           return Object.freeze({
             url,
