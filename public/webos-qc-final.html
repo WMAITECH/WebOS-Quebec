@@ -1630,6 +1630,12 @@
       let dragState = null;
       let resizeState = null;
 
+      function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+      }
+
       function createWindow(id, title, content, options = {}) {
         const viewportWidth = window.innerWidth;
         const viewportHeight = window.innerHeight;
@@ -1668,7 +1674,7 @@
 
         win.innerHTML = `
           <div class="window-header">
-            <span style="font-weight: 600;">${title}</span>
+            <span style="font-weight: 600;">${escapeHtml(title)}</span>
             <div class="window-controls">
               <div class="window-control minimize"></div>
               <div class="window-control maximize"></div>
