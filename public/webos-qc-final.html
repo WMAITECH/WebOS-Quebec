@@ -616,7 +616,6 @@
           <input type="password" id="loginPassword" placeholder="••••••••" />
         </div>
         <button class="btn" onclick="WebOS.Auth.login()">Se connecter</button>
-        <button class="btn" onclick="WebOS.Auth.clearAuth()" style="background: #ef4444; margin-top: 10px;">Effacer cache auth</button>
         <p style="text-align: center; margin-top: 20px; color: #6b7280; font-size: 14px;">
           Pas de compte?
           <a href="#" onclick="WebOS.Auth.showRegister(); return false;" style="color: #3b82f6; text-decoration: none;">Créer un compte</a>
@@ -738,7 +737,7 @@
   <script type="importmap">
   {
     "imports": {
-      "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2.47.10",
+      "@supabase/supabase-js": "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm",
       "@mlc-ai/web-llm": "https://esm.run/@mlc-ai/web-llm@0.2.79"
     }
   }
@@ -747,196 +746,12 @@
   <!-- Main Application Code -->
   <script type="module">
     // ============================================
-    // VERSION: 2.0.1 - Fixed Origin Validation
-    // ============================================
-    console.log('[WEBOS-QC] Loading version 2.0.1');
-
-    // ============================================
     // CONFIGURATION
     // ============================================
-    // SECURITY LAYER: Multi-layer key protection
-    // ============================================
-    const SecurityVault = (() => {
-      const _k1 = 'ZXlKaGJHY2lPaUpJVXpJMU5pSXNJblI1Y0NJNklrcFhWQ0o5';
-      const _k2 = 'LmV5SnBjM01pT2lKemRYQmhZbUZ6WlNJc0luSmxaaUk2SW1kM1kzQjFkMmxvYW05MWRYTnViMmhyYldONUlpd2ljbTlzWlNJNkltRnViMjRpTENK';
-      const _k3 = 'cFlYUWlPakUzTmpJeE9EVTFNVEFzSW1WNGNDSTZNakEzTnpj';
-      const _k4 = 'Mk1UVXhNSDAuRTljRG15QW1IdmNJVk5idnpCVjdNS2xxcExjaEFNRTlpMkpLc05jdVBNNA==';
-
-      const _domain = 'aHR0cHM6Ly9nd2NwdXdpaGpvdXVzbm9oa21jeS5zdXBhYmFzZS5jbw==';
-
-      let _initialized = false;
-      let _sessionToken = null;
-      let _failCount = 0;
-      const _maxFails = 5;
-
-      function _decode(str) {
-        try {
-          return atob(str);
-        } catch (e) {
-          console.error('[SecurityVault] Decode error:', e);
-          return null;
-        }
-      }
-
-      function _assembleKey() {
-        try {
-          const parts = [_decode(_k1), _decode(_k2), _decode(_k3), _decode(_k4)];
-          if (parts.some(p => !p)) {
-            console.error('[SecurityVault] Failed to decode key parts');
-            return null;
-          }
-          return parts.join('');
-        } catch (e) {
-          console.error('[SecurityVault] Assembly error:', e);
-          return null;
-        }
-      }
-
-      function _getFingerprint() {
-        const data = [
-          navigator.userAgent,
-          navigator.language,
-          screen.width + 'x' + screen.height,
-          new Date().getTimezoneOffset(),
-          !!window.sessionStorage,
-          !!window.localStorage
-        ];
-        return btoa(data.join('|')).slice(0, 16);
-      }
-
-      function _validateOrigin() {
-        const host = window.location.hostname;
-        const protocol = window.location.protocol;
-
-        console.log('[SecurityVault] Origin check:', { host, protocol });
-
-        const isLocalDev = (
-          host === 'localhost' ||
-          host === '127.0.0.1' ||
-          host === '' ||
-          protocol === 'file:'
-        );
-
-        const isAllowedDomain = host.includes('gwcpuwihjouusnohkmcy.supabase.co');
-
-        const isValid = isLocalDev || isAllowedDomain;
-        console.log('[SecurityVault] Validation result:', isValid);
-
-        return isValid;
-      }
-
-      function _checkAbuse() {
-        const now = Date.now();
-        const key = '_wosq_rate';
-        let data = sessionStorage.getItem(key);
-
-        if (!data) {
-          data = { count: 0, reset: now + 60000 };
-        } else {
-          data = JSON.parse(data);
-          if (now > data.reset) {
-            data = { count: 0, reset: now + 60000 };
-          }
-        }
-
-        data.count++;
-        sessionStorage.setItem(key, JSON.stringify(data));
-
-        if (data.count > 100) {
-          console.error('[SECURITY] Rate limit exceeded');
-          return false;
-        }
-        return true;
-      }
-
-      return {
-        init() {
-          console.log('[SecurityVault] Initializing v2.0.1...');
-          if (_initialized) return true;
-
-          const originValid = _validateOrigin();
-          console.log('[SecurityVault] Origin validation result:', originValid);
-
-          if (!originValid) {
-            console.error('[SECURITY] Invalid origin detected');
-            return false;
-          }
-
-          const fp = _getFingerprint();
-          _sessionToken = btoa(fp + Date.now());
-          _initialized = true;
-
-          console.log('[SecurityVault] Initialization complete');
-          Object.freeze(this);
-          return true;
-        },
-
-        getCredentials() {
-          if (!_initialized) {
-            console.error('[SECURITY] Vault not initialized');
-            return null;
-          }
-
-          if (!_checkAbuse()) {
-            _failCount++;
-            if (_failCount >= _maxFails) {
-              console.error('[SECURITY] Maximum failures reached - system locked');
-              _initialized = false;
-              return null;
-            }
-            return null;
-          }
-
-          const key = _assembleKey();
-          const url = _decode(_domain);
-
-          if (!key || !url) {
-            console.error('[SECURITY] Credential decode failed');
-            return null;
-          }
-
-          console.log('[SecurityVault] Credentials assembled successfully');
-
-          return Object.freeze({
-            url,
-            anonKey: key,
-            session: _sessionToken
-          });
-        },
-
-        isLocked() {
-          return _failCount >= _maxFails || !_initialized;
-        }
-      };
-    })();
-
-    console.log('[WEBOS-QC] Step 1: Initializing SecurityVault...');
-    const vaultInitResult = SecurityVault.init();
-    console.log('[WEBOS-QC] SecurityVault init result:', vaultInitResult);
-
-    if (!vaultInitResult) {
-      console.error('[WEBOS-QC] FAILED: SecurityVault initialization');
-      throw new Error('[SECURITY] Failed to initialize security vault');
-    }
-
-    console.log('[WEBOS-QC] Step 2: Getting credentials...');
-    const _credentials = SecurityVault.getCredentials();
-    console.log('[WEBOS-QC] Credentials obtained:', !!_credentials);
-
-    if (!_credentials) {
-      console.error('[WEBOS-QC] FAILED: Could not obtain credentials');
-      throw new Error('[SECURITY] Failed to obtain credentials');
-    }
-
-    console.log('[WEBOS-QC] Step 3: Creating CONFIG object...');
-    console.log('[WEBOS-QC] URL:', _credentials.url);
-    console.log('[WEBOS-QC] Key length:', _credentials.anonKey?.length);
-    console.log('[WEBOS-QC] Key preview:', _credentials.anonKey?.substring(0, 20) + '...' + _credentials.anonKey?.substring(_credentials.anonKey.length - 20));
-
     const CONFIG = {
       supabase: {
-        url: _credentials.url,
-        anonKey: _credentials.anonKey
+        url: 'https://gwcpuwihjouusnohkmcy.supabase.co',
+        anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd3Y3B1d2loam91dXNub2hrbWN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIxODU1MTAsImV4cCI6MjA3Nzc2MTUxMH0.E9cDmyAmHvcIVNbvzBV7MKlqpLchAME9i2JKwNcuPO4'
       },
       webllm: {
         model: 'Llama-3.2-3B-Instruct-q4f32_1-MLC',
@@ -946,9 +761,6 @@
         contextWindow: 8192
       }
     };
-
-    Object.freeze(CONFIG.supabase);
-    Object.freeze(CONFIG);
 
     setInterval(() => {
       const b = document.getElementById("sovereignBadge");
@@ -2438,11 +2250,6 @@
     let currentUser = null;
 
     async function initSupabase() {
-      console.log('[INIT] Creating Supabase client...');
-      console.log('[INIT] URL:', CONFIG.supabase.url);
-      console.log('[INIT] Key length:', CONFIG.supabase.anonKey?.length);
-      console.log('[INIT] Key preview:', CONFIG.supabase.anonKey?.substring(0, 30) + '...');
-
       const { createClient } = await import('@supabase/supabase-js');
       supabaseClient = createClient(CONFIG.supabase.url, CONFIG.supabase.anonKey, {
         auth: {
@@ -2453,8 +2260,6 @@
           storage: window.localStorage
         }
       });
-
-      console.log('[INIT] Supabase client created');
 
       // Listen for auth state changes
       supabaseClient.auth.onAuthStateChange((event, session) => {
@@ -2481,17 +2286,12 @@
 
       // Check for existing session
       try {
-        console.log('[AUTH] Checking for existing session...');
         const { data: { session }, error } = await supabaseClient.auth.getSession();
-
-        console.log('[AUTH] getSession result - error:', error);
-        console.log('[AUTH] getSession result - session:', !!session);
 
         if (error) {
           console.warn('[AUTH] Error getting session:', error.message);
-          console.log('[AUTH] Error details:', JSON.stringify(error, null, 2));
           // Si le refresh token est invalide, nettoyer le storage
-          if (error.message.includes('Refresh Token') || error.message.includes('Invalid API')) {
+          if (error.message.includes('Refresh Token')) {
             console.log('[AUTH] Clearing invalid session data');
             await supabaseClient.auth.signOut();
             localStorage.removeItem('webos-qc-auth-token');
@@ -3522,20 +3322,13 @@
         }
 
         try {
-          console.log('[AUTH] Attempting login for:', email);
-          console.log('[AUTH] Client exists:', !!supabaseClient);
-          console.log('[AUTH] Auth exists:', !!supabaseClient?.auth);
-
           const { data, error } = await supabaseClient.auth.signInWithPassword({
             email,
             password
           });
 
-          console.log('[AUTH] Login response - error:', error);
-          console.log('[AUTH] Login response - data:', data);
-
           if (error) {
-            console.error('[AUTH] Login error details:', JSON.stringify(error, null, 2));
+            console.error('[AUTH] Login error:', error);
             alert('Erreur de connexion: ' + error.message);
             return;
           }
@@ -3546,22 +3339,6 @@
         } catch (err) {
           console.error('[AUTH] Login exception:', err);
           alert('Erreur de connexion: ' + err.message);
-        }
-      }
-
-      async function clearAuth() {
-        console.log('[AUTH] Clearing all auth data...');
-        try {
-          if (supabaseClient) {
-            await supabaseClient.auth.signOut();
-          }
-          localStorage.clear();
-          sessionStorage.clear();
-          alert('Cache auth effacé! Rechargez la page.');
-          location.reload();
-        } catch (err) {
-          console.error('[AUTH] Clear error:', err);
-          alert('Erreur lors du nettoyage');
         }
       }
 
@@ -3626,7 +3403,6 @@
         login,
         register,
         logout,
-        clearAuth,
         showLogin,
         showRegister
       };
