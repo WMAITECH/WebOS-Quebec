@@ -47,11 +47,12 @@
       }
 
       .hero-fleur {
-        width: 180px;
-        height: 180px;
+        font-size: 180px;
         margin: 0 auto 40px;
-        filter: drop-shadow(0 10px 40px rgba(255, 215, 0, 0.4));
+        text-align: center;
+        filter: drop-shadow(0 10px 40px rgba(255, 215, 0, 0.6));
         animation: float 6s ease-in-out infinite;
+        line-height: 1;
       }
 
       @keyframes float {
@@ -487,39 +488,7 @@
     <section class="hero">
       <div class="hero-content">
         <!-- Grande Fleur de Lys Dorée -->
-        <svg class="hero-fleur" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
-          <defs>
-            <linearGradient id="goldGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" style="stop-color:#FFD700;stop-opacity:1" />
-              <stop offset="50%" style="stop-color:#FFA500;stop-opacity:1" />
-              <stop offset="100%" style="stop-color:#FF8C00;stop-opacity:1" />
-            </linearGradient>
-            <filter id="glow">
-              <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
-              <feMerge>
-                <feMergeNode in="coloredBlur"/>
-                <feMergeNode in="SourceGraphic"/>
-              </feMerge>
-            </filter>
-          </defs>
-          <!-- Fleur de Lys Stylisée -->
-          <g fill="url(#goldGradient)" filter="url(#glow)">
-            <!-- Pétale Central -->
-            <path d="M100,30 Q100,15 100,10 Q100,15 100,30 L110,80 Q110,90 100,95 Q90,90 90,80 Z" />
-            <!-- Pétale Gauche -->
-            <path d="M85,70 Q70,50 60,40 Q50,30 45,35 Q50,40 60,50 Q70,60 75,75 L85,85 Q88,88 90,85 Z" />
-            <!-- Pétale Droite -->
-            <path d="M115,70 Q130,50 140,40 Q150,30 155,35 Q150,40 140,50 Q130,60 125,75 L115,85 Q112,88 110,85 Z" />
-            <!-- Base -->
-            <path d="M90,85 L85,120 Q83,130 100,130 Q117,130 115,120 L110,85 Q105,88 100,90 Q95,88 90,85 Z" />
-            <!-- Décoration Base Gauche -->
-            <path d="M85,110 Q75,115 70,120 Q75,118 85,115 Z" />
-            <!-- Décoration Base Droite -->
-            <path d="M115,110 Q125,115 130,120 Q125,118 115,115 Z" />
-            <!-- Tige -->
-            <rect x="97" y="130" width="6" height="50" rx="3" />
-          </g>
-        </svg>
+        <div class="hero-fleur">⚜️</div>
 
         <div class="hero-badge">
           <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
