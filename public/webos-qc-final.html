@@ -806,6 +806,7 @@
 
       async openFile(name) {
         const preview = await FileSystem.getFilePreview(name);
+        const ext = name.split('.').pop().toLowerCase();
 
         if (preview.type === 'image') {
           const content = `
@@ -822,6 +823,44 @@
             </div>
           `;
           WindowManager.create(`file-${name}`, name, content, { width: 800, height: 700 });
+        } else if (ext === 'html' || ext === 'htm') {
+          const content = await FileSystem.readFile(name);
+          const escapedContent = content ? content.replace(/\\/g, '\\\\').replace(/`/g, '\\`').replace(/\$/g, '\\$') : '';
+          const htmlViewerContent = `
+            <div style="height: 100%; display: flex; flex-direction: column;">
+              <div style="display: flex; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; align-items: center;">
+                <button class="btn" id="toggleViewMode-${name}" style="width: auto; padding: 8px 16px; font-size: 14px; background: #8b5cf6;" onclick="AdvancedFileManager.toggleViewMode('${name}')">
+                  👁 Aperçu
+                </button>
+                <button class="btn" style="width: auto; padding: 8px 16px; font-size: 14px; background: #10b981;" onclick="AdvancedFileManager.saveFile('${name}')">
+                  💾 Enregistrer
+                </button>
+                <button class="btn" style="width: auto; padding: 8px 16px; font-size: 14px; background: #3b82f6;" onclick="AdvancedFileManager.showExportMenu('${name}')">
+                  ⬇ Exporter
+                </button>
+                <button class="btn" style="width: auto; padding: 8px 16px; font-size: 14px; background: #ef4444;" onclick="AdvancedFileManager.deleteFile('${name}')">
+                  🗑 Supprimer
+                </button>
+              </div>
+              <div id="codeView-${name}" style="flex: 1; display: flex;">
+                <textarea id="fileEditor" style="flex: 1; padding: 16px; border: 2px solid #e5e7eb; border-radius: 8px; font-family: 'Courier New', monospace; font-size: 14px; line-height: 1.6; resize: none;">${escapedContent}</textarea>
+              </div>
+              <div id="previewView-${name}" style="flex: 1; display: none;">
+                <iframe id="htmlPreview-${name}" style="width: 100%; height: 100%; border: 2px solid #e5e7eb; border-radius: 8px; background: white;" sandbox="allow-scripts allow-same-origin allow-forms allow-modals"></iframe>
+              </div>
+            </div>
+          `;
+          WindowManager.create(`file-${name}`, name, htmlViewerContent, { width: 1100, height: 750 });
+
+          setTimeout(() => {
+            const iframe = document.getElementById(\`htmlPreview-${name}\`);
+            if (iframe) {
+              const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+              iframeDoc.open();
+              iframeDoc.write(\`${escapedContent}\`);
+              iframeDoc.close();
+            }
+          }, 100);
         } else if (preview.type === 'text') {
           const content = await FileSystem.readFile(name);
           const editorContent = `
@@ -868,6 +907,32 @@
             'files'
           );
           Apps.Files.refresh();
+        }
+      },
+
+      toggleViewMode(name) {
+        const codeView = document.getElementById(`codeView-${name}`);
+        const previewView = document.getElementById(`previewView-${name}`);
+        const toggleBtn = document.getElementById(`toggleViewMode-${name}`);
+        const iframe = document.getElementById(`htmlPreview-${name}`);
+
+        if (codeView.style.display === 'none') {
+          codeView.style.display = 'flex';
+          previewView.style.display = 'none';
+          toggleBtn.textContent = '👁 Aperçu';
+          toggleBtn.style.background = '#8b5cf6';
+        } else {
+          const content = document.getElementById('fileEditor').value;
+          if (iframe) {
+            const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+            iframeDoc.open();
+            iframeDoc.write(content);
+            iframeDoc.close();
+          }
+          codeView.style.display = 'none';
+          previewView.style.display = 'flex';
+          toggleBtn.textContent = '📝 Code';
+          toggleBtn.style.background = '#f59e0b';
         }
       }
     };
