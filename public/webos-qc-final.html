@@ -2437,6 +2437,11 @@
     let currentUser = null;
 
     async function initSupabase() {
+      console.log('[INIT] Creating Supabase client...');
+      console.log('[INIT] URL:', CONFIG.supabase.url);
+      console.log('[INIT] Key length:', CONFIG.supabase.anonKey?.length);
+      console.log('[INIT] Key preview:', CONFIG.supabase.anonKey?.substring(0, 30) + '...');
+
       const { createClient } = await import('@supabase/supabase-js');
       supabaseClient = createClient(CONFIG.supabase.url, CONFIG.supabase.anonKey, {
         auth: {
@@ -2447,6 +2452,8 @@
           storage: window.localStorage
         }
       });
+
+      console.log('[INIT] Supabase client created');
 
       // Listen for auth state changes
       supabaseClient.auth.onAuthStateChange((event, session) => {
@@ -3509,13 +3516,20 @@
         }
 
         try {
+          console.log('[AUTH] Attempting login for:', email);
+          console.log('[AUTH] Client exists:', !!supabaseClient);
+          console.log('[AUTH] Auth exists:', !!supabaseClient?.auth);
+
           const { data, error } = await supabaseClient.auth.signInWithPassword({
             email,
             password
           });
 
+          console.log('[AUTH] Login response - error:', error);
+          console.log('[AUTH] Login response - data:', data);
+
           if (error) {
-            console.error('[AUTH] Login error:', error);
+            console.error('[AUTH] Login error details:', JSON.stringify(error, null, 2));
             alert('Erreur de connexion: ' + error.message);
             return;
           }
