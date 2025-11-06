@@ -17,7 +17,7 @@
   <meta name="format-detection" content="telephone=no">
 
   <!-- Security Headers -->
-  <!-- DIFF: CSP durcie + mode souverain -->
+  <!-- DIFF: CSP durcie + mode souverain + Cross-Origin Isolation pour WebGPU -->
   <script>
     window.__WEBOS_SECURITY__ = {
       offlineStrict: true,
@@ -26,25 +26,41 @@
       production: true,
       enableDebugLogging: false,
       maxCacheSize: 100 * 1024 * 1024,
-      enableGPUAcceleration: true
+      enableGPUAcceleration: true,
+      crossOriginIsolated: true
     };
 
-    (function applyCSP() {
+    (function applySecurityHeaders() {
       if (!window.__WEBOS_SECURITY__.offlineStrict) return;
-      const meta = document.createElement("meta");
-      meta.httpEquiv = "Content-Security-Policy";
-      meta.content = [
+
+      const coop = document.createElement("meta");
+      coop.httpEquiv = "Cross-Origin-Opener-Policy";
+      coop.content = "same-origin";
+      document.head.appendChild(coop);
+
+      const coep = document.createElement("meta");
+      coep.httpEquiv = "Cross-Origin-Embedder-Policy";
+      coep.content = "require-corp";
+      document.head.appendChild(coep);
+
+      const csp = document.createElement("meta");
+      csp.httpEquiv = "Content-Security-Policy";
+      csp.content = [
         "default-src 'self' blob: data:",
-        "script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://cdn.jsdelivr.net https://esm.run",
+        "script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://cdn.jsdelivr.net https://esm.run https://unpkg.com",
         "style-src 'self' 'unsafe-inline'",
         "img-src 'self' data: blob:",
-        "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://cdn.jsdelivr.net https://esm.run",
+        "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://cdn.jsdelivr.net https://esm.run https://unpkg.com https://huggingface.co https://*.huggingface.co",
+        "worker-src 'self' blob:",
         "object-src 'none'",
         "frame-src 'none'",
         "base-uri 'none'",
         "form-action 'self'"
       ].join("; ");
-      document.head.appendChild(meta);
+      document.head.appendChild(csp);
+
+      console.log('[Security] Cross-Origin Isolation enabled for optimal WebGPU performance');
+      console.log('[Security] COOP: same-origin, COEP: require-corp');
     })();
   </script>
 

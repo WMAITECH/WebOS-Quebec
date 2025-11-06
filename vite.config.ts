@@ -8,7 +8,17 @@ export default defineConfig({
     exclude: ['lucide-react'],
   },
   server: {
-    open: '/webos-quebec.html',
+    open: '/WOSQ.html',
+    headers: {
+      'Cross-Origin-Opener-Policy': 'same-origin',
+      'Cross-Origin-Embedder-Policy': 'require-corp',
+    },
+  },
+  preview: {
+    headers: {
+      'Cross-Origin-Opener-Policy': 'same-origin',
+      'Cross-Origin-Embedder-Policy': 'require-corp',
+    },
   },
   publicDir: 'public',
 });
