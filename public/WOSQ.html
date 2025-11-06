@@ -786,30 +786,55 @@
       async init() {
         const statusEl = document.getElementById("aiStatus");
         try {
+          if (statusEl) statusEl.textContent = "IA: initialisation...";
           const { CreateMLCEngine } = await import("@mlc-ai/web-llm");
+
+          const loadTimeout = setTimeout(() => {
+            if (statusEl && !this.state.localReady) {
+              statusEl.textContent = "IA: téléchargement (peut prendre plusieurs minutes)...";
+            }
+          }, 5000);
+
           this.engine = await CreateMLCEngine(CONFIG.webllm.model, {
             initProgressCallback: (p) => {
-              if (statusEl) statusEl.textContent = `IA: chargement ${Math.floor(p * 100)}%`;
+              if (statusEl) {
+                const percent = Math.floor(p * 100);
+                statusEl.textContent = `IA: téléchargement ${percent}%`;
+              }
             }
           });
+
+          clearTimeout(loadTimeout);
           this.state.localReady = true;
-          if (statusEl) statusEl.textContent = "IA: locale prête";
+          if (statusEl) statusEl.textContent = "IA: locale prête ✓";
+          console.log('✓ IA locale initialisée avec succès');
         } catch (err) {
+          console.warn('⚠ IA locale indisponible, mode fallback activé:', err.message);
           this.state.lastError = err.message;
-          if (statusEl) statusEl.textContent = "IA: mode fallback";
+          if (statusEl) statusEl.textContent = "IA: mode fallback (système opérationnel)";
         }
       },
       async chat(prompt) {
         if (this.state.localReady && this.engine) {
-          return await this.engine.chat.completions.create({
-            messages: [{ role: "user", content: prompt }]
-          });
+          try {
+            return await this.engine.chat.completions.create({
+              messages: [{ role: "user", content: prompt }]
+            });
+          } catch (err) {
+            console.warn('⚠ Erreur lors de la génération IA:', err.message);
+            return this.fallbackResponse();
+          }
         }
+        return this.fallbackResponse();
+      },
+      fallbackResponse() {
         return {
           choices: [{
             message: {
               role: "assistant",
-              content: "Le moteur IA local est indisponible. Le système reste pleinement opérationnel en mode souverain offline."
+              content: "ℹ️ L'IA locale est temporairement indisponible.\n\n" +
+                      "Le système WebOS Québec reste pleinement opérationnel en mode souverain.\n\n" +
+                      "Note: Le téléchargement du modèle Llama 3.2 nécessite une connexion internet stable et peut prendre plusieurs minutes (environ 2 GB)."
             }
           }]
         };
