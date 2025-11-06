@@ -787,9 +787,19 @@
       }
 
       function _validateOrigin() {
-        const allowed = ['localhost', '127.0.0.1', 'gwcpuwihjouusnohkmcy.supabase.co'];
         const host = window.location.hostname;
-        return allowed.some(a => host.includes(a));
+        const protocol = window.location.protocol;
+
+        const isLocalDev = (
+          host === 'localhost' ||
+          host === '127.0.0.1' ||
+          host === '' ||
+          protocol === 'file:'
+        );
+
+        const isAllowedDomain = host.includes('gwcpuwihjouusnohkmcy.supabase.co');
+
+        return isLocalDev || isAllowedDomain;
       }
 
       function _checkAbuse() {
