@@ -130,9 +130,10 @@ Deno.serve(async (req: Request) => {
       .from('messages')
       .insert({
         conversation_id: conversationId,
+        topic: 'Message IA',
         sender_id: aiAccountId,
         content: message,
-        is_read: false,
+        extension: 'txt',
       });
 
     if (msgError) throw msgError;
