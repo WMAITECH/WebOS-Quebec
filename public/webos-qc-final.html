@@ -1200,10 +1200,16 @@
       const KEY_DERIVATION_ALGORITHM = 'PBKDF2';
       const maxSnapshots = 5;
 
+      // Helper pour vérifier le support OPFS
+      function isOPFSSupported() {
+        return 'storage' in navigator && 'getDirectory' in navigator.storage;
+      }
+
       async function createSnapshot(password) {
         try {
-          if (!('storage' in navigator && 'getDirectory' in navigator.storage)) {
-            throw new Error('OPFS not supported in this browser');
+          if (!isOPFSSupported()) {
+            console.warn('[OPFSSnapshot] OPFS not supported in this browser');
+            return { success: false, error: 'OPFS not supported in this browser' };
           }
 
           PerformanceMonitor.start('snapshot-create');
@@ -1320,6 +1326,10 @@
       }
 
       async function restoreFiles(files) {
+        if (!isOPFSSupported()) {
+          throw new Error('OPFS not supported in this browser');
+        }
+
         const root = await navigator.storage.getDirectory();
 
         for (const file of files) {
@@ -1467,6 +1477,11 @@
       }
 
       async function saveSnapshot(data) {
+        if (!isOPFSSupported()) {
+          console.warn('[OPFSSnapshot] OPFS not supported - cannot save snapshot');
+          return;
+        }
+
         const root = await navigator.storage.getDirectory();
         const snapshotsDir = await root.getDirectoryHandle('snapshots', { create: true });
 
@@ -1482,6 +1497,11 @@
       }
 
       async function listSnapshots() {
+        if (!isOPFSSupported()) {
+          console.warn('[OPFSSnapshot] OPFS not supported - cannot list snapshots');
+          return [];
+        }
+
         const root = await navigator.storage.getDirectory();
 
         try {
@@ -1502,6 +1522,11 @@
       }
 
       async function rotateSnapshots() {
+        if (!isOPFSSupported()) {
+          console.warn('[OPFSSnapshot] OPFS not supported - cannot rotate snapshots');
+          return;
+        }
+
         const snapshots = await listSnapshots();
 
         if (snapshots.length > maxSnapshots) {
@@ -2432,11 +2457,21 @@
 
       async function initialize() {
         try {
+          // Vérifier si OPFS est supporté
+          if (!navigator.storage || !navigator.storage.getDirectory) {
+            console.warn('[FileSystem] OPFS not supported in this browser - file system features will be limited');
+            Kernel.emit('fs:ready'); // Émettre quand même pour ne pas bloquer l'app
+            return false;
+          }
+
           root = await navigator.storage.getDirectory();
+          console.log('[FileSystem] OPFS initialized successfully');
           Kernel.emit('fs:ready');
           return true;
         } catch (error) {
-          console.error('OPFS initialization failed:', error);
+          console.warn('[FileSystem] OPFS initialization failed:', error.message || error);
+          console.warn('[FileSystem] File system features will be limited');
+          Kernel.emit('fs:ready'); // Émettre quand même pour ne pas bloquer l'app
           return false;
         }
       }
