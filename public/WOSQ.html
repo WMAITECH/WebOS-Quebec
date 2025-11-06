@@ -40,7 +40,7 @@
 
       const coep = document.createElement("meta");
       coep.httpEquiv = "Cross-Origin-Embedder-Policy";
-      coep.content = "require-corp";
+      coep.content = "credentialless";
       document.head.appendChild(coep);
 
       const csp = document.createElement("meta");
@@ -49,8 +49,8 @@
         "default-src 'self' blob: data:",
         "script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://cdn.jsdelivr.net https://esm.run https://unpkg.com",
         "style-src 'self' 'unsafe-inline'",
-        "img-src 'self' data: blob:",
-        "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://cdn.jsdelivr.net https://esm.run https://unpkg.com https://huggingface.co https://*.huggingface.co",
+        "img-src 'self' data: blob: https:",
+        "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://cdn.jsdelivr.net https://esm.run https://unpkg.com https://huggingface.co https://*.huggingface.co https:",
         "worker-src 'self' blob:",
         "object-src 'none'",
         "frame-src 'none'",
@@ -59,8 +59,8 @@
       ].join("; ");
       document.head.appendChild(csp);
 
-      console.log('[Security] Cross-Origin Isolation enabled for optimal WebGPU performance');
-      console.log('[Security] COOP: same-origin, COEP: require-corp');
+      console.log('[Security] Cross-Origin Isolation enabled for WebGPU with credentialless mode');
+      console.log('[Security] COOP: same-origin, COEP: credentialless (allows external fetches)');
     })();
   </script>
 
