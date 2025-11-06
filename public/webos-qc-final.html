@@ -928,6 +928,10 @@
     }
 
     console.log('[WEBOS-QC] Step 3: Creating CONFIG object...');
+    console.log('[WEBOS-QC] URL:', _credentials.url);
+    console.log('[WEBOS-QC] Key length:', _credentials.anonKey?.length);
+    console.log('[WEBOS-QC] Key preview:', _credentials.anonKey?.substring(0, 20) + '...' + _credentials.anonKey?.substring(_credentials.anonKey.length - 20));
+
     const CONFIG = {
       supabase: {
         url: _credentials.url,
