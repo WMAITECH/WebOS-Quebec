@@ -741,12 +741,12 @@
     </div>
   </div>
 
-  <!-- Import Maps for ES Modules -->
+  <!-- Import Maps for ES Modules with CDN Fallback -->
   <script type="importmap">
   {
     "imports": {
       "@supabase/supabase-js": "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm",
-      "@mlc-ai/web-llm": "https://esm.run/@mlc-ai/web-llm@0.2.79"
+      "@mlc-ai/web-llm": "https://cdn.jsdelivr.net/npm/@mlc-ai/web-llm@0.2.79/+esm"
     }
   }
   </script>
@@ -781,13 +781,74 @@
     const AIBus = {
       state: {
         localReady: false,
-        lastError: null
+        lastError: null,
+        retryCount: 0,
+        maxRetries: 3
+      },
+      async loadWebLLMWithRetry(retryDelay = 2000) {
+        const cdnUrls = [
+          'https://cdn.jsdelivr.net/npm/@mlc-ai/web-llm@0.2.79/+esm',
+          'https://esm.run/@mlc-ai/web-llm@0.2.79',
+          'https://unpkg.com/@mlc-ai/web-llm@0.2.79/lib/index.js'
+        ];
+
+        for (let i = 0; i < cdnUrls.length; i++) {
+          try {
+            console.log(`[AI] Attempting to load from CDN ${i + 1}/${cdnUrls.length}:`, cdnUrls[i]);
+            const module = await import(cdnUrls[i]);
+            console.log('[AI] Successfully loaded WebLLM from:', cdnUrls[i]);
+            return module;
+          } catch (err) {
+            console.warn(`[AI] Failed to load from CDN ${i + 1}:`, err.message);
+            if (i < cdnUrls.length - 1) {
+              console.log(`[AI] Retrying with next CDN in ${retryDelay}ms...`);
+              await new Promise(resolve => setTimeout(resolve, retryDelay));
+            }
+          }
+        }
+        throw new Error('All CDN attempts failed. Please check your internet connection and try again.');
+      },
+      async checkBrowserCapabilities() {
+        const issues = [];
+
+        if (typeof WebAssembly === 'undefined') {
+          issues.push('WebAssembly not supported');
+        }
+
+        if (!navigator.gpu) {
+          issues.push('WebGPU not supported - AI features will not work in this browser');
+        }
+
+        if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
+          issues.push('HTTPS required for WebGPU');
+        }
+
+        if (!window.crossOriginIsolated) {
+          console.warn('[AI] Cross-origin isolation not enabled - this may affect performance');
+        }
+
+        return issues;
       },
       async init() {
         const statusEl = document.getElementById("aiStatus");
         try {
-          if (statusEl) statusEl.textContent = "IA: initialisation...";
-          const { CreateMLCEngine } = await import("@mlc-ai/web-llm");
+          if (statusEl) {
+            statusEl.textContent = "IA: vérification du navigateur...";
+            statusEl.style.color = '#f59e0b';
+          }
+
+          const issues = await this.checkBrowserCapabilities();
+          if (issues.length > 0) {
+            const errorMsg = 'Incompatibilité détectée: ' + issues.join(', ');
+            console.error('[AI]', errorMsg);
+            throw new Error(errorMsg);
+          }
+
+          if (statusEl) statusEl.textContent = "IA: chargement du module...";
+
+          const { CreateMLCEngine } = await this.loadWebLLMWithRetry();
+
+          if (statusEl) statusEl.textContent = "IA: téléchargement du modèle...";
 
           const loadTimeout = setTimeout(() => {
             if (statusEl && !this.state.localReady) {
@@ -795,23 +856,38 @@
             }
           }, 5000);
 
+          console.log('[AI] Initializing model:', CONFIG.webllm.model);
+          console.log('[AI] Browser:', navigator.userAgent);
+          console.log('[AI] WebGPU available:', !!navigator.gpu);
+
           this.engine = await CreateMLCEngine(CONFIG.webllm.model, {
             initProgressCallback: (p) => {
               if (statusEl) {
-                const percent = Math.floor(p * 100);
-                statusEl.textContent = `IA: téléchargement ${percent}%`;
+                const percent = Math.floor(p.progress * 100);
+                statusEl.textContent = `IA: ${p.text || 'téléchargement'} ${percent}%`;
+                statusEl.style.color = '#f59e0b';
               }
-            }
+              console.log(`[AI] Progress: ${Math.floor(p.progress * 100)}% - ${p.text}`);
+            },
+            logLevel: 'INFO'
           });
 
           clearTimeout(loadTimeout);
           this.state.localReady = true;
-          if (statusEl) statusEl.textContent = "IA: locale prête ✓";
+          if (statusEl) {
+            statusEl.textContent = "IA: locale prête ✓";
+            statusEl.style.color = '#10b981';
+          }
           console.log('✓ IA locale initialisée avec succès');
         } catch (err) {
-          console.warn('⚠ IA locale indisponible, mode fallback activé:', err.message);
+          console.error('⚠ IA locale indisponible:', err);
+          console.error('[AI] Full error details:', err.message, err.stack);
           this.state.lastError = err.message;
-          if (statusEl) statusEl.textContent = "IA: mode fallback (système opérationnel)";
+          if (statusEl) {
+            statusEl.textContent = "IA: erreur - " + (err.message.length > 50 ? err.message.substring(0, 50) + '...' : err.message);
+            statusEl.style.color = '#ef4444';
+            statusEl.title = err.message;
+          }
         }
       },
       async chat(prompt) {
@@ -2399,34 +2475,94 @@
       let engine = null;
       let isLoading = false;
       let isReady = false;
+      const maxRetries = 3;
+      let retryCount = 0;
+
+      async function loadWebLLMWithRetry(retryDelay = 2000) {
+        const cdnUrls = [
+          'https://cdn.jsdelivr.net/npm/@mlc-ai/web-llm@0.2.79/+esm',
+          'https://esm.run/@mlc-ai/web-llm@0.2.79',
+          'https://unpkg.com/@mlc-ai/web-llm@0.2.79/lib/index.js'
+        ];
+
+        for (let i = 0; i < cdnUrls.length; i++) {
+          try {
+            console.log(`[AI] Attempting to load from CDN ${i + 1}/${cdnUrls.length}:`, cdnUrls[i]);
+            const module = await import(cdnUrls[i]);
+            console.log('[AI] Successfully loaded WebLLM from:', cdnUrls[i]);
+            return module;
+          } catch (err) {
+            console.warn(`[AI] Failed to load from CDN ${i + 1}:`, err.message);
+            if (i < cdnUrls.length - 1) {
+              console.log(`[AI] Retrying with next CDN in ${retryDelay}ms...`);
+              await new Promise(resolve => setTimeout(resolve, retryDelay));
+            }
+          }
+        }
+        throw new Error('All CDN attempts failed. Please check your internet connection and try again.');
+      }
+
+      async function checkBrowserCapabilities() {
+        const issues = [];
+
+        if (typeof WebAssembly === 'undefined') {
+          issues.push('WebAssembly not supported');
+        }
+
+        if (!navigator.gpu) {
+          issues.push('WebGPU not supported - AI features will not work in this browser');
+        }
+
+        if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
+          issues.push('HTTPS required for WebGPU');
+        }
+
+        if (!window.crossOriginIsolated) {
+          console.warn('[AI] Cross-origin isolation not enabled - this may affect performance');
+        }
+
+        return issues;
+      }
 
       async function initialize() {
         if (isReady) return true;
         if (isLoading) return false;
 
         isLoading = true;
-        document.getElementById('aiStatus').textContent = 'IA: Chargement...';
-        document.getElementById('aiStatus').style.color = '#f59e0b';
+        const statusEl = document.getElementById('aiStatus');
 
         try {
-          const { CreateMLCEngine } = await import('@mlc-ai/web-llm');
+          if (statusEl) {
+            statusEl.textContent = 'IA: Vérification du navigateur...';
+            statusEl.style.color = '#f59e0b';
+          }
+
+          const issues = await checkBrowserCapabilities();
+          if (issues.length > 0) {
+            const errorMsg = 'Incompatibilité détectée: ' + issues.join(', ');
+            console.error('[AI]', errorMsg);
+            throw new Error(errorMsg);
+          }
+
+          if (statusEl) statusEl.textContent = 'IA: Chargement du module...';
+
+          const { CreateMLCEngine } = await loadWebLLMWithRetry();
+
+          if (statusEl) statusEl.textContent = 'IA: Téléchargement du modèle...';
 
           const progressCallback = (report) => {
             const percent = Math.round(report.progress * 100);
-            const statusEl = document.getElementById('aiStatus');
             if (statusEl) {
-              statusEl.textContent = `IA: ${percent}%`;
+              statusEl.textContent = `IA: ${report.text || 'téléchargement'} ${percent}%`;
+              statusEl.style.color = '#f59e0b';
             }
             console.log(`[AI] ${report.text} - ${percent}%`);
           };
 
           console.log('[AI] Initializing with model:', CONFIG.webllm.model);
-          console.log('[AI] Browser supports WebGPU:', !!navigator.gpu);
-          console.log('[AI] Browser supports WebAssembly:', typeof WebAssembly !== 'undefined');
-
-          if (!navigator.gpu) {
-            throw new Error('WebGPU not supported in this browser');
-          }
+          console.log('[AI] Browser:', navigator.userAgent);
+          console.log('[AI] WebGPU available:', !!navigator.gpu);
+          console.log('[AI] WebAssembly available:', typeof WebAssembly !== 'undefined');
 
           engine = await CreateMLCEngine(
             CONFIG.webllm.model,
@@ -2439,8 +2575,10 @@
           isReady = true;
           isLoading = false;
 
-          document.getElementById('aiStatus').textContent = 'IA: Prête';
-          document.getElementById('aiStatus').style.color = '#10b981';
+          if (statusEl) {
+            statusEl.textContent = 'IA: Prête ✓';
+            statusEl.style.color = '#10b981';
+          }
 
           Kernel.emit('ai:ready', { model: CONFIG.webllm.model });
           console.log('[AI] Successfully initialized');
@@ -2449,11 +2587,21 @@
           console.error('[AI] WebLLM initialization failed:', error);
           console.error('[AI] Error details:', error.message, error.stack);
           isLoading = false;
-          const statusEl = document.getElementById('aiStatus');
           if (statusEl) {
-            statusEl.textContent = 'IA: Erreur';
+            const shortError = error.message.length > 60 ? error.message.substring(0, 60) + '...' : error.message;
+            statusEl.textContent = 'IA: Erreur - ' + shortError;
             statusEl.style.color = '#ef4444';
-            statusEl.title = error.message;
+            statusEl.title = 'Erreur IA: ' + error.message + '\n\nCliquez pour réessayer';
+            statusEl.style.cursor = 'pointer';
+            statusEl.onclick = () => {
+              if (retryCount < maxRetries) {
+                retryCount++;
+                console.log(`[AI] Retry attempt ${retryCount}/${maxRetries}`);
+                initialize();
+              } else {
+                alert('Échec après ' + maxRetries + ' tentatives. Veuillez vérifier votre connexion Internet et votre navigateur.');
+              }
+            };
           }
           return false;
         }
