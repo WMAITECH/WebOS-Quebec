@@ -1956,7 +1956,12 @@
         if (event === 'SIGNED_OUT') {
           currentUser = null;
           localStorage.removeItem('webos-qc-auth-token');
-          showLandingPage();
+          // Retourner à l'écran de connexion
+          document.getElementById('desktop').style.display = 'none';
+          document.getElementById('topbar').style.display = 'none';
+          document.getElementById('dock').style.display = 'none';
+          document.getElementById('loginScreen').style.display = 'flex';
+          Auth.showLogin();
         } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
           if (session) {
             currentUser = session.user;
