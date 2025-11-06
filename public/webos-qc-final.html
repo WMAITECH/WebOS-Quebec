@@ -853,11 +853,11 @@
           WindowManager.create(`file-${name}`, name, htmlViewerContent, { width: 1100, height: 750 });
 
           setTimeout(() => {
-            const iframe = document.getElementById(\`htmlPreview-${name}\`);
+            const iframe = document.getElementById('htmlPreview-' + name);
             if (iframe) {
               const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
               iframeDoc.open();
-              iframeDoc.write(\`${escapedContent}\`);
+              iframeDoc.write(content || '');
               iframeDoc.close();
             }
           }, 100);
@@ -911,10 +911,10 @@
       },
 
       toggleViewMode(name) {
-        const codeView = document.getElementById(`codeView-${name}`);
-        const previewView = document.getElementById(`previewView-${name}`);
-        const toggleBtn = document.getElementById(`toggleViewMode-${name}`);
-        const iframe = document.getElementById(`htmlPreview-${name}`);
+        const codeView = document.getElementById('codeView-' + name);
+        const previewView = document.getElementById('previewView-' + name);
+        const toggleBtn = document.getElementById('toggleViewMode-' + name);
+        const iframe = document.getElementById('htmlPreview-' + name);
 
         if (codeView.style.display === 'none') {
           codeView.style.display = 'flex';
