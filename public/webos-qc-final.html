@@ -5893,21 +5893,60 @@
         },
 
         async createConversation() {
-          if (this.selectedUsers.length === 0) return;
+          if (this.selectedUsers.length === 0) {
+            console.log('[Messages] No users selected');
+            return;
+          }
 
-          const type = this.selectedUsers.length === 1 ? 'direct' : 'group';
-          const { data: convo } = await supabaseClient.from('conversations').insert({ type, created_by: currentUser.id }).select().single();
+          try {
+            console.log('[Messages] Creating conversation with users:', this.selectedUsers);
+            const type = this.selectedUsers.length === 1 ? 'direct' : 'group';
 
-          if (convo) {
-            const participants = [currentUser.id, ...this.selectedUsers].map(userId => ({
-              conversation_id: convo.id,
-              user_id: userId
-            }));
+            const conversationName = type === 'direct'
+              ? null
+              : `Groupe (${this.selectedUsers.length + 1} membres)`;
 
-            await supabaseClient.from('conversation_participants').insert(participants);
-            this.hideNewConversation();
-            await this.loadConversations();
-            await this.selectConversation(convo.id);
+            const { data: convo, error: convoError } = await supabaseClient
+              .from('conversations')
+              .insert({
+                type,
+                name: conversationName,
+                created_by: currentUser.id
+              })
+              .select()
+              .single();
+
+            if (convoError) {
+              console.error('[Messages] Error creating conversation:', convoError);
+              alert('Erreur lors de la création de la conversation: ' + convoError.message);
+              return;
+            }
+
+            if (convo) {
+              console.log('[Messages] Conversation created:', convo.id);
+              const participants = [currentUser.id, ...this.selectedUsers].map(userId => ({
+                conversation_id: convo.id,
+                user_id: userId
+              }));
+
+              const { error: participantsError } = await supabaseClient
+                .from('conversation_participants')
+                .insert(participants);
+
+              if (participantsError) {
+                console.error('[Messages] Error adding participants:', participantsError);
+                alert('Erreur lors de l\'ajout des participants: ' + participantsError.message);
+                return;
+              }
+
+              console.log('[Messages] Participants added successfully');
+              this.hideNewConversation();
+              await this.loadConversations();
+              await this.selectConversation(convo.id);
+            }
+          } catch (error) {
+            console.error('[Messages] Exception in createConversation:', error);
+            alert('Erreur: ' + error.message);
           }
         },
 
