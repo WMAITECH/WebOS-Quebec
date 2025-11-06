@@ -616,6 +616,7 @@
           <input type="password" id="loginPassword" placeholder="••••••••" />
         </div>
         <button class="btn" onclick="WebOS.Auth.login()">Se connecter</button>
+        <button class="btn" onclick="WebOS.Auth.clearAuth()" style="background: #ef4444; margin-top: 10px;">Effacer cache auth</button>
         <p style="text-align: center; margin-top: 20px; color: #6b7280; font-size: 14px;">
           Pas de compte?
           <a href="#" onclick="WebOS.Auth.showRegister(); return false;" style="color: #3b82f6; text-decoration: none;">Créer un compte</a>
@@ -3548,6 +3549,22 @@
         }
       }
 
+      async function clearAuth() {
+        console.log('[AUTH] Clearing all auth data...');
+        try {
+          if (supabaseClient) {
+            await supabaseClient.auth.signOut();
+          }
+          localStorage.clear();
+          sessionStorage.clear();
+          alert('Cache auth effacé! Rechargez la page.');
+          location.reload();
+        } catch (err) {
+          console.error('[AUTH] Clear error:', err);
+          alert('Erreur lors du nettoyage');
+        }
+      }
+
       async function register() {
         const name = document.getElementById('registerName').value;
         const email = document.getElementById('registerEmail').value;
@@ -3609,6 +3626,7 @@
         login,
         register,
         logout,
+        clearAuth,
         showLogin,
         showRegister
       };

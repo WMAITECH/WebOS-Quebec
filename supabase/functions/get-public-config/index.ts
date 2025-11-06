@@ -15,11 +15,13 @@ Deno.serve(async (req: Request) => {
   try {
     const config = {
       url: Deno.env.get('SUPABASE_URL'),
-      anonKey: Deno.env.get('SUPABASE_ANON_KEY')
+      anonKey: Deno.env.get('SUPABASE_ANON_KEY'),
+      serviceRoleKey: Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'),
+      allKeys: Object.keys(Deno.env.toObject()).filter(k => k.includes('SUPABASE'))
     };
 
     return new Response(
-      JSON.stringify(config),
+      JSON.stringify(config, null, 2),
       {
         headers: {
           ...corsHeaders,
