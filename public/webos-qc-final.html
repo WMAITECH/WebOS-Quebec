@@ -8122,9 +8122,9 @@
     initialize().catch(console.error);
 
     // Register Service Worker
-    if ('serviceWorker' in navigator && location.hostname === 'localhost') {
+    if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw.js').catch(err => {
-        console.warn('Service Worker registration failed:', err);
+        console.warn('[ServiceWorker] Registration failed - this is expected in development mode and does not affect functionality:', err.message);
       });
     }
   </script>
