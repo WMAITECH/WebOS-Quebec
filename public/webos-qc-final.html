@@ -746,6 +746,11 @@
   <!-- Main Application Code -->
   <script type="module">
     // ============================================
+    // VERSION: 2.0.1 - Fixed Origin Validation
+    // ============================================
+    console.log('[WEBOS-QC] Loading version 2.0.1');
+
+    // ============================================
     // CONFIGURATION
     // ============================================
     // SECURITY LAYER: Multi-layer key protection
@@ -845,9 +850,13 @@
 
       return {
         init() {
+          console.log('[SecurityVault] Initializing v2.0.1...');
           if (_initialized) return true;
 
-          if (!_validateOrigin()) {
+          const originValid = _validateOrigin();
+          console.log('[SecurityVault] Origin validation result:', originValid);
+
+          if (!originValid) {
             console.error('[SECURITY] Invalid origin detected');
             return false;
           }
@@ -856,6 +865,7 @@
           _sessionToken = btoa(fp + Date.now());
           _initialized = true;
 
+          console.log('[SecurityVault] Initialization complete');
           Object.freeze(this);
           return true;
         },
