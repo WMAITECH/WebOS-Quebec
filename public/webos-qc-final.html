@@ -2491,6 +2491,11 @@
 
       async function writeFile(path, content, mimeType = null) {
         try {
+          if (!root) {
+            console.warn('[FileSystem] Cannot write file - OPFS not available');
+            return false;
+          }
+
           const file = await root.getFileHandle(path, { create: true });
           const writable = await file.createWritable();
 
@@ -2529,6 +2534,11 @@
 
       async function readFile(path, asBlob = false) {
         try {
+          if (!root) {
+            console.warn('[FileSystem] Cannot read file - OPFS not available');
+            return null;
+          }
+
           const file = await root.getFileHandle(path);
           const fileData = await file.getFile();
 
@@ -2550,6 +2560,11 @@
 
       async function listFiles() {
         try {
+          if (!root) {
+            console.warn('[FileSystem] Cannot list files - OPFS not available');
+            return [];
+          }
+
           const files = [];
           for await (const entry of root.values()) {
             if (entry.kind === 'file') {
@@ -2576,6 +2591,11 @@
 
       async function deleteFile(path) {
         try {
+          if (!root) {
+            console.warn('[FileSystem] Cannot delete file - OPFS not available');
+            return false;
+          }
+
           await root.removeEntry(path);
 
           if (currentUser) {
@@ -4781,6 +4801,11 @@
 
         async downloadBackupFile(filename) {
           try {
+            if (!navigator.storage || !navigator.storage.getDirectory) {
+              alert('OPFS non supporté - impossible de télécharger la sauvegarde');
+              return;
+            }
+
             const root = await navigator.storage.getDirectory();
             const snapshotsDir = await root.getDirectoryHandle('snapshots');
             const fileHandle = await snapshotsDir.getFileHandle(filename);
