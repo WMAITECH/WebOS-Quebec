@@ -5351,13 +5351,13 @@
               <div id="messages-modal-content">
                 <div id="messages-modal-header">
                   <div id="messages-modal-title">Nouvelle conversation</div>
-                  <button id="messages-btn-close" onclick="WebOS.Apps.Messages.hideNewConversation()">&times;</button>
+                  <button id="messages-btn-close">&times;</button>
                 </div>
-                <input type="text" id="messages-search-input" placeholder="Rechercher par nom, email ou numéro..." oninput="WebOS.Apps.Messages.filterUsers(this.value)" />
+                <input type="text" id="messages-search-input" placeholder="Rechercher par nom, email ou numéro..." />
                 <div id="messages-user-list">
                   <div class="msg-loader"><div class="msg-spinner"></div></div>
                 </div>
-                <button id="messages-btn-create" onclick="WebOS.Apps.Messages.createConversation()" disabled>
+                <button id="messages-btn-create" disabled>
                   Créer (0)
                 </button>
               </div>
@@ -5376,8 +5376,8 @@
                   Êtes-vous sûr de vouloir supprimer cette conversation? Tous les messages et pièces jointes seront définitivement supprimés.
                 </div>
                 <div class="msg-delete-actions">
-                  <button class="msg-delete-btn msg-delete-btn-cancel" onclick="WebOS.Apps.Messages.hideDeleteModal()">Annuler</button>
-                  <button class="msg-delete-btn msg-delete-btn-confirm" onclick="WebOS.Apps.Messages.confirmDelete()">Supprimer</button>
+                  <button class="msg-delete-btn msg-delete-btn-cancel" id="messages-delete-cancel">Annuler</button>
+                  <button class="msg-delete-btn msg-delete-btn-confirm" id="messages-delete-confirm">Supprimer</button>
                 </div>
               </div>
             </div>
@@ -5385,7 +5385,7 @@
               <div id="messages-settings-modal-content">
                 <div class="msg-settings-header">
                   <div class="msg-settings-title">Paramètres du profil</div>
-                  <button class="msg-settings-close" onclick="WebOS.Apps.Messages.hideSettings()">&times;</button>
+                  <button class="msg-settings-close" id="messages-settings-close">&times;</button>
                 </div>
                 <div class="msg-settings-body">
                   <div class="msg-settings-field">
@@ -5399,12 +5399,12 @@
                   </div>
                 </div>
                 <div class="msg-settings-actions">
-                  <button class="msg-settings-btn msg-settings-btn-cancel" onclick="WebOS.Apps.Messages.hideSettings()">Annuler</button>
-                  <button class="msg-settings-btn msg-settings-btn-save" onclick="WebOS.Apps.Messages.saveSettings()">Enregistrer</button>
+                  <button class="msg-settings-btn msg-settings-btn-cancel" id="messages-settings-cancel">Annuler</button>
+                  <button class="msg-settings-btn msg-settings-btn-save" id="messages-settings-save">Enregistrer</button>
                 </div>
               </div>
             </div>
-            <input type="file" id="messages-file-input" multiple style="display:none" onchange="WebOS.Apps.Messages.handleFileSelect(event)" />
+            <input type="file" id="messages-file-input" multiple style="display:none" />
           `;
 
           WindowManager.create('messages', 'Messages', content, {
@@ -5419,6 +5419,101 @@
           });
 
           await this.init();
+          this.attachEventListeners();
+        },
+
+        attachEventListeners() {
+          // Bouton créer conversation
+          const btnCreate = document.getElementById('messages-btn-create');
+          if (btnCreate) {
+            btnCreate.addEventListener('click', () => this.createConversation());
+          }
+
+          // Bouton nouveau message
+          const btnNew = document.getElementById('messages-btn-new');
+          if (btnNew) {
+            btnNew.addEventListener('click', () => this.showNewConversation());
+          }
+
+          // Bouton settings
+          const btnSettings = document.getElementById('messages-btn-settings');
+          if (btnSettings) {
+            btnSettings.addEventListener('click', () => this.showSettings());
+          }
+
+          // Bouton fermer modal
+          const btnClose = document.getElementById('messages-btn-close');
+          if (btnClose) {
+            btnClose.addEventListener('click', () => this.hideNewConversation());
+          }
+
+          // Input de recherche
+          const searchInput = document.getElementById('messages-search-input');
+          if (searchInput) {
+            searchInput.addEventListener('input', (e) => this.filterUsers(e.target.value));
+          }
+
+          // Bouton envoyer message
+          const btnSend = document.getElementById('messages-btn-send');
+          if (btnSend) {
+            btnSend.addEventListener('click', () => this.sendMessage());
+          }
+
+          // Input message (Enter = envoyer)
+          const msgInput = document.getElementById('messages-input');
+          if (msgInput) {
+            msgInput.addEventListener('keypress', (e) => {
+              if (e.key === 'Enter') this.sendMessage();
+            });
+          }
+
+          // Bouton retour (mobile)
+          const btnBack = document.querySelector('.msg-back-btn');
+          if (btnBack) {
+            btnBack.addEventListener('click', () => this.toggleSidebar());
+          }
+
+          // File input
+          const fileInput = document.getElementById('messages-file-input');
+          if (fileInput) {
+            fileInput.addEventListener('change', (e) => this.handleFileSelect(e));
+          }
+
+          // Bouton attach
+          const btnAttach = document.querySelector('.msg-btn-attach');
+          if (btnAttach) {
+            btnAttach.addEventListener('click', () => {
+              const fileInput = document.getElementById('messages-file-input');
+              if (fileInput) fileInput.click();
+            });
+          }
+
+          // Modal suppression
+          const btnDeleteCancel = document.getElementById('messages-delete-cancel');
+          if (btnDeleteCancel) {
+            btnDeleteCancel.addEventListener('click', () => this.hideDeleteModal());
+          }
+
+          const btnDeleteConfirm = document.getElementById('messages-delete-confirm');
+          if (btnDeleteConfirm) {
+            btnDeleteConfirm.addEventListener('click', () => this.confirmDelete());
+          }
+
+          // Modal settings
+          const btnSettingsClose = document.getElementById('messages-settings-close');
+          if (btnSettingsClose) {
+            btnSettingsClose.addEventListener('click', () => this.hideSettings());
+          }
+
+          const btnSettingsCancel = document.getElementById('messages-settings-cancel');
+          if (btnSettingsCancel) {
+            btnSettingsCancel.addEventListener('click', () => this.hideSettings());
+          }
+
+          const btnSettingsSave = document.getElementById('messages-settings-save');
+          if (btnSettingsSave) {
+            btnSettingsSave.addEventListener('click', () => this.saveSettings());
+          }
         },
 
         async init() {
@@ -5489,11 +5584,11 @@
             const last = c.last_message?.content || '';
 
             return `
-              <div class="msg-conv-item ${this.currentConversation === c.id ? 'active' : ''}" onclick="WebOS.Apps.Messages.selectConversation('${c.id}')">
+              <div class="msg-conv-item ${this.currentConversation === c.id ? 'active' : ''}" data-conv-id="${c.id}">
                 <div class="msg-conv-name">${name}</div>
                 ${phone ? `<div class="msg-conv-phone"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline-block;vertical-align:middle;margin-right:4px"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>${phone} ${verified ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="3" style="display:inline-block;vertical-align:middle;margin-left:4px"><polyline points="20 6 9 17 4 12"/></svg>' : ''}</div>` : ''}
                 ${last ? `<div class="msg-conv-last">${last}</div>` : ''}
-                <button class="msg-conv-delete" onclick="event.stopPropagation(); WebOS.Apps.Messages.showDeleteModal('${c.id}')">
+                <button class="msg-conv-delete" data-delete-conv-id="${c.id}">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M3 6h18M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
                   </svg>
@@ -5501,6 +5596,24 @@
               </div>
             `;
           }).join('');
+
+          // Ajouter les event listeners
+          container.querySelectorAll('.msg-conv-item').forEach(item => {
+            const convId = item.dataset.convId;
+            item.addEventListener('click', (e) => {
+              if (!e.target.closest('.msg-conv-delete')) {
+                this.selectConversation(convId);
+              }
+            });
+
+            const deleteBtn = item.querySelector('.msg-conv-delete');
+            if (deleteBtn) {
+              deleteBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.showDeleteModal(convId);
+              });
+            }
+          });
         },
 
         async selectConversation(id) {
@@ -5679,14 +5792,22 @@
           }
 
           userList.innerHTML = users.map(u => `
-            <label class="msg-user-item">
-              <input type="checkbox" onchange="WebOS.Apps.Messages.toggleUser('${u.id}')" ${this.selectedUsers.includes(u.id) ? 'checked' : ''}>
+            <label class="msg-user-item" data-user-id="${u.id}">
+              <input type="checkbox" ${this.selectedUsers.includes(u.id) ? 'checked' : ''}>
               <div class="msg-user-info">
                 <div class="msg-user-name">${u.full_name || u.email}</div>
                 ${u.phone_number ? `<div class="msg-user-phone"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline-block;vertical-align:middle;margin-right:4px"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>${u.phone_number} ${u.phone_verified ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="3" style="display:inline-block;vertical-align:middle;margin-left:4px"><polyline points="20 6 9 17 4 12"/></svg>' : ''}</div>` : '<div class="msg-user-phone" style="color:#71717a;font-style:italic">Aucun numéro enregistré</div>'}
               </div>
             </label>
           `).join('');
+
+          // Ajouter les event listeners pour les checkboxes
+          userList.querySelectorAll('.msg-user-item input[type="checkbox"]').forEach(checkbox => {
+            checkbox.addEventListener('change', (e) => {
+              const userId = e.target.closest('.msg-user-item').dataset.userId;
+              this.toggleUser(userId);
+            });
+          });
         },
 
         showNewConversation() {
