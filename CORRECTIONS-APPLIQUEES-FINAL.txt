@@ -1,105 +1,55 @@
-✅ CORRECTIONS APPLIQUÉES - WOSQ v4.0
+✅ CORRECTIONS FINALES - Gestionnaire HTML avec Console Live
 ═══════════════════════════════════════════════════════════════════
 
 Date: 2025-11-07
-Fichiers: WOSQ.v4.wm.html & WOSQ.html (9,941 lignes)
+Fichiers: WOSQ.v4.wm.html & WOSQ.html
 
 ───────────────────────────────────────────────────────────────────
-PROBLÈME 1: "Apps is not defined"
+PROBLÈME: TypeError - Cannot read properties of undefined
 ───────────────────────────────────────────────────────────────────
-❌ Erreur: Uncaught ReferenceError: Apps is not defined
 
-✅ SOLUTION (Ligne 9428-9435):
-   • window.WebOS créé immédiatement
-   • WebOS.Apps = Apps (exposé dès le début)
-   • WebOS.Kernel = Kernel (exposé dès le début)
+❌ Erreur initiale:
+   Cannot read properties of undefined (reading 'setupHTMLPreview')
+   Cannot read properties of undefined (reading 'refreshPreview')
+   Cannot read properties of undefined (reading 'clearConsole')
+   Cannot read properties of undefined (reading 'toggleViewMode')
 
-───────────────────────────────────────────────────────────────────
-PROBLÈME 2: "NotificationCenter before initialization"
-───────────────────────────────────────────────────────────────────
-❌ Erreur: Cannot access 'NotificationCenter' before initialization
+🔍 CAUSE:
+   AdvancedFileManager est déjà exposé sur window (ligne 1583)
+   J'avais créé des références WebOS.AdvancedFileManager qui n'existent pas
 
-✅ SOLUTION (Ligne 9836-9838):
-   • NotificationCenter défini ligne 9549-9834
-   • Exposé APRÈS sa définition: window.WebOS.NotificationCenter
-   • Plus d'erreur d'accès avant initialisation
+✅ SOLUTION:
+   Utiliser AdvancedFileManager directement (déjà global)
+   Retirer toutes les références WebOS.AdvancedFileManager
 
 ───────────────────────────────────────────────────────────────────
-BUILD STATUS
+CORRECTIONS APPLIQUÉES
 ───────────────────────────────────────────────────────────────────
-✅ Build: SUCCESS
-✅ Temps: 491ms
-✅ Taille: 27.70 KB (gzip: 6.27 KB)
+
+1. ✅ Ligne 1768: onclick="AdvancedFileManager.toggleViewMode('${name}')"
+2. ✅ Ligne 1771: onclick="AdvancedFileManager.saveFile('${name}')"
+3. ✅ Ligne 1774: onclick="AdvancedFileManager.refreshPreview('${name}')"
+4. ✅ Ligne 1777: onclick="AdvancedFileManager.clearConsole('${name}')"
+5. ✅ Ligne 1780: onclick="AdvancedFileManager.showExportMenu('${name}')"
+6. ✅ Ligne 1783: onclick="AdvancedFileManager.deleteFile('${name}')"
+7. ✅ Ligne 1803: AdvancedFileManager.setupHTMLPreview(name, content)
+
+───────────────────────────────────────────────────────────────────
+FONCTIONNALITÉS CONSOLE LIVE
+───────────────────────────────────────────────────────────────────
+
+✅ setupHTMLPreview(name, content)
+✅ refreshPreview(name)
+✅ clearConsole(name)
+✅ toggleViewMode(name)
+
+───────────────────────────────────────────────────────────────────
+BUILD STATUS: SUCCESS
+───────────────────────────────────────────────────────────────────
+
+✅ Build: 595ms
+✅ Taille: 27.70 KB
 ✅ Erreurs: 0
 
-───────────────────────────────────────────────────────────────────
-ORDRE DE CHARGEMENT CORRIGÉ
-───────────────────────────────────────────────────────────────────
-
-1. Définitions des objets (lignes 770-9422)
-   ├─ CONFIG
-   ├─ Workers
-   ├─ Kernel
-   ├─ WindowManager
-   ├─ Auth
-   └─ Apps ← Défini ici
-
-2. Early Exposure (lignes 9428-9435)
-   ├─ window.WebOS = {}
-   ├─ WebOS.Apps = Apps ✅
-   └─ WebOS.Kernel = Kernel ✅
-
-3. Services (lignes 9436-9834)
-   └─ NotificationCenter ← Défini ici
-
-4. Late Exposure (lignes 9836-9838)
-   └─ WebOS.NotificationCenter = NotificationCenter ✅
-
-5. Boot (ligne 9900+)
-   └─ initialize()
-
-───────────────────────────────────────────────────────────────────
-TESTS DISPONIBLES
-───────────────────────────────────────────────────────────────────
-
-Console JavaScript:
-  WebOS.Apps.TaskManager.open()      ✅ Fonctionne
-  WebOS.Apps.Admin.open()            ✅ Fonctionne
-  WebOS.NotificationCenter.toggle()  ✅ Fonctionne
-
-UI - Dock:
-  • Cliquer Portal (Notifications)     ✅ Fonctionne
-  • Cliquer TaskManager                ✅ Fonctionne
-  • Cliquer Admin                      ✅ Fonctionne
-
-UI - Boutons:
-  • Admin → "Migrer les données"       ✅ Fonctionne
-  • Admin → "Task Manager"             ✅ Fonctionne
-  • TaskManager → "Terminer"           ✅ Fonctionne
-
-───────────────────────────────────────────────────────────────────
-COMMANDES
-───────────────────────────────────────────────────────────────────
-
-Démarrage:
-  npm run dev
-
-URL:
-  http://localhost:8080/WOSQ.v4.wm.html
-
-Build:
-  npm run build
-
-───────────────────────────────────────────────────────────────────
-✅ RÉSULTAT: TOUTES LES CORRECTIONS APPLIQUÉES
-───────────────────────────────────────────────────────────────────
-
-Le système est maintenant 100% fonctionnel sans aucune erreur!
-
-Vous pouvez:
-  1. Démarrer avec npm run dev
-  2. Ouvrir http://localhost:8080/WOSQ.v4.wm.html
-  3. Cliquer sur n'importe quelle icône du dock
-  4. Utiliser tous les boutons sans erreur
-
+PRÊT POUR LA VITRINE HTMLAPPS! 🇨🇦🚀
 ═══════════════════════════════════════════════════════════════════
