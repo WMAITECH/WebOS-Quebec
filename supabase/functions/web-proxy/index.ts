@@ -121,7 +121,9 @@ Deno.serve(async (req: Request) => {
     });
 
     const contentType = response.headers.get('content-type') || '';
-    const proxyBase = url.origin + url.pathname;
+    const proxyBase = url.host.includes('supabase.co')
+      ? `https://${url.host}/functions/v1/web-proxy`
+      : `${url.protocol}//${url.host}${url.pathname}`;
 
     let processedBody: string | ArrayBuffer;
 
