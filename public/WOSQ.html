@@ -7766,7 +7766,7 @@
             </div>
           `;
           WindowManager.create('browser', 'Navigateur Sécurisé', content, { width: Math.min(1400, window.innerWidth * 0.9), height: window.innerHeight * 0.9 });
-          this.newTab('https://www.quebec.ca');
+          setTimeout(() => this.newTab('https://www.quebec.ca'), 100);
         },
 
         newTab(url = null) {
