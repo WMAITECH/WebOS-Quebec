@@ -1681,7 +1681,7 @@
               </button>
             </div>
 
-            <button class="btn" onclick="WindowManager.close('export-menu')" style="margin-top: 20px; background: #ef4444;">
+            <button class="btn" onclick="WebOS.WindowManager.close('export-menu')" style="margin-top: 20px; background: #ef4444;">
               Annuler
             </button>
           </div>
@@ -4444,7 +4444,7 @@
     const Apps = {
       TaskManager: {
         open() {
-          const processes = Kernel.getProcesses();
+          const processes = WebOS.Kernel.getProcesses();
           const workerCount = Object.keys(WorkerDefinitions).length;
 
           const processRows = processes.map(p => `
@@ -4548,7 +4548,7 @@
           if (status) status.textContent = 'Migration en cours...';
 
           try {
-            const dbProcess = Kernel.getProcessByName('database-module');
+            const dbProcess = WebOS.Kernel.getProcessByName('database-module');
             if (!dbProcess) {
               throw new Error('Database Module non démarré');
             }
@@ -4559,7 +4559,7 @@
             if (status) status.textContent = `Migration de ${emails?.length || 0} emails...`;
             if (emails && emails.length > 0) {
               for (const email of emails) {
-                await Kernel.sendRequest(dbProcess.pid, 'set', {
+                await WebOS.Kernel.sendRequest(dbProcess.pid, 'set', {
                   collection: 'emails',
                   key: email.id,
                   value: email
@@ -4573,7 +4573,7 @@
             if (status) status.textContent = `Migration de ${conversations?.length || 0} conversations...`;
             if (conversations && conversations.length > 0) {
               for (const conv of conversations) {
-                await Kernel.sendRequest(dbProcess.pid, 'set', {
+                await WebOS.Kernel.sendRequest(dbProcess.pid, 'set', {
                   collection: 'conversations',
                   key: conv.id,
                   value: conv
@@ -4581,7 +4581,7 @@
               }
             }
 
-            const stats = await Kernel.sendRequest(dbProcess.pid, 'stats');
+            const stats = await WebOS.Kernel.sendRequest(dbProcess.pid, 'stats');
             if (status) status.innerHTML = `<strong style="color: #10b981;">Migration terminée avec succès!</strong><br>Collections: ${JSON.stringify(stats.collections, null, 2)}`;
 
             alert('Migration terminée avec succès!\n\nLes données sont maintenant disponibles localement.');
@@ -4598,7 +4598,7 @@
         open() {
           const logs = Logger.getLogs().slice(0, 200);
           const perf = PerformanceMonitor.getReport();
-          const processes = Kernel.getProcesses();
+          const processes = WebOS.Kernel.getProcesses();
 
           const html = `
             <div style="font-family: system-ui, sans-serif; padding: 20px;">
@@ -8253,7 +8253,7 @@
                 </div>
               </div>
               <div style="display: flex; gap: 8px; justify-content: flex-end;">
-                <button onclick="WindowManager.close('reply')" style="padding: 10px 24px; background: white; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500; transition: background 0.2s;" onmouseover="this.style.background='#f9fafb'" onmouseout="this.style.background='white'">Annuler</button>
+                <button onclick="WebOS.WindowManager.close('reply')" style="padding: 10px 24px; background: white; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500; transition: background 0.2s;" onmouseover="this.style.background='#f9fafb'" onmouseout="this.style.background='white'">Annuler</button>
                 <button onclick="WebOS.Apps.Mail.sendReply('${emailId}')" style="padding: 10px 24px; background: #3b82f6; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 14px; transition: background 0.2s;" onmouseover="this.style.background='#2563eb'" onmouseout="this.style.background='#3b82f6'">Envoyer</button>
               </div>
             </div>
@@ -8338,7 +8338,7 @@
               <div style="display: flex; gap: 8px; justify-content: space-between;">
                 <button onclick="WebOS.Apps.Mail.saveDraft()" style="padding: 10px 20px; background: white; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500; transition: background 0.2s;" onmouseover="this.style.background='#f9fafb'" onmouseout="this.style.background='white'">Brouillon</button>
                 <div style="display: flex; gap: 8px;">
-                  <button onclick="WindowManager.close('compose')" style="padding: 10px 20px; background: white; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500; transition: background 0.2s;" onmouseover="this.style.background='#f9fafb'" onmouseout="this.style.background='white'">Annuler</button>
+                  <button onclick="WebOS.WindowManager.close('compose')" style="padding: 10px 20px; background: white; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500; transition: background 0.2s;" onmouseover="this.style.background='#f9fafb'" onmouseout="this.style.background='white'">Annuler</button>
                   <button onclick="WebOS.Apps.Mail.send()" style="padding: 10px 24px; background: #3b82f6; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 14px; transition: background 0.2s;" onmouseover="this.style.background='#2563eb'" onmouseout="this.style.background='#3b82f6'">Envoyer</button>
                 </div>
               </div>
@@ -9430,9 +9430,10 @@
     }
     window.WebOS.Apps = Apps;
     window.WebOS.Kernel = Kernel;
+    window.WebOS.WindowManager = WindowManager;
     // NotificationCenter sera ajouté plus tard après sa définition (ligne ~9837)
 
-    console.log('[WOSQ v4] WebOS exposé - Apps et Kernel accessibles');
+    console.log('[WOSQ v4] WebOS exposé - Apps, Kernel et WindowManager accessibles');
 
     // ============================================
     // INITIALIZATION
