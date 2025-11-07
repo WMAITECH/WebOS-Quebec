@@ -1765,37 +1765,42 @@
           const htmlViewerContent = `
             <div style="height: 100%; display: flex; flex-direction: column;">
               <div style="display: flex; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; align-items: center;">
-                <button class="btn" id="toggleViewMode-${name}" style="width: auto; padding: 8px 16px; font-size: 14px; background: #8b5cf6;" onclick="AdvancedFileManager.toggleViewMode('${name}')">
+                <button class="btn" id="toggleViewMode-${name}" style="width: auto; padding: 8px 16px; font-size: 14px; background: #8b5cf6;" onclick="WebOS.AdvancedFileManager.toggleViewMode('${name}')">
                   👁 Aperçu
                 </button>
-                <button class="btn" style="width: auto; padding: 8px 16px; font-size: 14px; background: #10b981;" onclick="AdvancedFileManager.saveFile('${name}')">
+                <button class="btn" style="width: auto; padding: 8px 16px; font-size: 14px; background: #10b981;" onclick="WebOS.AdvancedFileManager.saveFile('${name}')">
                   💾 Enregistrer
                 </button>
-                <button class="btn" style="width: auto; padding: 8px 16px; font-size: 14px; background: #3b82f6;" onclick="AdvancedFileManager.showExportMenu('${name}')">
+                <button class="btn" style="width: auto; padding: 8px 16px; font-size: 14px; background: #06b6d4;" onclick="WebOS.AdvancedFileManager.refreshPreview('${name}')">
+                  🔄 Rafraîchir
+                </button>
+                <button class="btn" style="width: auto; padding: 8px 16px; font-size: 14px; background: #f59e0b;" onclick="WebOS.AdvancedFileManager.clearConsole('${name}')">
+                  🧹 Console
+                </button>
+                <button class="btn" style="width: auto; padding: 8px 16px; font-size: 14px; background: #3b82f6;" onclick="WebOS.AdvancedFileManager.showExportMenu('${name}')">
                   ⬇ Exporter
                 </button>
-                <button class="btn" style="width: auto; padding: 8px 16px; font-size: 14px; background: #ef4444;" onclick="AdvancedFileManager.deleteFile('${name}')">
+                <button class="btn" style="width: auto; padding: 8px 16px; font-size: 14px; background: #ef4444;" onclick="WebOS.AdvancedFileManager.deleteFile('${name}')">
                   🗑 Supprimer
                 </button>
               </div>
-              <div id="codeView-${name}" style="flex: 1; display: flex;">
-                <textarea id="fileEditor" style="flex: 1; padding: 16px; border: 2px solid #e5e7eb; border-radius: 8px; font-family: 'Courier New', monospace; font-size: 14px; line-height: 1.6; resize: none;">${escapedContent}</textarea>
+              <div id="codeView-${name}" style="flex: 1; display: flex; flex-direction: column; gap: 8px;">
+                <textarea id="fileEditor-${name}" style="flex: 1; padding: 16px; border: 2px solid #e5e7eb; border-radius: 8px; font-family: 'Courier New', monospace; font-size: 13px; line-height: 1.6; resize: none;">${escapedContent}</textarea>
               </div>
-              <div id="previewView-${name}" style="flex: 1; display: none;">
-                <iframe id="htmlPreview-${name}" style="width: 100%; height: 100%; border: 2px solid #e5e7eb; border-radius: 8px; background: white;" sandbox="allow-scripts allow-same-origin allow-forms allow-modals"></iframe>
+              <div id="previewView-${name}" style="flex: 1; display: none; flex-direction: column; gap: 8px;">
+                <div style="flex: 1; border: 2px solid #e5e7eb; border-radius: 8px; overflow: hidden; display: flex; flex-direction: column; background: white;">
+                  <iframe id="htmlPreview-${name}" style="flex: 1; border: none; background: white;"></iframe>
+                </div>
+                <div id="consoleView-${name}" style="height: 180px; background: #1e293b; border: 2px solid #334155; border-radius: 8px; padding: 12px; font-family: 'Courier New', monospace; font-size: 12px; color: #e2e8f0; overflow-y: auto; line-height: 1.5;">
+                  <div style="color: #94a3b8; margin-bottom: 8px;">📟 Console JavaScript Live</div>
+                </div>
               </div>
             </div>
           `;
-          WindowManager.create(`file-${name}`, name, htmlViewerContent, { width: 1100, height: 750 });
+          WindowManager.create(`file-${name}`, name, htmlViewerContent, { width: 1200, height: 800 });
 
           setTimeout(() => {
-            const iframe = document.getElementById('htmlPreview-' + name);
-            if (iframe) {
-              const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
-              iframeDoc.open();
-              iframeDoc.write(content || '');
-              iframeDoc.close();
-            }
+            WebOS.AdvancedFileManager.setupHTMLPreview(name, content);
           }, 100);
         } else if (preview.type === 'text') {
           const content = await FileSystem.readFile(name);
@@ -1822,7 +1827,9 @@
       },
 
       async saveFile(name) {
-        const content = document.getElementById('fileEditor').value;
+        const editor = document.getElementById('fileEditor-' + name) || document.getElementById('fileEditor');
+        if (!editor) return;
+        const content = editor.value;
         await FileSystem.writeFile(name, content);
         await Notifications.createNotification(
           'Fichier enregistré',
@@ -1846,11 +1853,101 @@
         }
       },
 
+      setupHTMLPreview(name, content) {
+        const iframe = document.getElementById('htmlPreview-' + name);
+        const consoleView = document.getElementById('consoleView-' + name);
+        if (!iframe || !consoleView) return;
+
+        const addConsoleLog = (type, args, color) => {
+          const timestamp = new Date().toLocaleTimeString('fr-CA', { hour12: false });
+          const message = Array.from(args).map(arg => {
+            if (typeof arg === 'object') {
+              try { return JSON.stringify(arg, null, 2); }
+              catch (e) { return String(arg); }
+            }
+            return String(arg);
+          }).join(' ');
+
+          const logLine = document.createElement('div');
+          logLine.style.cssText = `color: ${color}; margin-bottom: 4px; word-break: break-word;`;
+          logLine.innerHTML = `<span style="color: #64748b;">[${timestamp}]</span> ${type}: ${message}`;
+          consoleView.appendChild(logLine);
+          consoleView.scrollTop = consoleView.scrollHeight;
+        };
+
+        iframe.onload = () => {
+          try {
+            const iframeWindow = iframe.contentWindow;
+
+            const originalConsole = {
+              log: iframeWindow.console.log,
+              error: iframeWindow.console.error,
+              warn: iframeWindow.console.warn,
+              info: iframeWindow.console.info
+            };
+
+            iframeWindow.console.log = function(...args) {
+              addConsoleLog('LOG', args, '#94a3b8');
+              originalConsole.log.apply(iframeWindow.console, args);
+            };
+
+            iframeWindow.console.error = function(...args) {
+              addConsoleLog('ERROR', args, '#ef4444');
+              originalConsole.error.apply(iframeWindow.console, args);
+            };
+
+            iframeWindow.console.warn = function(...args) {
+              addConsoleLog('WARN', args, '#f59e0b');
+              originalConsole.warn.apply(iframeWindow.console, args);
+            };
+
+            iframeWindow.console.info = function(...args) {
+              addConsoleLog('INFO', args, '#3b82f6');
+              originalConsole.info.apply(iframeWindow.console, args);
+            };
+
+            iframeWindow.addEventListener('error', (e) => {
+              addConsoleLog('ERROR', [e.message, `at ${e.filename}:${e.lineno}:${e.colno}`], '#ef4444');
+            });
+
+            iframeWindow.addEventListener('unhandledrejection', (e) => {
+              addConsoleLog('ERROR', ['Unhandled Promise Rejection:', e.reason], '#ef4444');
+            });
+          } catch (err) {
+            console.warn('[HTMLPreview] Cannot intercept console (cross-origin):', err.message);
+          }
+        };
+
+        const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+        iframeDoc.open();
+        iframeDoc.write(content || '');
+        iframeDoc.close();
+      },
+
+      refreshPreview(name) {
+        const editor = document.getElementById('fileEditor-' + name);
+        if (!editor) return;
+        const content = editor.value;
+        this.setupHTMLPreview(name, content);
+        const consoleView = document.getElementById('consoleView-' + name);
+        if (consoleView) {
+          const firstChild = consoleView.firstChild;
+          consoleView.innerHTML = '';
+          if (firstChild) consoleView.appendChild(firstChild);
+        }
+      },
+
+      clearConsole(name) {
+        const consoleView = document.getElementById('consoleView-' + name);
+        if (consoleView) {
+          consoleView.innerHTML = '<div style="color: #94a3b8; margin-bottom: 8px;">📟 Console JavaScript Live</div>';
+        }
+      },
+
       toggleViewMode(name) {
         const codeView = document.getElementById('codeView-' + name);
         const previewView = document.getElementById('previewView-' + name);
         const toggleBtn = document.getElementById('toggleViewMode-' + name);
-        const iframe = document.getElementById('htmlPreview-' + name);
 
         if (codeView.style.display === 'none') {
           codeView.style.display = 'flex';
@@ -1858,12 +1955,10 @@
           toggleBtn.textContent = '👁 Aperçu';
           toggleBtn.style.background = '#8b5cf6';
         } else {
-          const content = document.getElementById('fileEditor').value;
-          if (iframe) {
-            const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
-            iframeDoc.open();
-            iframeDoc.write(content);
-            iframeDoc.close();
+          const editor = document.getElementById('fileEditor-' + name);
+          if (editor) {
+            const content = editor.value;
+            this.setupHTMLPreview(name, content);
           }
           codeView.style.display = 'none';
           previewView.style.display = 'flex';
@@ -9431,9 +9526,10 @@
     window.WebOS.Apps = Apps;
     window.WebOS.Kernel = Kernel;
     window.WebOS.WindowManager = WindowManager;
+    window.WebOS.AdvancedFileManager = AdvancedFileManager;
     // NotificationCenter sera ajouté plus tard après sa définition (ligne ~9837)
 
-    console.log('[WOSQ v4] WebOS exposé - Apps, Kernel et WindowManager accessibles');
+    console.log('[WOSQ v4] WebOS exposé - Apps, Kernel, WindowManager et AdvancedFileManager accessibles');
 
     // ============================================
     // INITIALIZATION
