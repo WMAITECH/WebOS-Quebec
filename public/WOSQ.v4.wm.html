@@ -755,6 +755,13 @@
         <polyline points="22,6 12,13 2,6"></polyline>
       </svg>
     </div>
+    <div class="dock-item" onclick="WebOS.Apps.HTMLEditor.open()" title="HTML Editor">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#f97316" stroke-width="2.5">
+        <polyline points="16 18 22 12 16 6"></polyline>
+        <polyline points="8 6 2 12 8 18"></polyline>
+        <line x1="13" y1="2" x2="11" y2="22"></line>
+      </svg>
+    </div>
   </div>
 
   <!-- Import Maps for ES Modules with CDN Fallback -->
@@ -5101,6 +5108,449 @@
             }
           } catch (error) {
             this.updateLastMessage('Erreur: ' + error.message);
+          }
+        }
+      },
+
+      HTMLEditor: {
+        state: {
+          htmlCode: '',
+          activeDevice: 'desktop',
+          showPreview: false,
+          consoleLogs: [],
+          logIdCounter: 0,
+          zoomLevel: 100,
+          currentBlobUrl: null
+        },
+
+        devices: {
+          desktop: { width: '100%', height: '100%', label: 'Desktop' },
+          tablet: { width: '768px', height: '1024px', label: 'Tablet' },
+          mobile: { width: '375px', height: '667px', label: 'Mobile' }
+        },
+
+        defaultHTML: `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Preview</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      min-height: 100vh; display: flex; align-items: center; justify-content: center;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white; padding: 2rem;
+    }
+    .container { text-align: center; max-width: 600px; }
+    h1 { font-size: 3rem; margin-bottom: 1rem; animation: fadeIn 1s ease-in; }
+    p { font-size: 1.25rem; opacity: 0.9; line-height: 1.6; }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Welcome!</h1>
+    <p>Paste your HTML code in the editor to see it come to life.</p>
+  </div>
+</body>
+</html>`,
+
+        open() {
+          this.state = {
+            htmlCode: '',
+            activeDevice: 'desktop',
+            showPreview: false,
+            consoleLogs: [],
+            logIdCounter: 0,
+            zoomLevel: 100,
+            currentBlobUrl: null
+          };
+
+          const content = `
+            <div style="height: 100%; display: flex; flex-direction: column;">
+              <div style="display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; padding-bottom: 16px; border-bottom: 2px solid #e5e7eb;">
+                <div style="display: flex; gap: 6px; background: #f3f4f6; border-radius: 8px; padding: 6px;">
+                  <button class="device-btn" data-device="desktop" onclick="WebOS.Apps.HTMLEditor.setDevice('desktop')" style="padding: 8px 12px; background: #3b82f6; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600; transition: all 0.2s;" title="Desktop">
+                    🖥️
+                  </button>
+                  <button class="device-btn" data-device="tablet" onclick="WebOS.Apps.HTMLEditor.setDevice('tablet')" style="padding: 8px 12px; background: transparent; color: #64748b; border: none; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600; transition: all 0.2s;" title="Tablet">
+                    📱
+                  </button>
+                  <button class="device-btn" data-device="mobile" onclick="WebOS.Apps.HTMLEditor.setDevice('mobile')" style="padding: 8px 12px; background: transparent; color: #64748b; border: none; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600; transition: all 0.2s;" title="Mobile">
+                    📱
+                  </button>
+                </div>
+
+                <button class="btn" style="width: auto; padding: 10px 18px; font-size: 14px; background: #10b981; font-weight: 600;" onclick="WebOS.Apps.HTMLEditor.fixCode()">
+                  ✨ Corriger
+                </button>
+
+                <button class="btn" style="width: auto; padding: 10px 18px; font-size: 14px; background: #3b82f6; font-weight: 600;" onclick="WebOS.Apps.HTMLEditor.preview()">
+                  ▶ Preview
+                </button>
+
+                <button class="btn" style="width: auto; padding: 10px 18px; font-size: 14px; background: #8b5cf6; font-weight: 600;" onclick="WebOS.Apps.HTMLEditor.exportFile()">
+                  ⬇ Exporter
+                </button>
+
+                <button class="btn" style="width: auto; padding: 10px 18px; font-size: 14px; background: #ef4444; font-weight: 600;" onclick="WebOS.Apps.HTMLEditor.clear()">
+                  🗑️ Clear
+                </button>
+              </div>
+
+              <div id="htmlEditorContainer" style="flex: 1; display: flex; gap: 16px; min-height: 0;">
+                <div style="flex: 1; display: flex; flex-direction: column; min-width: 0;">
+                  <div style="padding: 8px 12px; background: #f3f4f6; border-radius: 8px 8px 0 0; font-size: 13px; font-weight: 600; color: #64748b;">
+                    HTML Code
+                  </div>
+                  <textarea id="htmlEditorTextarea" placeholder="Paste your complete HTML code here..." style="flex: 1; width: 100%; background: #1e293b; color: #e2e8f0; font-family: 'Consolas', 'Monaco', 'Courier New', monospace; font-size: 13px; padding: 16px; border: none; resize: none; outline: none; border-radius: 0 0 8px 8px;" spellcheck="false"></textarea>
+                </div>
+
+                <div id="previewSection" style="display: none; flex: 1; flex-direction: column; min-width: 0; background: #f8fafc; border-radius: 8px; overflow: hidden;">
+                  <div style="padding: 8px 12px; background: #1e40af; color: white; display: flex; justify-content: space-between; align-items: center;">
+                    <span style="font-size: 13px; font-weight: 600;" id="deviceLabel">Live Preview — Desktop</span>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                      <button onclick="WebOS.Apps.HTMLEditor.zoomOut()" style="padding: 4px 8px; background: rgba(255,255,255,0.2); border: none; color: white; border-radius: 4px; cursor: pointer; font-size: 12px;">-</button>
+                      <span id="zoomLevel" style="font-size: 12px; font-family: monospace; min-width: 3rem; text-align: center;">100%</span>
+                      <button onclick="WebOS.Apps.HTMLEditor.zoomIn()" style="padding: 4px 8px; background: rgba(255,255,255,0.2); border: none; color: white; border-radius: 4px; cursor: pointer; font-size: 12px;">+</button>
+                      <button onclick="WebOS.Apps.HTMLEditor.zoomReset()" style="padding: 4px 8px; background: rgba(255,255,255,0.2); border: none; color: white; border-radius: 4px; cursor: pointer; font-size: 12px;">↻</button>
+                    </div>
+                  </div>
+                  <div style="flex: 1; overflow: auto; padding: 16px; display: flex; align-items: center; justify-content: center;">
+                    <div id="previewFrameWrapper" style="background: white; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); transition: all 0.3s;">
+                      <iframe id="previewFrame" sandbox="allow-scripts allow-same-origin" style="width: 100%; height: 100%; border: none; border-radius: 8px;"></iframe>
+                    </div>
+                  </div>
+                </div>
+
+                <div id="consoleSection" style="display: none; flex: 1; flex-direction: column; min-width: 0; background: #0f172a; border-radius: 8px; overflow: hidden;">
+                  <div style="padding: 8px 12px; background: #1e293b; color: white; display: flex; justify-content: space-between; align-items: center;">
+                    <span style="font-size: 13px; font-weight: 600;">Console</span>
+                    <button onclick="WebOS.Apps.HTMLEditor.clearConsole()" style="padding: 4px 12px; background: rgba(255,255,255,0.1); border: none; color: white; border-radius: 4px; cursor: pointer; font-size: 11px;">Clear</button>
+                  </div>
+                  <div id="consoleLogs" style="flex: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 8px; font-family: monospace; font-size: 11px;">
+                    <div style="text-align: center; color: #64748b; padding: 20px;">Console output will appear here</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          `;
+
+          WindowManager.create('htmleditor', '⚡ HTML Live Preview Editor', content, { width: 1200, height: 800 });
+
+          setTimeout(() => {
+            const textarea = document.getElementById('htmlEditorTextarea');
+            if (textarea) {
+              textarea.addEventListener('input', (e) => {
+                this.state.htmlCode = e.target.value;
+              });
+            }
+          }, 100);
+        },
+
+        setDevice(device) {
+          this.state.activeDevice = device;
+          document.querySelectorAll('.device-btn').forEach(btn => {
+            const btnDevice = btn.getAttribute('data-device');
+            if (btnDevice === device) {
+              btn.style.background = '#3b82f6';
+              btn.style.color = 'white';
+            } else {
+              btn.style.background = 'transparent';
+              btn.style.color = '#64748b';
+            }
+          });
+          this.updateDeviceSize();
+          const deviceConfig = this.devices[device];
+          const label = document.getElementById('deviceLabel');
+          if (label) label.textContent = `Live Preview — ${deviceConfig.label}`;
+        },
+
+        updateDeviceSize() {
+          const wrapper = document.getElementById('previewFrameWrapper');
+          if (!wrapper) return;
+          const device = this.devices[this.state.activeDevice];
+          wrapper.style.width = device.width;
+          wrapper.style.height = device.height;
+          wrapper.style.maxWidth = '100%';
+          wrapper.style.maxHeight = '100%';
+        },
+
+        preview() {
+          this.state.showPreview = true;
+          const previewSection = document.getElementById('previewSection');
+          const consoleSection = document.getElementById('consoleSection');
+          if (previewSection) previewSection.style.display = 'flex';
+          if (consoleSection) consoleSection.style.display = 'flex';
+          this.updatePreview();
+        },
+
+        updatePreview() {
+          if (!this.state.showPreview) return;
+
+          if (this.state.currentBlobUrl) {
+            URL.revokeObjectURL(this.state.currentBlobUrl);
+            this.state.currentBlobUrl = null;
+          }
+
+          const htmlContent = this.state.htmlCode || this.defaultHTML;
+          const blob = new Blob([htmlContent], { type: 'text/html' });
+          const blobUrl = URL.createObjectURL(blob);
+          this.state.currentBlobUrl = blobUrl;
+
+          const frame = document.getElementById('previewFrame');
+          if (!frame) return;
+
+          frame.src = blobUrl;
+
+          frame.onload = () => {
+            setTimeout(() => {
+              try {
+                const win = frame.contentWindow;
+                const doc = frame.contentDocument;
+
+                if (doc && doc.documentElement) {
+                  doc.documentElement.style.zoom = \`\${this.state.zoomLevel}%\`;
+                }
+
+                if (win) {
+                  this.state.consoleLogs = [];
+                  this.state.logIdCounter = 0;
+                  this.renderConsole();
+
+                  win.console.log = (...args) => this.addLog('log', args);
+                  win.console.error = (...args) => this.addLog('error', args);
+                  win.console.warn = (...args) => this.addLog('warn', args);
+                  win.console.info = (...args) => this.addLog('info', args);
+
+                  win.onerror = (message, source, lineno, colno, error) => {
+                    this.addLog('error', [message], error?.stack);
+                    return true;
+                  };
+
+                  win.onunhandledrejection = (event) => {
+                    this.addLog('error', ['Unhandled Promise:', event.reason]);
+                  };
+                }
+              } catch (err) {
+                console.warn('Cannot intercept console:', err);
+              }
+            }, 100);
+          };
+
+          this.updateDeviceSize();
+        },
+
+        addLog(type, args, stack = null) {
+          const message = args.map(arg => {
+            if (typeof arg === 'object') {
+              try {
+                return JSON.stringify(arg, null, 2);
+              } catch {
+                return String(arg);
+              }
+            }
+            return String(arg);
+          }).join(' ');
+
+          this.state.consoleLogs.push({
+            id: this.state.logIdCounter++,
+            type,
+            message,
+            timestamp: new Date(),
+            stack
+          });
+
+          this.renderConsole();
+        },
+
+        renderConsole() {
+          const container = document.getElementById('consoleLogs');
+          if (!container) return;
+
+          if (this.state.consoleLogs.length === 0) {
+            container.innerHTML = '<div style="text-align: center; color: #64748b; padding: 20px;">Console output will appear here</div>';
+            return;
+          }
+
+          const colors = {
+            log: { bg: 'rgba(100, 116, 139, 0.1)', border: 'rgba(100, 116, 139, 0.3)', text: '#cbd5e1' },
+            error: { bg: 'rgba(239, 68, 68, 0.1)', border: 'rgba(239, 68, 68, 0.3)', text: '#fca5a5' },
+            warn: { bg: 'rgba(245, 158, 11, 0.1)', border: 'rgba(245, 158, 11, 0.3)', text: '#fcd34d' },
+            info: { bg: 'rgba(59, 130, 246, 0.1)', border: 'rgba(59, 130, 246, 0.3)', text: '#93c5fd' }
+          };
+
+          container.innerHTML = this.state.consoleLogs.map(log => {
+            const color = colors[log.type];
+            return \`
+              <div style="padding: 8px 12px; background: \${color.bg}; border: 1px solid \${color.border}; border-radius: 6px; color: \${color.text};">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                  <span style="font-weight: 600; text-transform: uppercase; font-size: 10px;">\${log.type}</span>
+                  <span style="font-size: 10px; opacity: 0.6;">\${log.timestamp.toLocaleTimeString()}</span>
+                </div>
+                <pre style="white-space: pre-wrap; word-break: break-word; margin: 0;">\${log.message}</pre>
+                \${log.stack ? \`<pre style="margin-top: 8px; font-size: 10px; opacity: 0.7; border-top: 1px solid currentColor; padding-top: 8px; white-space: pre-wrap;">\${log.stack}</pre>\` : ''}
+              </div>
+            \`;
+          }).join('');
+
+          container.scrollTop = container.scrollHeight;
+        },
+
+        clearConsole() {
+          this.state.consoleLogs = [];
+          this.renderConsole();
+        },
+
+        zoomIn() {
+          this.state.zoomLevel = Math.min(this.state.zoomLevel + 10, 300);
+          this.updateZoom();
+        },
+
+        zoomOut() {
+          this.state.zoomLevel = Math.max(this.state.zoomLevel - 10, 10);
+          this.updateZoom();
+        },
+
+        zoomReset() {
+          this.state.zoomLevel = 100;
+          this.updateZoom();
+        },
+
+        updateZoom() {
+          const label = document.getElementById('zoomLevel');
+          if (label) label.textContent = \`\${this.state.zoomLevel}%\`;
+          this.updatePreview();
+        },
+
+        async fixCode() {
+          if (!this.state.htmlCode.trim()) {
+            alert('Aucun code à corriger');
+            return;
+          }
+
+          let corrected = this.state.htmlCode;
+
+          if (!corrected.includes('<!DOCTYPE html>')) {
+            corrected = '<!DOCTYPE html>\\n' + corrected;
+          }
+
+          if (!corrected.includes('<html')) {
+            corrected = corrected.replace('<!DOCTYPE html>', '<!DOCTYPE html>\\n<html lang="en">');
+            if (!corrected.includes('</html>')) {
+              corrected += '\\n</html>';
+            }
+          }
+
+          if (!corrected.includes('<head>')) {
+            const htmlMatch = corrected.match(/<html[^>]*>/i);
+            if (htmlMatch) {
+              const pos = corrected.indexOf(htmlMatch[0]) + htmlMatch[0].length;
+              corrected = corrected.slice(0, pos) +
+                '\\n<head>\\n  <meta charset="UTF-8">\\n  <meta name="viewport" content="width=device-width, initial-scale=1.0">\\n  <title>Document</title>\\n</head>' +
+                corrected.slice(pos);
+            }
+          } else {
+            if (!corrected.includes('charset')) {
+              corrected = corrected.replace(/<head>/i, '<head>\\n  <meta charset="UTF-8">');
+            }
+            if (!corrected.includes('viewport')) {
+              corrected = corrected.replace(/<head>/i, '<head>\\n  <meta name="viewport" content="width=device-width, initial-scale=1.0">');
+            }
+          }
+
+          if (!corrected.includes('<body>')) {
+            const headCloseIndex = corrected.indexOf('</head>');
+            if (headCloseIndex !== -1) {
+              corrected = corrected.slice(0, headCloseIndex + 7) + '\\n<body>\\n' + corrected.slice(headCloseIndex + 7);
+              if (!corrected.includes('</body>')) {
+                const htmlCloseIndex = corrected.lastIndexOf('</html>');
+                if (htmlCloseIndex !== -1) {
+                  corrected = corrected.slice(0, htmlCloseIndex) + '</body>\\n' + corrected.slice(htmlCloseIndex);
+                }
+              }
+            }
+          }
+
+          this.state.htmlCode = corrected;
+          const textarea = document.getElementById('htmlEditorTextarea');
+          if (textarea) textarea.value = corrected;
+
+          await Notifications.createNotification(
+            'Code corrigé',
+            'Le code HTML a été automatiquement corrigé',
+            'success',
+            'htmleditor'
+          );
+        },
+
+        async exportFile() {
+          const title = prompt('Titre du fichier:');
+          if (!title || !title.trim()) return;
+
+          const timestamp = new Date().toISOString();
+          let geo = null;
+
+          if ('geolocation' in navigator) {
+            try {
+              const position = await new Promise((resolve, reject) => {
+                navigator.geolocation.getCurrentPosition(resolve, reject);
+              });
+              geo = { latitude: position.coords.latitude, longitude: position.coords.longitude };
+            } catch {
+              geo = null;
+            }
+          }
+
+          const metadata = \`
+<!--
+  Fichier: \${title}
+  Créé le: \${timestamp}
+  Géolocalisation: \${geo ? \`\${geo.latitude}, \${geo.longitude}\` : 'Non disponible'}
+  © \${new Date().getFullYear()} William Michaud (WM) - Tous droits réservés
+  ~ Micho
+-->
+\`;
+
+          const htmlContent = this.state.htmlCode || this.defaultHTML;
+          const finalHTML = htmlContent.replace('<!DOCTYPE html>', \`<!DOCTYPE html>\${metadata}\`);
+
+          const blob = new Blob([finalHTML], { type: 'text/html' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = \`\${title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_\${Date.now()}.html\`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+
+          await Notifications.createNotification(
+            'Fichier exporté',
+            \`\${title}.html\`,
+            'success',
+            'htmleditor'
+          );
+        },
+
+        clear() {
+          this.state.htmlCode = '';
+          this.state.showPreview = false;
+          this.state.consoleLogs = [];
+          const textarea = document.getElementById('htmlEditorTextarea');
+          if (textarea) textarea.value = '';
+          const previewSection = document.getElementById('previewSection');
+          const consoleSection = document.getElementById('consoleSection');
+          if (previewSection) previewSection.style.display = 'none';
+          if (consoleSection) consoleSection.style.display = 'none';
+          if (this.state.currentBlobUrl) {
+            URL.revokeObjectURL(this.state.currentBlobUrl);
+            this.state.currentBlobUrl = null;
           }
         }
       },
