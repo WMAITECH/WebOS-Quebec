@@ -1875,19 +1875,19 @@
           consoleView.scrollTop = consoleView.scrollHeight;
         };
 
-        const injectionScript = `
-<script>
-(function() {
-  try {
-    window.NexusApp = window.parent.NexusApp || window.NexusApp || {};
-    window.Apps = window.parent.Apps || window.Apps || {};
-    window.System = window.parent.System || window.System || {};
-    window.Kernel = window.parent.Kernel || window.Kernel || {};
-  } catch(e) {
-    console.warn('[Preview] Cannot inject parent APIs:', e.message);
-  }
-})();
-</script>`;
+        const injectionScript =
+          '<script>' +
+          '(function() {' +
+          '  try {' +
+          '    window.NexusApp = window.parent.NexusApp || window.NexusApp || {};' +
+          '    window.Apps = window.parent.Apps || window.Apps || {};' +
+          '    window.System = window.parent.System || window.System || {};' +
+          '    window.Kernel = window.parent.Kernel || window.Kernel || {};' +
+          '  } catch(e) {' +
+          '    console.warn("[Preview] Cannot inject parent APIs:", e.message);' +
+          '  }' +
+          '})();' +
+          '<\/script>';
 
         let processedContent = content || '';
 
