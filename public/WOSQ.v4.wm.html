@@ -1885,110 +1885,105 @@
           consoleView.scrollTop = consoleView.scrollHeight;
         };
 
-        if (iframe._currentBlobUrl) {
-          URL.revokeObjectURL(iframe._currentBlobUrl);
-          iframe._currentBlobUrl = null;
+        const injectionScript = `
+(function() {
+  try {
+    window.NexusApp = window.parent.NexusApp || window.NexusApp || {};
+    window.Apps = window.parent.Apps || window.Apps || {};
+    window.System = window.parent.System || window.System || {};
+    window.Kernel = window.parent.Kernel || window.Kernel || {};
+  } catch(e) {
+    console.warn("[Preview] Cannot inject parent APIs:", e.message);
+  }
+})();`;
+
+        let wrappedHTML = content || '';
+
+        if (!wrappedHTML.toLowerCase().includes('<!doctype')) {
+          wrappedHTML = '<!DOCTYPE html>\n' + wrappedHTML;
         }
 
-        const injectionScript =
-          '<script data-wosq-injection>' +
-          '(function() {' +
-          '  try {' +
-          '    window.NexusApp = window.parent.NexusApp || window.NexusApp || {};' +
-          '    window.Apps = window.parent.Apps || window.Apps || {};' +
-          '    window.System = window.parent.System || window.System || {};' +
-          '    window.Kernel = window.parent.Kernel || window.Kernel || {};' +
-          '  } catch(e) {' +
-          '    console.warn("[Preview] Cannot inject parent APIs:", e.message);' +
-          '  }' +
-          '})();' +
-          '<\/script>';
-
-        let processedContent = content || '';
-
-        if (processedContent.toLowerCase().includes('<head>')) {
-          processedContent = processedContent.replace(
+        if (wrappedHTML.toLowerCase().includes('<head>')) {
+          wrappedHTML = wrappedHTML.replace(
             /(<head[^>]*>)/i,
-            '$1\n' + injectionScript
+            `$1\n<script>${injectionScript}<\/script>`
           );
-        } else if (processedContent.toLowerCase().includes('<html>')) {
-          processedContent = processedContent.replace(
+        } else if (wrappedHTML.toLowerCase().includes('<html>')) {
+          wrappedHTML = wrappedHTML.replace(
             /(<html[^>]*>)/i,
-            '$1\n<head>' + injectionScript + '</head>'
-          );
-        } else if (processedContent.toLowerCase().includes('<!doctype')) {
-          processedContent = processedContent.replace(
-            /(<!doctype[^>]*>)/i,
-            '$1\n<head>' + injectionScript + '</head>'
+            `$1\n<head><script>${injectionScript}<\/script></head>`
           );
         } else {
-          processedContent = injectionScript + processedContent;
+          wrappedHTML = `<head><script>${injectionScript}<\/script></head>` + wrappedHTML;
         }
 
-        const blob = new Blob([processedContent], { type: 'text/html' });
-        const blobUrl = URL.createObjectURL(blob);
-        iframe._currentBlobUrl = blobUrl;
+        setTimeout(() => {
+          try {
+            const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+            iframeDoc.open();
+            iframeDoc.write(wrappedHTML);
+            iframeDoc.close();
 
-        iframe.src = blobUrl;
+            setTimeout(() => {
+              try {
+                const iframeWindow = iframe.contentWindow;
+                if (!iframeWindow) return;
 
-        iframe.onload = () => {
-          setTimeout(() => {
-            try {
-              const iframeWindow = iframe.contentWindow;
-              if (!iframeWindow) return;
+                if (typeof NexusApp !== 'undefined') {
+                  iframeWindow.NexusApp = NexusApp;
+                }
+                if (typeof Apps !== 'undefined') {
+                  iframeWindow.Apps = Apps;
+                }
+                if (typeof System !== 'undefined') {
+                  iframeWindow.System = System;
+                }
+                if (typeof Kernel !== 'undefined') {
+                  iframeWindow.Kernel = Kernel;
+                }
 
-              if (typeof NexusApp !== 'undefined') {
-                iframeWindow.NexusApp = NexusApp;
+                const originalConsole = {
+                  log: iframeWindow.console.log,
+                  error: iframeWindow.console.error,
+                  warn: iframeWindow.console.warn,
+                  info: iframeWindow.console.info
+                };
+
+                iframeWindow.console.log = function(...args) {
+                  addConsoleLog('LOG', args, '#94a3b8');
+                  originalConsole.log.apply(iframeWindow.console, args);
+                };
+
+                iframeWindow.console.error = function(...args) {
+                  addConsoleLog('ERROR', args, '#ef4444');
+                  originalConsole.error.apply(iframeWindow.console, args);
+                };
+
+                iframeWindow.console.warn = function(...args) {
+                  addConsoleLog('WARN', args, '#f59e0b');
+                  originalConsole.warn.apply(iframeWindow.console, args);
+                };
+
+                iframeWindow.console.info = function(...args) {
+                  addConsoleLog('INFO', args, '#3b82f6');
+                  originalConsole.info.apply(iframeWindow.console, args);
+                };
+
+                iframeWindow.addEventListener('error', (e) => {
+                  addConsoleLog('ERROR', [e.message, `at ${e.filename}:${e.lineno}:${e.colno}`], '#ef4444');
+                });
+
+                iframeWindow.addEventListener('unhandledrejection', (e) => {
+                  addConsoleLog('ERROR', ['Unhandled Promise Rejection:', e.reason], '#ef4444');
+                });
+              } catch (err) {
+                console.warn('[HTMLPreview] Cannot intercept console:', err.message);
               }
-              if (typeof Apps !== 'undefined') {
-                iframeWindow.Apps = Apps;
-              }
-              if (typeof System !== 'undefined') {
-                iframeWindow.System = System;
-              }
-              if (typeof Kernel !== 'undefined') {
-                iframeWindow.Kernel = Kernel;
-              }
-
-              const originalConsole = {
-                log: iframeWindow.console.log,
-                error: iframeWindow.console.error,
-                warn: iframeWindow.console.warn,
-                info: iframeWindow.console.info
-              };
-
-              iframeWindow.console.log = function(...args) {
-                addConsoleLog('LOG', args, '#94a3b8');
-                originalConsole.log.apply(iframeWindow.console, args);
-              };
-
-              iframeWindow.console.error = function(...args) {
-                addConsoleLog('ERROR', args, '#ef4444');
-                originalConsole.error.apply(iframeWindow.console, args);
-              };
-
-              iframeWindow.console.warn = function(...args) {
-                addConsoleLog('WARN', args, '#f59e0b');
-                originalConsole.warn.apply(iframeWindow.console, args);
-              };
-
-              iframeWindow.console.info = function(...args) {
-                addConsoleLog('INFO', args, '#3b82f6');
-                originalConsole.info.apply(iframeWindow.console, args);
-              };
-
-              iframeWindow.addEventListener('error', (e) => {
-                addConsoleLog('ERROR', [e.message, `at ${e.filename}:${e.lineno}:${e.colno}`], '#ef4444');
-              });
-
-              iframeWindow.addEventListener('unhandledrejection', (e) => {
-                addConsoleLog('ERROR', ['Unhandled Promise Rejection:', e.reason], '#ef4444');
-              });
-            } catch (err) {
-              console.warn('[HTMLPreview] Cannot intercept console:', err.message);
-            }
-          }, 50);
-        };
+            }, 50);
+          } catch (err) {
+            console.error('[HTMLPreview] Cannot write to iframe:', err);
+          }
+        }, 0);
       },
 
       refreshPreview(name) {
