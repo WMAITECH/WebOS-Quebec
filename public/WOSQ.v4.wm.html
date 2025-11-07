@@ -5145,60 +5145,66 @@
     }
   </style>
   <script>
-    window.WebOS = window.parent.WebOS;
-    window.NexusApp = window.parent.NexusApp;
+    window.WebOS = {
+      NexusApp: {
+        zoom: (level) => window.parent.postMessage({type: 'nexus-zoom', level}, '*')
+      }
+    };
+    window.NexusApp = window.WebOS.NexusApp;
+
+    const originalConsole = {
+      log: console.log.bind(console),
+      error: console.error.bind(console),
+      warn: console.warn.bind(console),
+      info: console.info.bind(console)
+    };
+
+    ['log', 'error', 'warn', 'info'].forEach(method => {
+      console[method] = (...args) => {
+        originalConsole[method](...args);
+        window.parent.postMessage({type: 'console', method, args: args.map(a => String(a))}, '*');
+      };
+    });
+
+    window.onerror = (message, source, lineno, colno, error) => {
+      window.parent.postMessage({type: 'console', method: 'error', args: [message]}, '*');
+      return true;
+    };
+
+    window.onunhandledrejection = (event) => {
+      window.parent.postMessage({type: 'console', method: 'error', args: ['Unhandled Promise: ' + event.reason]}, '*');
+    };
   <\/script>
 </head>
 <body>
   ${htmlContent}
-  <script>
-    try {
-      if (window.parent && window.parent.WebOS && window.parent.WebOS.Apps.HTMLEditor) {
-        window.parent.WebOS.Apps.HTMLEditor.setupConsoleCapture(window);
-      }
-    } catch(e) {}
-  <\/script>
 </body>
 </html>`;
 
           frame.innerHTML = '';
 
           const iframe = document.createElement('iframe');
-          iframe.sandbox = 'allow-scripts allow-same-origin allow-forms allow-popups allow-modals allow-pointer-lock';
+          iframe.sandbox = 'allow-scripts allow-forms allow-popups allow-modals allow-pointer-lock';
           iframe.style.cssText = 'width: 100%; height: 100%; border: none; background: white;';
+          iframe.srcdoc = wrappedHTML;
 
           frame.appendChild(iframe);
 
-          setTimeout(() => {
-            const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
-            iframeDoc.open();
-            iframeDoc.write(wrappedHTML);
-            iframeDoc.close();
-          }, 0);
+          const messageHandler = (event) => {
+            if (event.data && event.data.type === 'console') {
+              this.addLog(event.data.method, event.data.args);
+            } else if (event.data && event.data.type === 'nexus-zoom') {
+              if (event.data.level === 'in') this.zoomIn();
+              else if (event.data.level === 'out') this.zoomOut();
+              else if (event.data.level === 'reset') this.zoomReset();
+            }
+          };
+
+          window.removeEventListener('message', this._messageHandler);
+          this._messageHandler = messageHandler;
+          window.addEventListener('message', messageHandler);
 
           this.updateDeviceSize();
-        },
-
-        setupConsoleCapture(win) {
-          if (!win) return;
-
-          try {
-            win.console.log = (...args) => this.addLog('log', args);
-            win.console.error = (...args) => this.addLog('error', args);
-            win.console.warn = (...args) => this.addLog('warn', args);
-            win.console.info = (...args) => this.addLog('info', args);
-
-            win.onerror = (message, source, lineno, colno, error) => {
-              this.addLog('error', [message], error?.stack);
-              return true;
-            };
-
-            win.onunhandledrejection = (event) => {
-              this.addLog('error', ['Unhandled Promise:', event.reason]);
-            };
-          } catch (err) {
-            console.warn('Cannot capture console:', err);
-          }
         },
 
         addLog(type, args, stack = null) {
