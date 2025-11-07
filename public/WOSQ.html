@@ -1875,57 +1875,53 @@
           consoleView.scrollTop = consoleView.scrollHeight;
         };
 
+        iframe.srcdoc = content || '';
+
         iframe.onload = () => {
-          try {
-            const iframeWindow = iframe.contentWindow;
+          setTimeout(() => {
+            try {
+              const iframeWindow = iframe.contentWindow;
+              if (!iframeWindow) return;
 
-            const originalConsole = {
-              log: iframeWindow.console.log,
-              error: iframeWindow.console.error,
-              warn: iframeWindow.console.warn,
-              info: iframeWindow.console.info
-            };
+              const originalConsole = {
+                log: iframeWindow.console.log,
+                error: iframeWindow.console.error,
+                warn: iframeWindow.console.warn,
+                info: iframeWindow.console.info
+              };
 
-            iframeWindow.console.log = function(...args) {
-              addConsoleLog('LOG', args, '#94a3b8');
-              originalConsole.log.apply(iframeWindow.console, args);
-            };
+              iframeWindow.console.log = function(...args) {
+                addConsoleLog('LOG', args, '#94a3b8');
+                originalConsole.log.apply(iframeWindow.console, args);
+              };
 
-            iframeWindow.console.error = function(...args) {
-              addConsoleLog('ERROR', args, '#ef4444');
-              originalConsole.error.apply(iframeWindow.console, args);
-            };
+              iframeWindow.console.error = function(...args) {
+                addConsoleLog('ERROR', args, '#ef4444');
+                originalConsole.error.apply(iframeWindow.console, args);
+              };
 
-            iframeWindow.console.warn = function(...args) {
-              addConsoleLog('WARN', args, '#f59e0b');
-              originalConsole.warn.apply(iframeWindow.console, args);
-            };
+              iframeWindow.console.warn = function(...args) {
+                addConsoleLog('WARN', args, '#f59e0b');
+                originalConsole.warn.apply(iframeWindow.console, args);
+              };
 
-            iframeWindow.console.info = function(...args) {
-              addConsoleLog('INFO', args, '#3b82f6');
-              originalConsole.info.apply(iframeWindow.console, args);
-            };
+              iframeWindow.console.info = function(...args) {
+                addConsoleLog('INFO', args, '#3b82f6');
+                originalConsole.info.apply(iframeWindow.console, args);
+              };
 
-            iframeWindow.addEventListener('error', (e) => {
-              addConsoleLog('ERROR', [e.message, `at ${e.filename}:${e.lineno}:${e.colno}`], '#ef4444');
-            });
+              iframeWindow.addEventListener('error', (e) => {
+                addConsoleLog('ERROR', [e.message, `at ${e.filename}:${e.lineno}:${e.colno}`], '#ef4444');
+              });
 
-            iframeWindow.addEventListener('unhandledrejection', (e) => {
-              addConsoleLog('ERROR', ['Unhandled Promise Rejection:', e.reason], '#ef4444');
-            });
-          } catch (err) {
-            console.warn('[HTMLPreview] Cannot intercept console (cross-origin):', err.message);
-          }
+              iframeWindow.addEventListener('unhandledrejection', (e) => {
+                addConsoleLog('ERROR', ['Unhandled Promise Rejection:', e.reason], '#ef4444');
+              });
+            } catch (err) {
+              console.warn('[HTMLPreview] Cannot intercept console:', err.message);
+            }
+          }, 50);
         };
-
-        const blob = new Blob([content || ''], { type: 'text/html' });
-        const url = URL.createObjectURL(blob);
-        iframe.src = url;
-
-        iframe.addEventListener('load', function cleanup() {
-          URL.revokeObjectURL(url);
-          iframe.removeEventListener('load', cleanup);
-        }, { once: true });
       },
 
       refreshPreview(name) {
