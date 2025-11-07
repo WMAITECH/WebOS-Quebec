@@ -5128,58 +5128,12 @@
           const scale = this.state.zoomLevel / 100;
           const inverseScale = 100 / (this.state.zoomLevel / 100);
 
-          const wrappedHTML = `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <style>
-    html, body {
-      margin: 0;
-      padding: 0;
-      overflow: auto;
-      transform-origin: top left;
-      transform: scale(${scale});
-      width: ${inverseScale}%;
-      height: ${inverseScale}%;
-    }
-  </style>
-  <script>
-    window.WebOS = {
-      NexusApp: {
-        zoom: (level) => window.parent.postMessage({type: 'nexus-zoom', level}, '*')
-      }
-    };
-    window.NexusApp = window.WebOS.NexusApp;
+          const escapedHTML = htmlContent
+            .replace(/\\/g, '\\\\')
+            .replace(/`/g, '\\`')
+            .replace(/\$/g, '\\$');
 
-    const originalConsole = {
-      log: console.log.bind(console),
-      error: console.error.bind(console),
-      warn: console.warn.bind(console),
-      info: console.info.bind(console)
-    };
-
-    ['log', 'error', 'warn', 'info'].forEach(method => {
-      console[method] = (...args) => {
-        originalConsole[method](...args);
-        window.parent.postMessage({type: 'console', method, args: args.map(a => String(a))}, '*');
-      };
-    });
-
-    window.onerror = (message, source, lineno, colno, error) => {
-      window.parent.postMessage({type: 'console', method: 'error', args: [message]}, '*');
-      return true;
-    };
-
-    window.onunhandledrejection = (event) => {
-      window.parent.postMessage({type: 'console', method: 'error', args: ['Unhandled Promise: ' + event.reason]}, '*');
-    };
-  <\/script>
-</head>
-<body>
-  ${htmlContent}
-</body>
-</html>`;
+          const wrappedHTML = '<!DOCTYPE html>\n<html>\n<head>\n  <meta charset="UTF-8">\n  <style>\n    html, body {\n      margin: 0;\n      padding: 0;\n      overflow: auto;\n      transform-origin: top left;\n      transform: scale(' + scale + ');\n      width: ' + inverseScale + '%;\n      height: ' + inverseScale + '%;\n    }\n  </style>\n  <script>\n    window.WebOS = {\n      NexusApp: {\n        zoom: function(level) {\n          try {\n            window.parent.postMessage({type: "nexus-zoom", level: level}, "*");\n          } catch(e) {\n            console.log("Zoom:", level);\n          }\n        },\n        setLanguage: function(lang) {\n          console.log("Language set to:", lang);\n        },\n        navigate: function(path) {\n          console.log("Navigate to:", path);\n        }\n      }\n    };\n    window.NexusApp = window.WebOS.NexusApp;\n\n    var originalConsole = {\n      log: console.log.bind(console),\n      error: console.error.bind(console),\n      warn: console.warn.bind(console),\n      info: console.info.bind(console)\n    };\n\n    ["log", "error", "warn", "info"].forEach(function(method) {\n      console[method] = function() {\n        var args = Array.prototype.slice.call(arguments);\n        originalConsole[method].apply(console, args);\n        try {\n          var stringArgs = args.map(function(a) { return String(a); });\n          window.parent.postMessage({type: "console", method: method, args: stringArgs}, "*");\n        } catch(e) {}\n      };\n    });\n\n    window.onerror = function(message, source, lineno, colno, error) {\n      try {\n        window.parent.postMessage({type: "console", method: "error", args: [String(message)]}, "*");\n      } catch(e) {}\n      return true;\n    };\n\n    window.onunhandledrejection = function(event) {\n      try {\n        window.parent.postMessage({type: "console", method: "error", args: ["Unhandled Promise: " + String(event.reason)]}, "*");\n      } catch(e) {}\n    };\n  <\/script>\n</head>\n<body>\n' + htmlContent + '\n</body>\n</html>';
 
           frame.innerHTML = '';
 
@@ -5190,17 +5144,20 @@
 
           frame.appendChild(iframe);
 
-          const messageHandler = (event) => {
+          const self = this;
+          const messageHandler = function(event) {
             if (event.data && event.data.type === 'console') {
-              this.addLog(event.data.method, event.data.args);
+              self.addLog(event.data.method, event.data.args);
             } else if (event.data && event.data.type === 'nexus-zoom') {
-              if (event.data.level === 'in') this.zoomIn();
-              else if (event.data.level === 'out') this.zoomOut();
-              else if (event.data.level === 'reset') this.zoomReset();
+              if (event.data.level === 'in') self.zoomIn();
+              else if (event.data.level === 'out') self.zoomOut();
+              else if (event.data.level === 'reset') self.zoomReset();
             }
           };
 
-          window.removeEventListener('message', this._messageHandler);
+          if (this._messageHandler) {
+            window.removeEventListener('message', this._messageHandler);
+          }
           this._messageHandler = messageHandler;
           window.addEventListener('message', messageHandler);
 
