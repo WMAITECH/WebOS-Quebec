@@ -1,0 +1,1484 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="description" content="WOSQ v4.0 Cellular - Système d'exploitation souverain avec architecture cellulaire: Multi-processus Web Workers, CRDT Local-First, AI Orchestrator, Synchronisation P2P, Performance GPU maximale">
+  <meta name="theme-color" content="#1e40af">
+  <meta name="version" content="4.0.0-cellular">
+  <meta name="architecture" content="cellular-multiprocess">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext x='50' y='75' font-size='80' text-anchor='middle'%3E⚜️%3C/text%3E%3C/svg%3E" type="image/svg+xml">
+
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="WebOS Québec v4">
+
+  <title>WOSQ v4.0 Cellular - Architecture Multi-Processus Avancée</title>
+
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      overflow: hidden;
+      width: 100vw;
+      height: 100vh;
+      background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 50%, #60a5fa 100%);
+    }
+
+    .window {
+      position: absolute;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      transition: box-shadow 0.2s;
+      min-width: 300px;
+      min-height: 200px;
+    }
+
+    .window:hover {
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+    }
+
+    .window-header {
+      background: linear-gradient(to right, #1e40af, #3b82f6);
+      color: white;
+      padding: 12px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: move;
+      user-select: none;
+    }
+
+    .window-controls {
+      display: flex;
+      gap: 8px;
+    }
+
+    .window-control {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      cursor: pointer;
+      transition: transform 0.1s;
+    }
+
+    .window-control:hover {
+      transform: scale(1.2);
+    }
+
+    .window-control.close { background: #ef4444; }
+    .window-control.minimize { background: #f59e0b; }
+    .window-control.maximize { background: #10b981; }
+
+    .window-content {
+      flex: 1;
+      overflow: auto;
+      padding: 20px;
+      background: white;
+    }
+
+    .dock {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%) translateZ(0);
+      background: rgba(255, 255, 255, 0.25);
+      border-radius: 20px;
+      padding: 12px;
+      display: flex;
+      gap: 12px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      will-change: transform;
+      backface-visibility: hidden;
+    }
+
+    .dock-item {
+      width: 56px;
+      height: 56px;
+      background: white;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      font-size: 28px;
+      position: relative;
+    }
+
+    .dock-item:hover {
+      transform: translateY(-8px) scale(1.1);
+      box-shadow: 0 12px 24px rgba(0, 0, 0, 0.2);
+    }
+
+    .dock-badge {
+      position: absolute;
+      top: -4px;
+      right: -4px;
+      background: #ef4444;
+      color: white;
+      border-radius: 50%;
+      width: 20px;
+      height: 20px;
+      font-size: 11px;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 2px solid white;
+    }
+
+    .topbar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 40px;
+      background: rgba(30, 64, 175, 0.98);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      color: white;
+      z-index: 9999;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+      padding: 0 20px;
+      transform: translateZ(0);
+      backface-visibility: hidden;
+      will-change: transform;
+    }
+
+    .topbar-left, .topbar-right {
+      display: flex;
+      gap: 20px;
+      align-items: center;
+    }
+
+    .topbar-item {
+      cursor: pointer;
+      padding: 6px 12px;
+      border-radius: 6px;
+      transition: background 0.2s;
+      font-size: 14px;
+      white-space: nowrap;
+    }
+
+    .topbar-item:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .status-indicator {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      display: inline-block;
+      margin-right: 6px;
+      animation: pulse 2s infinite;
+    }
+
+    .status-online { background: #10b981; }
+    .status-offline { background: #ef4444; }
+    .status-syncing { background: #f59e0b; }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    .loading-screen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 10000;
+      color: white;
+    }
+
+    .loading-spinner {
+      width: 60px;
+      height: 60px;
+      border: 4px solid rgba(255, 255, 255, 0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .progress-bar {
+      width: 400px;
+      max-width: 90%;
+      height: 6px;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 3px;
+      margin-top: 30px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: white;
+      border-radius: 3px;
+      transition: width 0.3s;
+      width: 0%;
+    }
+
+    .loading-text {
+      margin-top: 20px;
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    .loading-subtext {
+      margin-top: 10px;
+      font-size: 14px;
+      opacity: 0.8;
+    }
+  </style>
+</head>
+<body>
+  <div id="loadingScreen" class="loading-screen">
+    <div style="font-size: 80px; margin-bottom: 30px;">⚜️</div>
+    <div class="loading-spinner"></div>
+    <div class="loading-text" id="loadingText">Initialisation de WOSQ v4 Cellular...</div>
+    <div class="loading-subtext" id="loadingSubtext">Chargement du noyau</div>
+    <div class="progress-bar">
+      <div class="progress-fill" id="progressFill"></div>
+    </div>
+  </div>
+
+  <div class="topbar" style="display: none;" id="topbar">
+    <div class="topbar-left">
+      <div class="topbar-item" style="font-weight: bold;">⚜️ WebOS Québec v4</div>
+      <div class="topbar-item" id="clockItem">--:--</div>
+    </div>
+    <div class="topbar-right">
+      <div class="topbar-item" id="networkStatus">
+        <span class="status-indicator status-offline"></span>Hors ligne
+      </div>
+      <div class="topbar-item" id="aiStatus">
+        <span class="status-indicator status-offline"></span>IA: Inactive
+      </div>
+      <div class="topbar-item" id="processCount">Processus: 0</div>
+    </div>
+  </div>
+
+  <div class="dock" style="display: none;" id="dock">
+    <div class="dock-item" data-action="open-taskmanager" title="Task Manager">📊</div>
+    <div class="dock-item" data-action="open-messages" title="Messages">💬</div>
+    <div class="dock-item" data-action="open-mail" title="Courriel">📧</div>
+    <div class="dock-item" data-action="open-osint" title="OSINT">🔍</div>
+    <div class="dock-item" data-action="open-files" title="Fichiers">📁</div>
+    <div class="dock-item" data-action="open-ai" title="Assistant IA">🤖</div>
+    <div class="dock-item" data-action="open-portal" title="Portail">🏛️</div>
+    <div class="dock-item" data-action="open-admin" title="Admin">⚙️</div>
+  </div>
+
+  <script type="module">
+    // ============================================
+    // WOSQ v4 CELLULAR ARCHITECTURE
+    // Architecture Multi-Processus avec Web Workers Dynamiques
+    // ============================================
+
+    console.log('[WOSQ v4] Initialisation de l\'architecture cellulaire...');
+
+    // ============================================
+    // WORKER DEFINITIONS - L'ADN DU SYSTÈME
+    // Chaque définition contient le code source complet d'un worker
+    // ============================================
+
+    const WorkerDefinitions = {
+      'database-module': `
+        // DATABASE MODULE WORKER - Local-First avec CRDT
+        console.log('[DatabaseModule] Worker démarré');
+
+        let yDoc = null;
+        let messagesMap = null;
+        let emailsMap = null;
+        let contactsMap = null;
+
+        // Simuler Yjs pour l'instant (dans une vraie impl, on importerait via importScripts)
+        const storage = new Map();
+
+        self.onmessage = async (e) => {
+          const { id, action, data } = e.data;
+
+          try {
+            let result = null;
+
+            switch(action) {
+              case 'init':
+                console.log('[DatabaseModule] Initialisation de la base de données locale');
+                result = { success: true, message: 'Database initialisée' };
+                break;
+
+              case 'get':
+                result = storage.get(data.key) || null;
+                break;
+
+              case 'set':
+                storage.set(data.key, data.value);
+                result = { success: true };
+                break;
+
+              case 'query':
+                const collection = Array.from(storage.entries())
+                  .filter(([key]) => key.startsWith(data.collection + ':'));
+                result = collection.map(([_, value]) => value);
+                break;
+
+              case 'delete':
+                storage.delete(data.key);
+                result = { success: true };
+                break;
+
+              default:
+                throw new Error(\`Action inconnue: \${action}\`);
+            }
+
+            self.postMessage({ id, success: true, result });
+          } catch (error) {
+            self.postMessage({ id, success: false, error: error.message });
+          }
+        };
+      `,
+
+      'sync-provider': `
+        // SYNC PROVIDER WORKER - Synchronisation Supabase + WebRTC P2P
+        console.log('[SyncProvider] Worker démarré');
+
+        let isOnline = false;
+        let syncInterval = null;
+
+        self.onmessage = async (e) => {
+          const { id, action, data } = e.data;
+
+          try {
+            let result = null;
+
+            switch(action) {
+              case 'start':
+                console.log('[SyncProvider] Démarrage de la synchronisation');
+                isOnline = true;
+
+                // Simuler la synchro périodique
+                syncInterval = setInterval(() => {
+                  self.postMessage({
+                    type: 'event',
+                    event: 'sync:update',
+                    data: { status: 'syncing', timestamp: Date.now() }
+                  });
+                }, 5000);
+
+                result = { success: true, message: 'Synchronisation démarrée' };
+                break;
+
+              case 'stop':
+                if (syncInterval) clearInterval(syncInterval);
+                isOnline = false;
+                result = { success: true };
+                break;
+
+              case 'status':
+                result = { isOnline, lastSync: Date.now() };
+                break;
+
+              default:
+                throw new Error(\`Action inconnue: \${action}\`);
+            }
+
+            self.postMessage({ id, success: true, result });
+          } catch (error) {
+            self.postMessage({ id, success: false, error: error.message });
+          }
+        };
+      `,
+
+      'ai-orchestrator': `
+        // AI ORCHESTRATOR WORKER - Agent avec Tool-Use
+        console.log('[AI Orchestrator] Worker démarré');
+
+        let aiReady = false;
+        let model = null;
+
+        self.onmessage = async (e) => {
+          const { id, action, data } = e.data;
+
+          try {
+            let result = null;
+
+            switch(action) {
+              case 'init':
+                console.log('[AI Orchestrator] Chargement du modèle WebLLM...');
+                // Simuler le chargement progressif
+                for (let i = 0; i <= 100; i += 10) {
+                  await new Promise(resolve => setTimeout(resolve, 200));
+                  self.postMessage({
+                    type: 'event',
+                    event: 'ai:loading',
+                    data: { progress: i, message: \`Chargement du modèle: \${i}%\` }
+                  });
+                }
+                aiReady = true;
+                self.postMessage({
+                  type: 'event',
+                  event: 'ai:ready',
+                  data: { ready: true }
+                });
+                result = { success: true, ready: true };
+                break;
+
+              case 'generate':
+                if (!aiReady) {
+                  throw new Error('IA non initialisée');
+                }
+
+                const prompt = data.prompt;
+                console.log('[AI Orchestrator] Génération de réponse pour:', prompt);
+
+                // Détecter si on a besoin d'un tool
+                const needsTool = prompt.toLowerCase().includes('email') ||
+                                 prompt.toLowerCase().includes('message') ||
+                                 prompt.toLowerCase().includes('fichier');
+
+                if (needsTool) {
+                  // Demander au Kernel d'exécuter un tool
+                  self.postMessage({
+                    type: 'tool_call',
+                    tool: 'mail-service',
+                    action: 'list',
+                    params: { limit: 5 }
+                  });
+
+                  // Attendre la réponse (dans une vraie impl, on utiliserait un système de promesses)
+                  await new Promise(resolve => setTimeout(resolve, 500));
+                }
+
+                // Générer une réponse simulée
+                result = {
+                  response: \`Réponse de l'IA pour: "\${prompt}". Je suis un agent orchestrateur capable d'utiliser les autres services du système comme outils.\`,
+                  usedTools: needsTool ? ['mail-service'] : []
+                };
+                break;
+
+              case 'status':
+                result = { ready: aiReady };
+                break;
+
+              default:
+                throw new Error(\`Action inconnue: \${action}\`);
+            }
+
+            self.postMessage({ id, success: true, result });
+          } catch (error) {
+            self.postMessage({ id, success: false, error: error.message });
+          }
+        };
+      `,
+
+      'mail-service': `
+        // MAIL SERVICE WORKER - Gestion des emails
+        console.log('[MailService] Worker démarré');
+
+        const emails = [
+          { id: 1, from: 'admin@quebec.ca', subject: 'Bienvenue sur WOSQ v4', date: new Date().toISOString() },
+          { id: 2, from: 'system@webos.qc', subject: 'Architecture cellulaire activée', date: new Date().toISOString() }
+        ];
+
+        self.onmessage = async (e) => {
+          const { id, action, data } = e.data;
+
+          try {
+            let result = null;
+
+            switch(action) {
+              case 'list':
+                result = emails.slice(0, data?.limit || 10);
+                break;
+
+              case 'get':
+                result = emails.find(email => email.id === data.id);
+                break;
+
+              case 'send':
+                const newEmail = {
+                  id: emails.length + 1,
+                  from: data.from,
+                  to: data.to,
+                  subject: data.subject,
+                  date: new Date().toISOString()
+                };
+                emails.push(newEmail);
+                result = newEmail;
+                break;
+
+              default:
+                throw new Error(\`Action inconnue: \${action}\`);
+            }
+
+            self.postMessage({ id, success: true, result });
+          } catch (error) {
+            self.postMessage({ id, success: false, error: error.message });
+          }
+        };
+      `,
+
+      'messages-service': `
+        // MESSAGES SERVICE WORKER - Messagerie temps réel
+        console.log('[MessagesService] Worker démarré');
+
+        const conversations = [
+          { id: 1, name: 'Équipe WOSQ', lastMessage: 'Architecture cellulaire déployée!', unread: 2 }
+        ];
+
+        self.onmessage = async (e) => {
+          const { id, action, data } = e.data;
+
+          try {
+            let result = null;
+
+            switch(action) {
+              case 'list':
+                result = conversations;
+                break;
+
+              case 'get':
+                result = conversations.find(c => c.id === data.id);
+                break;
+
+              case 'send':
+                // Simuler l'envoi d'un message
+                result = { success: true, messageId: Date.now() };
+                break;
+
+              default:
+                throw new Error(\`Action inconnue: \${action}\`);
+            }
+
+            self.postMessage({ id, success: true, result });
+          } catch (error) {
+            self.postMessage({ id, success: false, error: error.message });
+          }
+        };
+      `,
+
+      'osint-service': `
+        // OSINT SERVICE WORKER - Recherche et synthèse
+        console.log('[OSINTService] Worker démarré');
+
+        self.onmessage = async (e) => {
+          const { id, action, data } = e.data;
+
+          try {
+            let result = null;
+
+            switch(action) {
+              case 'search':
+                console.log('[OSINTService] Recherche:', data.query);
+                // Simuler une recherche
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                result = {
+                  query: data.query,
+                  results: [
+                    { title: 'Résultat 1', source: 'Source A', score: 0.95 },
+                    { title: 'Résultat 2', source: 'Source B', score: 0.87 }
+                  ],
+                  synthesis: \`Synthèse pour: \${data.query}\`
+                };
+                break;
+
+              default:
+                throw new Error(\`Action inconnue: \${action}\`);
+            }
+
+            self.postMessage({ id, success: true, result });
+          } catch (error) {
+            self.postMessage({ id, success: false, error: error.message });
+          }
+        };
+      `,
+
+      'file-service': `
+        // FILE SERVICE WORKER - Opérations OPFS lourdes
+        console.log('[FileService] Worker démarré');
+
+        self.onmessage = async (e) => {
+          const { id, action, data } = e.data;
+
+          try {
+            let result = null;
+
+            switch(action) {
+              case 'list':
+                result = [
+                  { name: 'document.txt', size: 1234, modified: Date.now() },
+                  { name: 'data.json', size: 5678, modified: Date.now() }
+                ];
+                break;
+
+              case 'read':
+                result = { content: 'Contenu du fichier simulé' };
+                break;
+
+              case 'write':
+                result = { success: true };
+                break;
+
+              default:
+                throw new Error(\`Action inconnue: \${action}\`);
+            }
+
+            self.postMessage({ id, success: true, result });
+          } catch (error) {
+            self.postMessage({ id, success: false, error: error.message });
+          }
+        };
+      `
+    };
+
+    // ============================================
+    // KERNEL - Le cœur du système d'exploitation
+    // Gère la création/destruction des processus
+    // Route les messages entre workers et UI
+    // ============================================
+
+    const Kernel = (() => {
+      const eventBus = new EventTarget();
+      let processId = 0;
+      const processes = new Map();
+      const pendingRequests = new Map();
+      let requestId = 0;
+
+      return {
+        emit(event, data) {
+          eventBus.dispatchEvent(new CustomEvent(event, { detail: data }));
+        },
+
+        on(event, handler) {
+          eventBus.addEventListener(event, (e) => handler(e.detail));
+        },
+
+        off(event, handler) {
+          eventBus.removeEventListener(event, handler);
+        },
+
+        createProcess(workerName, metadata = {}) {
+          const pid = `proc_${++processId}`;
+          const workerCode = WorkerDefinitions[workerName];
+
+          if (!workerCode) {
+            console.error(`[Kernel] Pas de définition trouvée pour: ${workerName}`);
+            return null;
+          }
+
+          console.log(`[Kernel] Création du processus ${workerName} (PID: ${pid})`);
+
+          // Créer un fichier virtuel en mémoire à partir de la string
+          const blob = new Blob([workerCode], { type: 'application/javascript' });
+          const workerUrl = URL.createObjectURL(blob);
+
+          // Démarrer un VRAI Web Worker
+          const worker = new Worker(workerUrl);
+
+          // Gérer la communication
+          worker.onmessage = (e) => this.handleProcessMessage(pid, e.data);
+          worker.onerror = (e) => this.handleProcessError(pid, e);
+
+          processes.set(pid, {
+            name: workerName,
+            pid,
+            status: 'running',
+            startTime: Date.now(),
+            instance: worker,
+            metadata,
+            messageCount: 0,
+            errorCount: 0
+          });
+
+          // Libérer l'URL
+          URL.revokeObjectURL(workerUrl);
+
+          this.emit('process:created', { pid, name: workerName });
+          this.updateProcessCount();
+
+          return pid;
+        },
+
+        handleProcessMessage(pid, message) {
+          const process = processes.get(pid);
+          if (!process) return;
+
+          process.messageCount++;
+
+          // Si c'est une réponse à une requête
+          if (message.id && pendingRequests.has(message.id)) {
+            const { resolve, reject } = pendingRequests.get(message.id);
+            pendingRequests.delete(message.id);
+
+            if (message.success) {
+              resolve(message.result);
+            } else {
+              reject(new Error(message.error));
+            }
+            return;
+          }
+
+          // Si c'est un événement du worker
+          if (message.type === 'event') {
+            this.emit(message.event, message.data);
+            return;
+          }
+
+          // Si c'est un tool call
+          if (message.type === 'tool_call') {
+            this.handleToolCall(pid, message);
+            return;
+          }
+        },
+
+        handleProcessError(pid, error) {
+          const process = processes.get(pid);
+          if (!process) return;
+
+          process.errorCount++;
+          console.error(`[Kernel] Erreur dans le processus ${process.name} (PID: ${pid}):`, error);
+          this.emit('process:error', { pid, error: error.message });
+        },
+
+        async sendRequest(pid, action, data = {}) {
+          const process = processes.get(pid);
+          if (!process) {
+            throw new Error(`Processus ${pid} introuvable`);
+          }
+
+          if (process.status !== 'running') {
+            throw new Error(`Processus ${pid} n'est pas en cours d'exécution`);
+          }
+
+          const id = ++requestId;
+
+          return new Promise((resolve, reject) => {
+            pendingRequests.set(id, { resolve, reject });
+
+            // Timeout après 30 secondes
+            setTimeout(() => {
+              if (pendingRequests.has(id)) {
+                pendingRequests.delete(id);
+                reject(new Error('Timeout: le processus n\'a pas répondu'));
+              }
+            }, 30000);
+
+            process.instance.postMessage({ id, action, data });
+          });
+        },
+
+        terminateProcess(pid) {
+          const process = processes.get(pid);
+          if (!process) return;
+
+          console.log(`[Kernel] Terminaison du processus ${process.name} (PID: ${pid})`);
+
+          process.instance.terminate();
+          processes.delete(pid);
+
+          this.emit('process:terminated', { pid });
+          this.updateProcessCount();
+        },
+
+        getProcesses() {
+          return Array.from(processes.values()).map(p => ({
+            pid: p.pid,
+            name: p.name,
+            status: p.status,
+            uptime: Date.now() - p.startTime,
+            messageCount: p.messageCount,
+            errorCount: p.errorCount
+          }));
+        },
+
+        getProcess(pid) {
+          return processes.get(pid);
+        },
+
+        updateProcessCount() {
+          const count = processes.size;
+          const elem = document.getElementById('processCount');
+          if (elem) {
+            elem.textContent = `Processus: ${count}`;
+          }
+        },
+
+        async handleToolCall(fromPid, message) {
+          console.log(`[Kernel] Tool call depuis ${fromPid}:`, message.tool, message.action);
+
+          // Trouver ou créer le worker pour le tool
+          let targetPid = null;
+          for (const [pid, process] of processes) {
+            if (process.name === message.tool) {
+              targetPid = pid;
+              break;
+            }
+          }
+
+          if (!targetPid) {
+            targetPid = this.createProcess(message.tool);
+          }
+
+          // Envoyer la requête au worker cible
+          try {
+            const result = await this.sendRequest(targetPid, message.action, message.params);
+
+            // Renvoyer le résultat au worker appelant
+            const process = processes.get(fromPid);
+            if (process) {
+              process.instance.postMessage({
+                type: 'tool_result',
+                tool: message.tool,
+                result
+              });
+            }
+          } catch (error) {
+            console.error('[Kernel] Erreur lors du tool call:', error);
+          }
+        }
+      };
+    })();
+
+    // ============================================
+    // WINDOW MANAGER - Gestion des fenêtres
+    // ============================================
+
+    const WindowManager = (() => {
+      let zIndex = 1000;
+      const windows = new Map();
+
+      return {
+        create(id, title, content, options = {}) {
+          if (windows.has(id)) {
+            console.log(`[WindowManager] Fenêtre ${id} déjà ouverte`);
+            return;
+          }
+
+          const win = document.createElement('div');
+          win.className = 'window';
+          win.id = `window-${id}`;
+          win.style.zIndex = zIndex++;
+          win.style.left = (options.left || 100) + 'px';
+          win.style.top = (options.top || 100) + 'px';
+          win.style.width = (options.width || 600) + 'px';
+          win.style.height = (options.height || 400) + 'px';
+
+          win.innerHTML = `
+            <div class="window-header">
+              <span>${title}</span>
+              <div class="window-controls">
+                <div class="window-control minimize"></div>
+                <div class="window-control maximize"></div>
+                <div class="window-control close"></div>
+              </div>
+            </div>
+            <div class="window-content">${content}</div>
+          `;
+
+          document.body.appendChild(win);
+          windows.set(id, win);
+
+          // Event handlers
+          win.querySelector('.close').addEventListener('click', () => this.close(id));
+
+          const header = win.querySelector('.window-header');
+          let isDragging = false;
+          let startX, startY, startLeft, startTop;
+
+          header.addEventListener('mousedown', (e) => {
+            if (e.target.classList.contains('window-control')) return;
+            isDragging = true;
+            startX = e.clientX;
+            startY = e.clientY;
+            startLeft = win.offsetLeft;
+            startTop = win.offsetTop;
+            win.style.zIndex = zIndex++;
+          });
+
+          document.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            const dx = e.clientX - startX;
+            const dy = e.clientY - startY;
+            win.style.left = (startLeft + dx) + 'px';
+            win.style.top = (startTop + dy) + 'px';
+          });
+
+          document.addEventListener('mouseup', () => {
+            isDragging = false;
+          });
+
+          win.addEventListener('mousedown', () => {
+            win.style.zIndex = zIndex++;
+          });
+
+          Kernel.emit('window:created', { id, title });
+        },
+
+        close(id) {
+          const win = windows.get(id);
+          if (!win) return;
+          win.remove();
+          windows.delete(id);
+          Kernel.emit('window:closed', { id });
+        },
+
+        getWindows() {
+          return Array.from(windows.keys());
+        }
+      };
+    })();
+
+    // ============================================
+    // APPLICATIONS - UI qui communique via Kernel
+    // ============================================
+
+    const Apps = {
+      TaskManager: {
+        async open() {
+          const processes = Kernel.getProcesses();
+
+          const processRows = processes.map(p => `
+            <tr style="border-bottom: 1px solid #e5e7eb;">
+              <td style="padding: 12px;">${p.name}</td>
+              <td style="padding: 12px; font-family: monospace; font-size: 12px;">${p.pid}</td>
+              <td style="padding: 12px;">
+                <span style="padding: 4px 8px; background: #10b981; color: white; border-radius: 4px; font-size: 11px;">
+                  ${p.status}
+                </span>
+              </td>
+              <td style="padding: 12px;">${Math.floor(p.uptime / 1000)}s</td>
+              <td style="padding: 12px;">${p.messageCount}</td>
+              <td style="padding: 12px;">
+                <button onclick="Kernel.terminateProcess('${p.pid}')" style="padding: 4px 12px; background: #ef4444; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                  Terminer
+                </button>
+              </td>
+            </tr>
+          `).join('');
+
+          const content = `
+            <div style="height: 100%; display: flex; flex-direction: column;">
+              <h2 style="margin-bottom: 20px; color: #1e40af;">📊 Gestionnaire de Tâches</h2>
+              <p style="margin-bottom: 20px; color: #64748b;">Processus actifs dans l'architecture cellulaire</p>
+
+              <table style="width: 100%; border-collapse: collapse;">
+                <thead>
+                  <tr style="background: #f3f4f6; font-weight: 600;">
+                    <th style="padding: 12px; text-align: left;">Nom</th>
+                    <th style="padding: 12px; text-align: left;">PID</th>
+                    <th style="padding: 12px; text-align: left;">Statut</th>
+                    <th style="padding: 12px; text-align: left;">Uptime</th>
+                    <th style="padding: 12px; text-align: left;">Messages</th>
+                    <th style="padding: 12px; text-align: left;">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${processRows || '<tr><td colspan="6" style="padding: 20px; text-align: center; color: #9ca3af;">Aucun processus actif</td></tr>'}
+                </tbody>
+              </table>
+
+              <div style="margin-top: 20px; padding: 16px; background: #eff6ff; border-radius: 8px; border-left: 4px solid #3b82f6;">
+                <p style="font-weight: 600; color: #1e40af; margin-bottom: 8px;">Architecture Cellulaire v4</p>
+                <p style="font-size: 14px; color: #64748b;">
+                  Chaque processus est un Web Worker isolé généré dynamiquement à partir des WorkerDefinitions.
+                  La communication se fait via le Kernel avec un système de requêtes/réponses asynchrone.
+                </p>
+              </div>
+            </div>
+          `;
+
+          WindowManager.create('taskmanager', '📊 Task Manager', content, { width: 900, height: 600 });
+        }
+      },
+
+      AI: {
+        pid: null,
+
+        async open() {
+          if (!this.pid) {
+            this.pid = Kernel.createProcess('ai-orchestrator');
+            await Kernel.sendRequest(this.pid, 'init');
+          }
+
+          const content = `
+            <div style="height: 100%; display: flex; flex-direction: column;">
+              <h2 style="margin-bottom: 20px; color: #1e40af;">🤖 Assistant IA Orchestrateur</h2>
+
+              <div id="aiChat" style="flex: 1; overflow-y: auto; padding: 20px; background: #f9fafb; border-radius: 8px; margin-bottom: 20px;">
+                <div style="padding: 16px; background: #eff6ff; border-radius: 8px; border-left: 4px solid #3b82f6; margin-bottom: 16px;">
+                  <p style="font-weight: 600; color: #1e40af;">Agent Orchestrateur Initialisé</p>
+                  <p style="font-size: 14px; color: #64748b; margin-top: 8px;">
+                    Je peux utiliser les autres services du système (Mail, Messages, OSINT, Files) comme outils.
+                    Posez-moi une question!
+                  </p>
+                </div>
+              </div>
+
+              <div style="display: flex; gap: 10px;">
+                <input type="text" id="aiInput" placeholder="Posez votre question..." style="flex: 1; padding: 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 14px;">
+                <button onclick="Apps.AI.send()" style="padding: 12px 24px; background: linear-gradient(to right, #1e40af, #3b82f6); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">
+                  Envoyer
+                </button>
+              </div>
+            </div>
+          `;
+
+          WindowManager.create('ai-chat', '🤖 Assistant IA', content, { width: 700, height: 600 });
+
+          document.getElementById('aiInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') this.send();
+          });
+        },
+
+        async send() {
+          const input = document.getElementById('aiInput');
+          const chat = document.getElementById('aiChat');
+          const prompt = input.value.trim();
+
+          if (!prompt) return;
+
+          // Afficher le message utilisateur
+          chat.innerHTML += `
+            <div style="margin-bottom: 16px; padding: 12px; background: #3b82f6; color: white; border-radius: 12px; max-width: 80%; margin-left: auto;">
+              ${prompt}
+            </div>
+          `;
+
+          input.value = '';
+          chat.scrollTop = chat.scrollHeight;
+
+          // Afficher le chargement
+          const loadingId = 'loading-' + Date.now();
+          chat.innerHTML += `
+            <div id="${loadingId}" style="margin-bottom: 16px; padding: 12px; background: #f3f4f6; border-radius: 12px; max-width: 80%; color: #64748b;">
+              <em>Génération de la réponse...</em>
+            </div>
+          `;
+          chat.scrollTop = chat.scrollHeight;
+
+          try {
+            const result = await Kernel.sendRequest(this.pid, 'generate', { prompt });
+
+            // Supprimer le chargement
+            document.getElementById(loadingId)?.remove();
+
+            // Afficher la réponse
+            chat.innerHTML += `
+              <div style="margin-bottom: 16px; padding: 12px; background: #f3f4f6; border-radius: 12px; max-width: 80%;">
+                <p style="color: #1f2937;">${result.response}</p>
+                ${result.usedTools.length > 0 ? `
+                  <p style="font-size: 12px; color: #64748b; margin-top: 8px;">
+                    <em>🔧 Outils utilisés: ${result.usedTools.join(', ')}</em>
+                  </p>
+                ` : ''}
+              </div>
+            `;
+            chat.scrollTop = chat.scrollHeight;
+          } catch (error) {
+            document.getElementById(loadingId)?.remove();
+            chat.innerHTML += `
+              <div style="margin-bottom: 16px; padding: 12px; background: #fee2e2; border-radius: 12px; max-width: 80%; color: #991b1b;">
+                Erreur: ${error.message}
+              </div>
+            `;
+          }
+        }
+      },
+
+      Mail: {
+        pid: null,
+
+        async open() {
+          if (!this.pid) {
+            this.pid = Kernel.createProcess('mail-service');
+          }
+
+          const emails = await Kernel.sendRequest(this.pid, 'list', { limit: 20 });
+
+          const emailList = emails.map(email => `
+            <div style="padding: 16px; border-bottom: 1px solid #e5e7eb; cursor: pointer; transition: background 0.2s;" onmouseover="this.style.background='#f9fafb'" onmouseout="this.style.background='white'">
+              <div style="font-weight: 600; color: #1f2937; margin-bottom: 4px;">${email.subject}</div>
+              <div style="font-size: 14px; color: #64748b;">De: ${email.from}</div>
+              <div style="font-size: 12px; color: #9ca3af; margin-top: 4px;">${new Date(email.date).toLocaleString()}</div>
+            </div>
+          `).join('');
+
+          const content = `
+            <div style="height: 100%; display: flex; flex-direction: column;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2 style="color: #1e40af;">📧 Courriel</h2>
+                <div style="padding: 6px 12px; background: #eff6ff; color: #1e40af; border-radius: 6px; font-size: 14px; font-weight: 600;">
+                  ${emails.length} message(s)
+                </div>
+              </div>
+
+              <div style="flex: 1; overflow-y: auto; border: 1px solid #e5e7eb; border-radius: 8px;">
+                ${emailList}
+              </div>
+            </div>
+          `;
+
+          WindowManager.create('mail', '📧 Courriel', content, { width: 800, height: 600 });
+        }
+      },
+
+      Messages: {
+        pid: null,
+
+        async open() {
+          if (!this.pid) {
+            this.pid = Kernel.createProcess('messages-service');
+          }
+
+          const conversations = await Kernel.sendRequest(this.pid, 'list');
+
+          const convList = conversations.map(conv => `
+            <div style="padding: 16px; border-bottom: 1px solid #e5e7eb; cursor: pointer; transition: background 0.2s;" onmouseover="this.style.background='#f9fafb'" onmouseout="this.style.background='white'">
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                  <div style="font-weight: 600; color: #1f2937; margin-bottom: 4px;">${conv.name}</div>
+                  <div style="font-size: 14px; color: #64748b;">${conv.lastMessage}</div>
+                </div>
+                ${conv.unread > 0 ? `
+                  <div style="width: 24px; height: 24px; background: #ef4444; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold;">
+                    ${conv.unread}
+                  </div>
+                ` : ''}
+              </div>
+            </div>
+          `).join('');
+
+          const content = `
+            <div style="height: 100%; display: flex; flex-direction: column;">
+              <h2 style="margin-bottom: 20px; color: #1e40af;">💬 Messages</h2>
+
+              <div style="flex: 1; overflow-y: auto; border: 1px solid #e5e7eb; border-radius: 8px;">
+                ${convList}
+              </div>
+            </div>
+          `;
+
+          WindowManager.create('messages', '💬 Messages', content, { width: 700, height: 600 });
+        }
+      },
+
+      OSINT: {
+        pid: null,
+
+        async open() {
+          if (!this.pid) {
+            this.pid = Kernel.createProcess('osint-service');
+          }
+
+          const content = `
+            <div style="height: 100%; display: flex; flex-direction: column;">
+              <h2 style="margin-bottom: 20px; color: #1e40af;">🔍 OSINT Intelligence</h2>
+
+              <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                <input type="text" id="osintQuery" placeholder="Rechercher..." style="flex: 1; padding: 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 14px;">
+                <button onclick="Apps.OSINT.search()" style="padding: 12px 24px; background: linear-gradient(to right, #1e40af, #3b82f6); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">
+                  Rechercher
+                </button>
+              </div>
+
+              <div id="osintResults" style="flex: 1; overflow-y: auto; padding: 20px; background: #f9fafb; border-radius: 8px;">
+                <div style="text-align: center; color: #9ca3af; padding: 40px;">
+                  Entrez une requête pour démarrer une recherche OSINT
+                </div>
+              </div>
+            </div>
+          `;
+
+          WindowManager.create('osint', '🔍 OSINT', content, { width: 900, height: 700 });
+
+          document.getElementById('osintQuery').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') this.search();
+          });
+        },
+
+        async search() {
+          const query = document.getElementById('osintQuery').value.trim();
+          const results = document.getElementById('osintResults');
+
+          if (!query) return;
+
+          results.innerHTML = '<div style="text-align: center; color: #64748b; padding: 40px;">Recherche en cours...</div>';
+
+          try {
+            const data = await Kernel.sendRequest(this.pid, 'search', { query });
+
+            const resultHtml = data.results.map(r => `
+              <div style="padding: 16px; background: white; border-radius: 8px; margin-bottom: 12px; border-left: 4px solid #3b82f6;">
+                <div style="font-weight: 600; color: #1f2937; margin-bottom: 8px;">${r.title}</div>
+                <div style="font-size: 14px; color: #64748b; margin-bottom: 4px;">Source: ${r.source}</div>
+                <div style="font-size: 12px; color: #10b981;">Score de fiabilité: ${(r.score * 100).toFixed(0)}%</div>
+              </div>
+            `).join('');
+
+            results.innerHTML = `
+              <div style="padding: 20px; background: #eff6ff; border-radius: 8px; border-left: 4px solid #3b82f6; margin-bottom: 20px;">
+                <h3 style="color: #1e40af; margin-bottom: 10px;">Synthèse</h3>
+                <p style="color: #64748b;">${data.synthesis}</p>
+              </div>
+              ${resultHtml}
+            `;
+          } catch (error) {
+            results.innerHTML = `
+              <div style="padding: 20px; background: #fee2e2; border-radius: 8px; border-left: 4px solid #ef4444; color: #991b1b;">
+                Erreur lors de la recherche: ${error.message}
+              </div>
+            `;
+          }
+        }
+      },
+
+      Files: {
+        pid: null,
+
+        async open() {
+          if (!this.pid) {
+            this.pid = Kernel.createProcess('file-service');
+          }
+
+          const files = await Kernel.sendRequest(this.pid, 'list');
+
+          const fileList = files.map(file => `
+            <div style="padding: 16px; border-bottom: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center;">
+              <div>
+                <div style="font-weight: 600; color: #1f2937;">📄 ${file.name}</div>
+                <div style="font-size: 14px; color: #64748b; margin-top: 4px;">${(file.size / 1024).toFixed(1)} KB • ${new Date(file.modified).toLocaleString()}</div>
+              </div>
+            </div>
+          `).join('');
+
+          const content = `
+            <div style="height: 100%; display: flex; flex-direction: column;">
+              <h2 style="margin-bottom: 20px; color: #1e40af;">📁 Gestionnaire de Fichiers</h2>
+
+              <div style="flex: 1; overflow-y: auto; border: 1px solid #e5e7eb; border-radius: 8px;">
+                ${fileList}
+              </div>
+
+              <div style="margin-top: 16px; padding: 12px; background: #f3f4f6; border-radius: 8px; font-size: 13px; color: #6b7280; text-align: center;">
+                ${files.length} fichier(s) • OPFS (Origin Private File System)
+              </div>
+            </div>
+          `;
+
+          WindowManager.create('files', '📁 Fichiers', content, { width: 800, height: 600 });
+        }
+      },
+
+      Portal: {
+        open() {
+          const content = `
+            <div style="padding: 20px;">
+              <h2 style="font-size: 24px; font-weight: 700; color: #1e40af; margin-bottom: 20px;">🏛️ Portail Citoyen</h2>
+
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
+                <div style="background: linear-gradient(135deg, #3b82f6, #2563eb); color: white; padding: 24px; border-radius: 12px; cursor: pointer;">
+                  <h3 style="font-size: 18px; font-weight: 600; margin-bottom: 8px;">● Santé</h3>
+                  <p style="font-size: 14px; opacity: 0.9;">Dossier médical</p>
+                </div>
+
+                <div style="background: linear-gradient(135deg, #10b981, #059669); color: white; padding: 24px; border-radius: 12px; cursor: pointer;">
+                  <h3 style="font-size: 18px; font-weight: 600; margin-bottom: 8px;">● Éducation</h3>
+                  <p style="font-size: 14px; opacity: 0.9;">Dossier scolaire</p>
+                </div>
+
+                <div style="background: linear-gradient(135deg, #f59e0b, #d97706); color: white; padding: 24px; border-radius: 12px; cursor: pointer;">
+                  <h3 style="font-size: 18px; font-weight: 600; margin-bottom: 8px;">● Transport</h3>
+                  <p style="font-size: 14px; opacity: 0.9;">Permis, immatriculation</p>
+                </div>
+
+                <div style="background: linear-gradient(135deg, #8b5cf6, #7c3aed); color: white; padding: 24px; border-radius: 12px; cursor: pointer;">
+                  <h3 style="font-size: 18px; font-weight: 600; margin-bottom: 8px;">● Fiscalité</h3>
+                  <p style="font-size: 14px; opacity: 0.9;">Impôts, déclarations</p>
+                </div>
+              </div>
+            </div>
+          `;
+
+          WindowManager.create('portal', '🏛️ Portail Citoyen', content, { width: 800, height: 600 });
+        }
+      },
+
+      Admin: {
+        open() {
+          const processes = Kernel.getProcesses();
+
+          const content = `
+            <div style="padding: 20px;">
+              <h2 style="margin-bottom: 20px; color: #1e40af;">⚙️ Administration</h2>
+
+              <div style="padding: 20px; background: #eff6ff; border-radius: 12px; border-left: 4px solid #3b82f6; margin-bottom: 20px;">
+                <h3 style="color: #1e40af; margin-bottom: 12px;">Architecture Cellulaire v4</h3>
+                <p style="color: #64748b; margin-bottom: 8px;"><strong>Version:</strong> 4.0.0-cellular</p>
+                <p style="color: #64748b; margin-bottom: 8px;"><strong>Processus actifs:</strong> ${processes.length}</p>
+                <p style="color: #64748b; margin-bottom: 8px;"><strong>Workers définis:</strong> ${Object.keys(WorkerDefinitions).length}</p>
+                <p style="color: #64748b;"><strong>État réseau:</strong> ${navigator.onLine ? 'En ligne' : 'Hors ligne'}</p>
+              </div>
+
+              <div style="padding: 20px; background: #f0fdf4; border-radius: 12px; border-left: 4px solid #10b981;">
+                <h3 style="color: #059669; margin-bottom: 12px;">Capacités</h3>
+                <ul style="list-style: none; padding: 0;">
+                  <li style="padding: 8px 0; color: #064e3b;">✓ Multi-processus avec Web Workers</li>
+                  <li style="padding: 8px 0; color: #064e3b;">✓ Communication inter-processus (IPC)</li>
+                  <li style="padding: 8px 0; color: #064e3b;">✓ IA Orchestrateur avec Tool-Use</li>
+                  <li style="padding: 8px 0; color: #064e3b;">✓ Génération dynamique de workers</li>
+                  <li style="padding: 8px 0; color: #064e3b;">✓ Isolation et sécurité des processus</li>
+                </ul>
+              </div>
+            </div>
+          `;
+
+          WindowManager.create('admin', '⚙️ Administration', content, { width: 700, height: 600 });
+        }
+      }
+    };
+
+    // ============================================
+    // EVENT DELEGATION - Gestion centralisée des événements
+    // ============================================
+
+    document.addEventListener('click', (e) => {
+      const target = e.target.closest('[data-action]');
+      if (!target) return;
+
+      const action = target.dataset.action;
+
+      const actions = {
+        'open-taskmanager': () => Apps.TaskManager.open(),
+        'open-messages': () => Apps.Messages.open(),
+        'open-mail': () => Apps.Mail.open(),
+        'open-osint': () => Apps.OSINT.open(),
+        'open-files': () => Apps.Files.open(),
+        'open-ai': () => Apps.AI.open(),
+        'open-portal': () => Apps.Portal.open(),
+        'open-admin': () => Apps.Admin.open()
+      };
+
+      if (actions[action]) {
+        actions[action]();
+      }
+    });
+
+    // ============================================
+    // INITIALIZATION - Démarrage du système
+    // ============================================
+
+    async function boot() {
+      console.log('[WOSQ v4] Démarrage du système...');
+
+      const loadingText = document.getElementById('loadingText');
+      const loadingSubtext = document.getElementById('loadingSubtext');
+      const progressFill = document.getElementById('progressFill');
+
+      const steps = [
+        { text: 'Initialisation du Kernel', subtext: 'Chargement des modules système', progress: 10 },
+        { text: 'Chargement du WindowManager', subtext: 'Configuration de l\'interface', progress: 25 },
+        { text: 'Création du DatabaseModule', subtext: 'Initialisation du système local-first', progress: 40 },
+        { text: 'Démarrage du SyncProvider', subtext: 'Connexion aux services de synchronisation', progress: 60 },
+        { text: 'Initialisation de l\'AI Orchestrator', subtext: 'Chargement de l\'intelligence artificielle', progress: 80 },
+        { text: 'Finalisation', subtext: 'Préparation de l\'environnement', progress: 95 }
+      ];
+
+      for (const step of steps) {
+        loadingText.textContent = step.text;
+        loadingSubtext.textContent = step.subtext;
+        progressFill.style.width = step.progress + '%';
+        await new Promise(resolve => setTimeout(resolve, 600));
+      }
+
+      // Créer les processus de base
+      console.log('[WOSQ v4] Création des processus de base...');
+      const dbPid = Kernel.createProcess('database-module');
+      await Kernel.sendRequest(dbPid, 'init');
+
+      const syncPid = Kernel.createProcess('sync-provider');
+      await Kernel.sendRequest(syncPid, 'start');
+
+      progressFill.style.width = '100%';
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // Masquer l'écran de chargement
+      document.getElementById('loadingScreen').style.display = 'none';
+
+      // Afficher l'interface
+      document.getElementById('topbar').style.display = 'flex';
+      document.getElementById('dock').style.display = 'flex';
+
+      console.log('[WOSQ v4] Système démarré avec succès!');
+
+      // Mettre à jour l'horloge
+      function updateClock() {
+        const now = new Date();
+        const time = now.toLocaleTimeString('fr-CA', { hour: '2-digit', minute: '2-digit' });
+        document.getElementById('clockItem').textContent = time;
+      }
+      updateClock();
+      setInterval(updateClock, 1000);
+
+      // Écouter les événements du système
+      Kernel.on('process:created', (data) => {
+        console.log(`[System] Processus créé: ${data.name} (${data.pid})`);
+      });
+
+      Kernel.on('process:terminated', (data) => {
+        console.log(`[System] Processus terminé: ${data.pid}`);
+      });
+
+      Kernel.on('ai:ready', (data) => {
+        const aiStatus = document.getElementById('aiStatus');
+        if (aiStatus) {
+          aiStatus.innerHTML = '<span class="status-indicator status-online"></span>IA: Prête ✓';
+        }
+        console.log('[System] IA Orchestrator prête');
+      });
+
+      Kernel.on('sync:update', (data) => {
+        console.log('[System] Synchronisation:', data.status);
+      });
+
+      // Ouvrir le Task Manager au démarrage pour montrer l'architecture
+      setTimeout(() => {
+        Apps.TaskManager.open();
+      }, 500);
+    }
+
+    // Exposer globalement pour les event handlers inline
+    window.Kernel = Kernel;
+    window.Apps = Apps;
+
+    // Démarrer le système
+    boot().catch(error => {
+      console.error('[WOSQ v4] Erreur lors du démarrage:', error);
+      alert('Erreur critique lors du démarrage du système: ' + error.message);
+    });
+  </script>
+</body>
+</html>
