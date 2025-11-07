@@ -1875,13 +1875,45 @@
           consoleView.scrollTop = consoleView.scrollHeight;
         };
 
-        iframe.srcdoc = content || '';
+        const wrappedContent = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <base href="${window.location.origin}/">
+  <script>
+    window.NexusApp = window.parent.NexusApp || {};
+    window.Apps = window.parent.Apps || {};
+    window.System = window.parent.System || {};
+    window.Kernel = window.parent.Kernel || {};
+  </script>
+</head>
+<body>
+${content}
+</body>
+</html>
+`;
+
+        iframe.srcdoc = wrappedContent;
 
         iframe.onload = () => {
           setTimeout(() => {
             try {
               const iframeWindow = iframe.contentWindow;
               if (!iframeWindow) return;
+
+              if (typeof NexusApp !== 'undefined') {
+                iframeWindow.NexusApp = NexusApp;
+              }
+              if (typeof Apps !== 'undefined') {
+                iframeWindow.Apps = Apps;
+              }
+              if (typeof System !== 'undefined') {
+                iframeWindow.System = System;
+              }
+              if (typeof Kernel !== 'undefined') {
+                iframeWindow.Kernel = Kernel;
+              }
 
               const originalConsole = {
                 log: iframeWindow.console.log,
