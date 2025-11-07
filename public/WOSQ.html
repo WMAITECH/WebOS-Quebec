@@ -7765,7 +7765,7 @@
               </div>
             </div>
           `;
-          Kernel.createWindow('Navigateur Sécurisé', content, { width: '90vw', height: '90vh', maxWidth: '1400px' });
+          WindowManager.create('browser', 'Navigateur Sécurisé', content, { width: Math.min(1400, window.innerWidth * 0.9), height: window.innerHeight * 0.9 });
           this.newTab('https://www.quebec.ca');
         },
 
@@ -7950,7 +7950,7 @@
           try {
             await supabaseClient.from('browser_history').delete().eq('user_id', currentUser.id);
             this.showHistory();
-            Kernel.showNotification('Historique effacé', 'L\'historique a été supprimé');
+            alert('Historique effacé avec succès');
           } catch (error) { console.error('Error clearing history:', error); }
         }
       }
