@@ -9430,9 +9430,9 @@
     }
     window.WebOS.Apps = Apps;
     window.WebOS.Kernel = Kernel;
-    window.WebOS.NotificationCenter = NotificationCenter;
+    // NotificationCenter sera ajouté plus tard après sa définition (ligne ~9837)
 
-    console.log('[WOSQ v4] WebOS exposé globalement - Apps accessible');
+    console.log('[WOSQ v4] WebOS exposé - Apps et Kernel accessibles');
 
     // ============================================
     // INITIALIZATION
@@ -9832,6 +9832,10 @@
         getUnreadCount: () => unreadCount
       };
     })();
+
+    // Exposer NotificationCenter maintenant qu'il est défini
+    window.WebOS.NotificationCenter = NotificationCenter;
+    console.log('[WOSQ v4] NotificationCenter ajouté à WebOS');
 
     // Make global objects available
     let calendarPopup = null;
