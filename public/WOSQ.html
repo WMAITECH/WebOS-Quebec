@@ -4460,7 +4460,7 @@
               <td style="padding: 12px; text-align: center; font-family: monospace; font-size: 12px;">${p.messageCount}</td>
               <td style="padding: 12px; text-align: center; font-family: monospace; font-size: 12px; color: ${p.errorCount > 0 ? '#ef4444' : '#10b981'};">${p.errorCount}</td>
               <td style="padding: 12px;">
-                <button onclick="Kernel.terminateProcess('${p.pid}'); setTimeout(() => Apps.TaskManager.open(), 100);" style="padding: 6px 12px; background: #ef4444; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600;">
+                <button onclick="Kernel.terminateProcess('${p.pid}'); setTimeout(() => WebOS.Apps.TaskManager.open(), 100);" style="padding: 6px 12px; background: #ef4444; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600;">
                   Terminer
                 </button>
               </td>
@@ -4610,7 +4610,7 @@
                   Migrez vos données depuis Supabase vers la base de données locale CRDT pour un fonctionnement 100% offline.
                   Cette opération copie les emails et conversations dans le DatabaseModule local.
                 </p>
-                <button id="migrateBtnId" onclick="Apps.Admin.migrateDataToLocal()" style="width: 100%; padding: 12px; background: linear-gradient(to right, #1e40af, #3b82f6); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 14px; margin-bottom: 12px;">
+                <button id="migrateBtnId" onclick="WebOS.Apps.Admin.migrateDataToLocal()" style="width: 100%; padding: 12px; background: linear-gradient(to right, #1e40af, #3b82f6); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 14px; margin-bottom: 12px;">
                   Migrer les données vers Local-First
                 </button>
                 <div id="migrationStatus" style="padding: 12px; background: #f3f4f6; border-radius: 8px; font-size: 13px; color: #64748b; font-family: monospace;">
@@ -4645,7 +4645,7 @@
               </div>
 
               <div style="display: flex; gap: 12px; margin-top: 24px;">
-                <button onclick="Apps.TaskManager.open();" style="flex: 1; padding: 12px; background:#3b82f6; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 14px;">Task Manager</button>
+                <button onclick="WebOS.Apps.TaskManager.open();" style="flex: 1; padding: 12px; background:#3b82f6; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 14px;">Task Manager</button>
                 <button onclick="PerformanceMonitor.clear(); alert('Métriques purgées');" style="flex: 1; padding: 12px; background:#ef4444; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 14px;">Purger métriques</button>
                 <button onclick="Logger.clearLogs(); alert('Logs purgés');" style="flex: 1; padding: 12px; background:#f59e0b; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 14px;">Purger logs</button>
                 <button onclick="location.reload();" style="flex: 1; padding: 12px; background:#10b981; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 14px;">Redémarrer</button>
@@ -9421,6 +9421,20 @@
     }
 
     // ============================================
+    // EARLY GLOBAL EXPOSURE
+    // ============================================
+    // Exposition précoce de WebOS pour les event handlers HTML (onclick)
+    // Ceci permet aux boutons dans le HTML d'accéder à WebOS.Apps avant le boot complet
+    if (typeof window.WebOS === 'undefined') {
+      window.WebOS = {};
+    }
+    window.WebOS.Apps = Apps;
+    window.WebOS.Kernel = Kernel;
+    window.WebOS.NotificationCenter = NotificationCenter;
+
+    console.log('[WOSQ v4] WebOS exposé globalement - Apps accessible');
+
+    // ============================================
     // INITIALIZATION
     // ============================================
     function preventMobileZoom() {
@@ -9515,7 +9529,7 @@
 
             setTimeout(() => {
               console.log('[WOSQ v4] Ouverture du TaskManager pour démonstration...');
-              Apps.TaskManager.open();
+              WebOS.Apps.TaskManager.open();
             }, 1000);
           } else {
             console.log('[AUTH] Affichage écran de connexion');
@@ -9709,9 +9723,9 @@
 
         if (actionUrl && actionUrl !== 'null') {
           if (actionUrl.includes('/apps/mail')) {
-            await Apps.Mail.open();
+            await WebOS.Apps.Mail.open();
           } else if (actionUrl.includes('/apps/messages')) {
-            await Apps.Messages.open();
+            await WebOS.Apps.Messages.open();
           }
         }
       }
