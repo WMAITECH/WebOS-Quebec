@@ -1875,8 +1875,13 @@
           consoleView.scrollTop = consoleView.scrollHeight;
         };
 
+        if (iframe._currentBlobUrl) {
+          URL.revokeObjectURL(iframe._currentBlobUrl);
+          iframe._currentBlobUrl = null;
+        }
+
         const injectionScript =
-          '<script>' +
+          '<script data-wosq-injection>' +
           '(function() {' +
           '  try {' +
           '    window.NexusApp = window.parent.NexusApp || window.NexusApp || {};' +
@@ -1894,23 +1899,27 @@
         if (processedContent.toLowerCase().includes('<head>')) {
           processedContent = processedContent.replace(
             /(<head[^>]*>)/i,
-            `$1\n${injectionScript}`
+            '$1\n' + injectionScript
           );
         } else if (processedContent.toLowerCase().includes('<html>')) {
           processedContent = processedContent.replace(
             /(<html[^>]*>)/i,
-            `$1\n<head>${injectionScript}</head>`
+            '$1\n<head>' + injectionScript + '</head>'
           );
         } else if (processedContent.toLowerCase().includes('<!doctype')) {
           processedContent = processedContent.replace(
             /(<!doctype[^>]*>)/i,
-            `$1\n<head>${injectionScript}</head>`
+            '$1\n<head>' + injectionScript + '</head>'
           );
         } else {
           processedContent = injectionScript + processedContent;
         }
 
-        iframe.srcdoc = processedContent;
+        const blob = new Blob([processedContent], { type: 'text/html' });
+        const blobUrl = URL.createObjectURL(blob);
+        iframe._currentBlobUrl = blobUrl;
+
+        iframe.src = blobUrl;
 
         iframe.onload = () => {
           setTimeout(() => {
