@@ -723,6 +723,13 @@
         <line x1="12" y1="19" x2="20" y2="19"></line>
       </svg>
     </div>
+    <div class="dock-item" onclick="WebOS.Apps.Browser.open()" title="Navigateur Web">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" stroke-width="2">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="2" y1="12" x2="22" y2="12"></line>
+        <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+      </svg>
+    </div>
     <div class="dock-item" onclick="WebOS.Apps.Monitor.open()" title="Moniteur Système">
       <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#1e40af" stroke-width="2">
         <path d="M18 20V10"></path>
@@ -7857,7 +7864,7 @@
             const iframe = document.createElement('iframe');
             iframe.src = proxyUrl;
             iframe.style.cssText = 'width: 100%; height: 100%; border: none;';
-            iframe.sandbox.add('allow-same-origin', 'allow-scripts', 'allow-forms', 'allow-popups', 'allow-popups-to-escape-sandbox', 'allow-top-navigation');
+            iframe.setAttribute('sandbox', 'allow-same-origin allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox allow-top-navigation');
             iframe.referrerPolicy = 'no-referrer';
 
             let loaded = false;
