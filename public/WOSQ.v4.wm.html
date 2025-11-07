@@ -5317,46 +5317,52 @@
           this.state.logIdCounter = 0;
           this.renderConsole();
 
-          const scaledContent = `
-            <!DOCTYPE html>
-            <html>
-            <head>
-              <meta charset="UTF-8">
-              <style>
-                html, body {
-                  margin: 0;
-                  padding: 0;
-                  overflow: auto;
-                  transform-origin: top left;
-                  transform: scale(${this.state.zoomLevel / 100});
-                  width: ${100 / (this.state.zoomLevel / 100)}%;
-                  height: ${100 / (this.state.zoomLevel / 100)}%;
-                }
-              </style>
-            </head>
-            <body>
-              <script>
-                window.parent.WebOS.Apps.HTMLEditor.setupConsoleCapture(window);
-              </script>
-              ${htmlContent}
-            </body>
-            </html>
-          `;
+          const scale = this.state.zoomLevel / 100;
+          const inverseScale = 100 / (this.state.zoomLevel / 100);
+
+          const wrappedHTML = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      overflow: auto;
+      transform-origin: top left;
+      transform: scale(${scale});
+      width: ${inverseScale}%;
+      height: ${inverseScale}%;
+    }
+  </style>
+</head>
+<body>
+  ${htmlContent}
+  <script>
+    try {
+      if (window.parent && window.parent.WebOS && window.parent.WebOS.Apps.HTMLEditor) {
+        window.parent.WebOS.Apps.HTMLEditor.setupConsoleCapture(window);
+      }
+    } catch(e) {}
+  <\/script>
+</body>
+</html>`;
 
           frame.innerHTML = '';
 
-          const containerDoc = document.implementation.createHTMLDocument('Preview');
-          containerDoc.documentElement.innerHTML = scaledContent;
+          const iframe = document.createElement('iframe');
+          iframe.sandbox = 'allow-scripts allow-same-origin';
+          iframe.style.cssText = 'width: 100%; height: 100%; border: none; background: white;';
 
-          const serializer = new XMLSerializer();
-          const htmlString = serializer.serializeToString(containerDoc);
+          frame.appendChild(iframe);
 
-          frame.innerHTML = `
-            <iframe srcdoc="${htmlString.replace(/"/g, '&quot;')}"
-                    sandbox="allow-scripts"
-                    style="width: 100%; height: 100%; border: none; background: white;">
-            </iframe>
-          `;
+          setTimeout(() => {
+            const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+            iframeDoc.open();
+            iframeDoc.write(wrappedHTML);
+            iframeDoc.close();
+          }, 0);
 
           this.updateDeviceSize();
         },
