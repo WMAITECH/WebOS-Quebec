@@ -1775,17 +1775,8 @@
                   ⚡ HTML Editor
                 </button>
                 <div style="width: 1px; height: 24px; background: #e5e7eb;"></div>
-                <button class="btn" id="toggleViewMode-${name}" style="width: auto; padding: 8px 16px; font-size: 14px; background: #8b5cf6;" onclick="AdvancedFileManager.toggleViewMode('${name}')">
-                  👁 Aperçu
-                </button>
                 <button class="btn" style="width: auto; padding: 8px 16px; font-size: 14px; background: #10b981;" onclick="AdvancedFileManager.saveFile('${name}')">
                   💾 Enregistrer
-                </button>
-                <button class="btn" style="width: auto; padding: 8px 16px; font-size: 14px; background: #06b6d4;" onclick="AdvancedFileManager.refreshPreview('${name}')">
-                  🔄 Rafraîchir
-                </button>
-                <button class="btn" style="width: auto; padding: 8px 16px; font-size: 14px; background: #f59e0b;" onclick="AdvancedFileManager.clearConsole('${name}')">
-                  🧹 Console
                 </button>
                 <button class="btn" style="width: auto; padding: 8px 16px; font-size: 14px; background: #3b82f6;" onclick="AdvancedFileManager.showExportMenu('${name}')">
                   ⬇ Exporter
@@ -1794,24 +1785,12 @@
                   🗑 Supprimer
                 </button>
               </div>
-              <div id="codeView-${name}" style="flex: 1; display: flex; flex-direction: column; gap: 8px;">
+              <div style="flex: 1; display: flex; flex-direction: column;">
                 <textarea id="fileEditor-${name}" style="flex: 1; padding: 16px; border: 2px solid #e5e7eb; border-radius: 8px; font-family: 'Courier New', monospace; font-size: 13px; line-height: 1.6; resize: none;">${escapedContent}</textarea>
-              </div>
-              <div id="previewView-${name}" style="flex: 1; display: none; flex-direction: column; gap: 8px;">
-                <div style="flex: 1; border: 2px solid #e5e7eb; border-radius: 8px; overflow: hidden; display: flex; flex-direction: column; background: white;">
-                  <iframe id="htmlPreview-${name}" style="flex: 1; border: none; background: white;"></iframe>
-                </div>
-                <div id="consoleView-${name}" style="height: 180px; background: #1e293b; border: 2px solid #334155; border-radius: 8px; padding: 12px; font-family: 'Courier New', monospace; font-size: 12px; color: #e2e8f0; overflow-y: auto; line-height: 1.5;">
-                  <div style="color: #94a3b8; margin-bottom: 8px;">📟 Console JavaScript Live</div>
-                </div>
               </div>
             </div>
           `;
-          WindowManager.create(`file-${name}`, name, htmlViewerContent, { width: 1200, height: 800 });
-
-          setTimeout(() => {
-            AdvancedFileManager.setupHTMLPreview(name, content);
-          }, 100);
+          WindowManager.create(`file-${name}`, name, htmlViewerContent, { width: 1000, height: 700 });
         } else if (preview.type === 'text') {
           const content = await FileSystem.readFile(name);
           const editorContent = `
@@ -1863,171 +1842,6 @@
         }
       },
 
-      setupHTMLPreview(name, content) {
-        const iframe = document.getElementById('htmlPreview-' + name);
-        const consoleView = document.getElementById('consoleView-' + name);
-        if (!iframe || !consoleView) return;
-
-        const addConsoleLog = (type, args, color) => {
-          const timestamp = new Date().toLocaleTimeString('fr-CA', { hour12: false });
-          const message = Array.from(args).map(arg => {
-            if (typeof arg === 'object') {
-              try { return JSON.stringify(arg, null, 2); }
-              catch (e) { return String(arg); }
-            }
-            return String(arg);
-          }).join(' ');
-
-          const logLine = document.createElement('div');
-          logLine.style.cssText = `color: ${color}; margin-bottom: 4px; word-break: break-word;`;
-          logLine.innerHTML = `<span style="color: #64748b;">[${timestamp}]</span> ${type}: ${message}`;
-          consoleView.appendChild(logLine);
-          consoleView.scrollTop = consoleView.scrollHeight;
-        };
-
-        const injectionScript = `
-(function() {
-  try {
-    window.NexusApp = window.parent.NexusApp || window.NexusApp || {};
-    window.Apps = window.parent.Apps || window.Apps || {};
-    window.System = window.parent.System || window.System || {};
-    window.Kernel = window.parent.Kernel || window.Kernel || {};
-  } catch(e) {
-    console.warn("[Preview] Cannot inject parent APIs:", e.message);
-  }
-})();`;
-
-        let wrappedHTML = content || '';
-
-        if (!wrappedHTML.toLowerCase().includes('<!doctype')) {
-          wrappedHTML = '<!DOCTYPE html>\n' + wrappedHTML;
-        }
-
-        if (wrappedHTML.toLowerCase().includes('<head>')) {
-          wrappedHTML = wrappedHTML.replace(
-            /(<head[^>]*>)/i,
-            `$1\n<script>${injectionScript}<\/script>`
-          );
-        } else if (wrappedHTML.toLowerCase().includes('<html>')) {
-          wrappedHTML = wrappedHTML.replace(
-            /(<html[^>]*>)/i,
-            `$1\n<head><script>${injectionScript}<\/script></head>`
-          );
-        } else {
-          wrappedHTML = `<head><script>${injectionScript}<\/script></head>` + wrappedHTML;
-        }
-
-        setTimeout(() => {
-          try {
-            const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
-            iframeDoc.open();
-            iframeDoc.write(wrappedHTML);
-            iframeDoc.close();
-
-            setTimeout(() => {
-              try {
-                const iframeWindow = iframe.contentWindow;
-                if (!iframeWindow) return;
-
-                if (typeof NexusApp !== 'undefined') {
-                  iframeWindow.NexusApp = NexusApp;
-                }
-                if (typeof Apps !== 'undefined') {
-                  iframeWindow.Apps = Apps;
-                }
-                if (typeof System !== 'undefined') {
-                  iframeWindow.System = System;
-                }
-                if (typeof Kernel !== 'undefined') {
-                  iframeWindow.Kernel = Kernel;
-                }
-
-                const originalConsole = {
-                  log: iframeWindow.console.log,
-                  error: iframeWindow.console.error,
-                  warn: iframeWindow.console.warn,
-                  info: iframeWindow.console.info
-                };
-
-                iframeWindow.console.log = function(...args) {
-                  addConsoleLog('LOG', args, '#94a3b8');
-                  originalConsole.log.apply(iframeWindow.console, args);
-                };
-
-                iframeWindow.console.error = function(...args) {
-                  addConsoleLog('ERROR', args, '#ef4444');
-                  originalConsole.error.apply(iframeWindow.console, args);
-                };
-
-                iframeWindow.console.warn = function(...args) {
-                  addConsoleLog('WARN', args, '#f59e0b');
-                  originalConsole.warn.apply(iframeWindow.console, args);
-                };
-
-                iframeWindow.console.info = function(...args) {
-                  addConsoleLog('INFO', args, '#3b82f6');
-                  originalConsole.info.apply(iframeWindow.console, args);
-                };
-
-                iframeWindow.addEventListener('error', (e) => {
-                  addConsoleLog('ERROR', [e.message, `at ${e.filename}:${e.lineno}:${e.colno}`], '#ef4444');
-                });
-
-                iframeWindow.addEventListener('unhandledrejection', (e) => {
-                  addConsoleLog('ERROR', ['Unhandled Promise Rejection:', e.reason], '#ef4444');
-                });
-              } catch (err) {
-                console.warn('[HTMLPreview] Cannot intercept console:', err.message);
-              }
-            }, 50);
-          } catch (err) {
-            console.error('[HTMLPreview] Cannot write to iframe:', err);
-          }
-        }, 0);
-      },
-
-      refreshPreview(name) {
-        const editor = document.getElementById('fileEditor-' + name);
-        if (!editor) return;
-        const content = editor.value;
-        this.setupHTMLPreview(name, content);
-        const consoleView = document.getElementById('consoleView-' + name);
-        if (consoleView) {
-          const firstChild = consoleView.firstChild;
-          consoleView.innerHTML = '';
-          if (firstChild) consoleView.appendChild(firstChild);
-        }
-      },
-
-      clearConsole(name) {
-        const consoleView = document.getElementById('consoleView-' + name);
-        if (consoleView) {
-          consoleView.innerHTML = '<div style="color: #94a3b8; margin-bottom: 8px;">📟 Console JavaScript Live</div>';
-        }
-      },
-
-      toggleViewMode(name) {
-        const codeView = document.getElementById('codeView-' + name);
-        const previewView = document.getElementById('previewView-' + name);
-        const toggleBtn = document.getElementById('toggleViewMode-' + name);
-
-        if (codeView.style.display === 'none') {
-          codeView.style.display = 'flex';
-          previewView.style.display = 'none';
-          toggleBtn.textContent = '👁 Aperçu';
-          toggleBtn.style.background = '#8b5cf6';
-        } else {
-          const editor = document.getElementById('fileEditor-' + name);
-          if (editor) {
-            const content = editor.value;
-            this.setupHTMLPreview(name, content);
-          }
-          codeView.style.display = 'none';
-          previewView.style.display = 'flex';
-          toggleBtn.textContent = '📝 Code';
-          toggleBtn.style.background = '#f59e0b';
-        }
-      }
     };
 
     // ============================================
