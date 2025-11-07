@@ -30,6 +30,41 @@
       crossOriginIsolated: true
     };
 
+    (function setupVirtualStorage() {
+      if (typeof localStorage !== 'undefined') {
+        try {
+          localStorage.setItem('__test__', '1');
+          localStorage.removeItem('__test__');
+          return;
+        } catch(e) {}
+      }
+
+      const virtualStorage = {};
+      window.localStorage = {
+        getItem: function(key) {
+          return virtualStorage[key] || null;
+        },
+        setItem: function(key, value) {
+          virtualStorage[key] = String(value);
+        },
+        removeItem: function(key) {
+          delete virtualStorage[key];
+        },
+        clear: function() {
+          for (const key in virtualStorage) {
+            delete virtualStorage[key];
+          }
+        },
+        get length() {
+          return Object.keys(virtualStorage).length;
+        },
+        key: function(index) {
+          const keys = Object.keys(virtualStorage);
+          return keys[index] || null;
+        }
+      };
+    })();
+
     (function applySecurityHeaders() {
       if (!window.__WEBOS_SECURITY__.offlineStrict) return;
 
@@ -5133,7 +5168,7 @@
             .replace(/`/g, '\\`')
             .replace(/\$/g, '\\$');
 
-          const wrappedHTML = '<!DOCTYPE html>\n<html>\n<head>\n  <meta charset="UTF-8">\n  <style>\n    html, body {\n      margin: 0;\n      padding: 0;\n      overflow: auto;\n      transform-origin: top left;\n      transform: scale(' + scale + ');\n      width: ' + inverseScale + '%;\n      height: ' + inverseScale + '%;\n    }\n  </style>\n  <script>\n    window.WebOS = {\n      NexusApp: {\n        zoom: function(level) {\n          try {\n            window.parent.postMessage({type: "nexus-zoom", level: level}, "*");\n          } catch(e) {\n            console.log("Zoom:", level);\n          }\n        },\n        setLanguage: function(lang) {\n          console.log("Language set to:", lang);\n        },\n        navigate: function(path) {\n          console.log("Navigate to:", path);\n        }\n      }\n    };\n    window.NexusApp = window.WebOS.NexusApp;\n\n    var originalConsole = {\n      log: console.log.bind(console),\n      error: console.error.bind(console),\n      warn: console.warn.bind(console),\n      info: console.info.bind(console)\n    };\n\n    ["log", "error", "warn", "info"].forEach(function(method) {\n      console[method] = function() {\n        var args = Array.prototype.slice.call(arguments);\n        originalConsole[method].apply(console, args);\n        try {\n          var stringArgs = args.map(function(a) { return String(a); });\n          window.parent.postMessage({type: "console", method: method, args: stringArgs}, "*");\n        } catch(e) {}\n      };\n    });\n\n    window.onerror = function(message, source, lineno, colno, error) {\n      try {\n        window.parent.postMessage({type: "console", method: "error", args: [String(message)]}, "*");\n      } catch(e) {}\n      return true;\n    };\n\n    window.onunhandledrejection = function(event) {\n      try {\n        window.parent.postMessage({type: "console", method: "error", args: ["Unhandled Promise: " + String(event.reason)]}, "*");\n      } catch(e) {}\n    };\n  <\/script>\n</head>\n<body>\n' + htmlContent + '\n</body>\n</html>';
+          const wrappedHTML = '<!DOCTYPE html>\n<html>\n<head>\n  <meta charset="UTF-8">\n  <style>\n    html, body {\n      margin: 0;\n      padding: 0;\n      overflow: auto;\n      transform-origin: top left;\n      transform: scale(' + scale + ');\n      width: ' + inverseScale + '%;\n      height: ' + inverseScale + '%;\n    }\n  </style>\n  <script>\n    (function() {\n      if (typeof localStorage !== "undefined") {\n        try {\n          localStorage.setItem("__test__", "1");\n          localStorage.removeItem("__test__");\n          return;\n        } catch(e) {}\n      }\n\n      var virtualStorage = {};\n      window.localStorage = {\n        getItem: function(key) {\n          return virtualStorage[key] || null;\n        },\n        setItem: function(key, value) {\n          virtualStorage[key] = String(value);\n        },\n        removeItem: function(key) {\n          delete virtualStorage[key];\n        },\n        clear: function() {\n          for (var k in virtualStorage) {\n            delete virtualStorage[k];\n          }\n        },\n        get length() {\n          return Object.keys(virtualStorage).length;\n        },\n        key: function(index) {\n          var keys = Object.keys(virtualStorage);\n          return keys[index] || null;\n        }\n      };\n\n      window.sessionStorage = window.localStorage;\n    })();\n\n    window.WebOS = {\n      NexusApp: {\n        zoom: function(level) {\n          try {\n            window.parent.postMessage({type: "nexus-zoom", level: level}, "*");\n          } catch(e) {\n            console.log("Zoom:", level);\n          }\n        },\n        setLanguage: function(lang) {\n          console.log("Language set to:", lang);\n        },\n        navigate: function(path) {\n          console.log("Navigate to:", path);\n        }\n      }\n    };\n    window.NexusApp = window.WebOS.NexusApp;\n\n    var originalConsole = {\n      log: console.log.bind(console),\n      error: console.error.bind(console),\n      warn: console.warn.bind(console),\n      info: console.info.bind(console)\n    };\n\n    ["log", "error", "warn", "info"].forEach(function(method) {\n      console[method] = function() {\n        var args = Array.prototype.slice.call(arguments);\n        originalConsole[method].apply(console, args);\n        try {\n          var stringArgs = args.map(function(a) { return String(a); });\n          window.parent.postMessage({type: "console", method: method, args: stringArgs}, "*");\n        } catch(e) {}\n      };\n    });\n\n    window.onerror = function(message, source, lineno, colno, error) {\n      try {\n        window.parent.postMessage({type: "console", method: "error", args: [String(message)]}, "*");\n      } catch(e) {}\n      return true;\n    };\n\n    window.onunhandledrejection = function(event) {\n      try {\n        window.parent.postMessage({type: "console", method: "error", args: ["Unhandled Promise: " + String(event.reason)]}, "*");\n      } catch(e) {}\n    };\n  <\/script>\n</head>\n<body>\n' + htmlContent + '\n</body>\n</html>';
 
           frame.innerHTML = '';
 
