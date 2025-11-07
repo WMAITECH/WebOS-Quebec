@@ -70,18 +70,22 @@
       }
 
       if (typeof caches === 'undefined' || !caches) {
+        const mockCache = {
+          match: function() { return Promise.resolve(undefined); },
+          matchAll: function() { return Promise.resolve([]); },
+          add: function(request) { return Promise.resolve(); },
+          addAll: function(requests) { return Promise.resolve(); },
+          put: function(request, response) { return Promise.resolve(); },
+          delete: function(request) { return Promise.resolve(false); },
+          keys: function() { return Promise.resolve([]); }
+        };
+
         const CacheStorage = {
-          open: function(name) {
-            return Promise.resolve({
-              match: function() { return Promise.resolve(undefined); },
-              put: function() { return Promise.resolve(); },
-              delete: function() { return Promise.resolve(false); },
-              keys: function() { return Promise.resolve([]); }
-            });
-          },
+          open: function(name) { return Promise.resolve(mockCache); },
           has: function() { return Promise.resolve(false); },
           delete: function() { return Promise.resolve(false); },
-          keys: function() { return Promise.resolve([]); }
+          keys: function() { return Promise.resolve([]); },
+          match: function() { return Promise.resolve(undefined); }
         };
 
         Object.defineProperty(window, 'caches', {
@@ -5195,7 +5199,7 @@
             .replace(/`/g, '\\`')
             .replace(/\$/g, '\\$');
 
-          const storagePolyfill = '(function(){var vs={},ss={},cs={};Object.defineProperty(window,"localStorage",{configurable:true,enumerable:true,value:{getItem:function(k){return vs[k]||null},setItem:function(k,v){vs[k]=String(v)},removeItem:function(k){delete vs[k]},clear:function(){vs={}},get length(){return Object.keys(vs).length},key:function(i){return Object.keys(vs)[i]||null}}});Object.defineProperty(window,"sessionStorage",{configurable:true,enumerable:true,value:{getItem:function(k){return ss[k]||null},setItem:function(k,v){ss[k]=String(v)},removeItem:function(k){delete ss[k]},clear:function(){ss={}},get length(){return Object.keys(ss).length},key:function(i){return Object.keys(ss)[i]||null}}});var CacheStorage={open:function(n){return Promise.resolve({match:function(){return Promise.resolve(undefined)},put:function(){return Promise.resolve()},delete:function(){return Promise.resolve(false)},keys:function(){return Promise.resolve([])}})},has:function(){return Promise.resolve(false)},delete:function(){return Promise.resolve(false)},keys:function(){return Promise.resolve([])}};Object.defineProperty(window,"caches",{configurable:true,enumerable:true,value:CacheStorage})})();';
+          const storagePolyfill = '(function(){var vs={},ss={};Object.defineProperty(window,"localStorage",{configurable:true,enumerable:true,value:{getItem:function(k){return vs[k]||null},setItem:function(k,v){vs[k]=String(v)},removeItem:function(k){delete vs[k]},clear:function(){vs={}},get length(){return Object.keys(vs).length},key:function(i){return Object.keys(vs)[i]||null}}});Object.defineProperty(window,"sessionStorage",{configurable:true,enumerable:true,value:{getItem:function(k){return ss[k]||null},setItem:function(k,v){ss[k]=String(v)},removeItem:function(k){delete ss[k]},clear:function(){ss={}},get length(){return Object.keys(ss).length},key:function(i){return Object.keys(ss)[i]||null}}});var mockCache={match:function(){return Promise.resolve(undefined)},matchAll:function(){return Promise.resolve([])},add:function(){return Promise.resolve()},addAll:function(){return Promise.resolve()},put:function(){return Promise.resolve()},delete:function(){return Promise.resolve(false)},keys:function(){return Promise.resolve([])}};var CacheStorage={open:function(){return Promise.resolve(mockCache)},has:function(){return Promise.resolve(false)},delete:function(){return Promise.resolve(false)},keys:function(){return Promise.resolve([])},match:function(){return Promise.resolve(undefined)}};Object.defineProperty(window,"caches",{configurable:true,enumerable:true,value:CacheStorage})})();';
 
           const wrappedHTML = '<!DOCTYPE html>\n<html>\n<head>\n  <meta charset="UTF-8">\n  <script>' + storagePolyfill + '<\/script>\n  <style>\n    html, body {\n      margin: 0;\n      padding: 0;\n      overflow: auto;\n      transform-origin: top left;\n      transform: scale(' + scale + ');\n      width: ' + inverseScale + '%;\n      height: ' + inverseScale + '%;\n    }\n  </style>\n  <script>\n\n\n    window.WebOS = {\n      NexusApp: {\n        zoom: function(level) {\n          try {\n            window.parent.postMessage({type: "nexus-zoom", level: level}, "*");\n          } catch(e) {\n            console.log("Zoom:", level);\n          }\n        },\n        setLanguage: function(lang) {\n          console.log("Language set to:", lang);\n        },\n        navigate: function(path) {\n          console.log("Navigate to:", path);\n        }\n      }\n    };\n    window.NexusApp = window.WebOS.NexusApp;\n\n    var originalConsole = {\n      log: console.log.bind(console),\n      error: console.error.bind(console),\n      warn: console.warn.bind(console),\n      info: console.info.bind(console)\n    };\n\n    ["log", "error", "warn", "info"].forEach(function(method) {\n      console[method] = function() {\n        var args = Array.prototype.slice.call(arguments);\n        originalConsole[method].apply(console, args);\n        try {\n          var stringArgs = args.map(function(a) { return String(a); });\n          window.parent.postMessage({type: "console", method: method, args: stringArgs}, "*");\n        } catch(e) {}\n      };\n    });\n\n    window.onerror = function(message, source, lineno, colno, error) {\n      try {\n        window.parent.postMessage({type: "console", method: "error", args: [String(message)]}, "*");\n      } catch(e) {}\n      return true;\n    };\n\n    window.onunhandledrejection = function(event) {\n      try {\n        window.parent.postMessage({type: "console", method: "error", args: ["Unhandled Promise: " + String(event.reason)]}, "*");\n      } catch(e) {}\n    };\n  <\/script>\n</head>\n<body>\n' + htmlContent + '\n</body>\n</html>';
 
