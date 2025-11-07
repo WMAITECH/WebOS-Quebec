@@ -755,13 +755,6 @@
         <polyline points="22,6 12,13 2,6"></polyline>
       </svg>
     </div>
-    <div class="dock-item" onclick="WebOS.Apps.HTMLEditor.open()" title="HTML Editor">
-      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#f97316" stroke-width="2.5">
-        <polyline points="16 18 22 12 16 6"></polyline>
-        <polyline points="8 6 2 12 8 18"></polyline>
-        <line x1="13" y1="2" x2="11" y2="22"></line>
-      </svg>
-    </div>
   </div>
 
   <!-- Import Maps for ES Modules with CDN Fallback -->
@@ -1733,6 +1726,12 @@
                 </div>
               </div>
               <div style="display: flex; gap: 8px;">
+                ${f.extension === 'html' || f.extension === 'htm' ? `
+                  <button class="btn" style="width: auto; padding: 8px 14px; font-size: 13px; background: #f97316;"
+                          onclick="event.stopPropagation(); WebOS.Apps.HTMLEditor.openFile('${f.name}')" title="Ouvrir avec HTML Editor">
+                    ⚡
+                  </button>
+                ` : ''}
                 <button class="btn" style="width: auto; padding: 8px 14px; font-size: 13px; background: #10b981;"
                         onclick="event.stopPropagation(); AdvancedFileManager.showExportMenu('${f.name}')">
                   ⬇ Exporter
@@ -1772,6 +1771,10 @@
           const htmlViewerContent = `
             <div style="height: 100%; display: flex; flex-direction: column;">
               <div style="display: flex; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; align-items: center;">
+                <button class="btn" style="width: auto; padding: 8px 16px; font-size: 14px; background: #f97316; font-weight: 600;" onclick="WebOS.WindowManager.close('file-${name}'); WebOS.Apps.HTMLEditor.openFile('${name}')" title="Ouvrir avec HTML Editor avancé">
+                  ⚡ HTML Editor
+                </button>
+                <div style="width: 1px; height: 24px; background: #e5e7eb;"></div>
                 <button class="btn" id="toggleViewMode-${name}" style="width: auto; padding: 8px 16px; font-size: 14px; background: #8b5cf6;" onclick="AdvancedFileManager.toggleViewMode('${name}')">
                   👁 Aperçu
                 </button>
@@ -5160,15 +5163,21 @@
 </body>
 </html>`,
 
-        open() {
+        async openFile(filename) {
+          const content = await FileSystem.readFile(filename);
+          this.open(content, filename);
+        },
+
+        open(initialContent = '', filename = null) {
           this.state = {
-            htmlCode: '',
+            htmlCode: initialContent,
             activeDevice: 'desktop',
             showPreview: false,
             consoleLogs: [],
             logIdCounter: 0,
             zoomLevel: 100,
-            currentBlobUrl: null
+            currentBlobUrl: null,
+            currentFilename: filename
           };
 
           const content = `
@@ -5193,6 +5202,12 @@
                 <button class="btn" style="width: auto; padding: 10px 18px; font-size: 14px; background: #3b82f6; font-weight: 600;" onclick="WebOS.Apps.HTMLEditor.preview()">
                   ▶ Preview
                 </button>
+
+                ${filename ? `
+                  <button class="btn" style="width: auto; padding: 10px 18px; font-size: 14px; background: #10b981; font-weight: 600;" onclick="WebOS.Apps.HTMLEditor.saveToFile()">
+                    💾 Enregistrer
+                  </button>
+                ` : ''}
 
                 <button class="btn" style="width: auto; padding: 10px 18px; font-size: 14px; background: #8b5cf6; font-weight: 600;" onclick="WebOS.Apps.HTMLEditor.exportFile()">
                   ⬇ Exporter
@@ -5241,11 +5256,13 @@
             </div>
           `;
 
-          WindowManager.create('htmleditor', '⚡ HTML Live Preview Editor', content, { width: 1200, height: 800 });
+          const title = filename ? `⚡ HTML Editor — ${filename}` : '⚡ HTML Live Preview Editor';
+          WindowManager.create('htmleditor', title, content, { width: 1200, height: 800 });
 
           setTimeout(() => {
             const textarea = document.getElementById('htmlEditorTextarea');
             if (textarea) {
+              textarea.value = this.state.htmlCode;
               textarea.addEventListener('input', (e) => {
                 this.state.htmlCode = e.target.value;
               });
@@ -5535,6 +5552,22 @@
           await Notifications.createNotification(
             'Fichier exporté',
             title + '.html',
+            'success',
+            'htmleditor'
+          );
+        },
+
+        async saveToFile() {
+          if (!this.state.currentFilename) {
+            alert('Aucun fichier ouvert');
+            return;
+          }
+
+          await FileSystem.writeFile(this.state.currentFilename, this.state.htmlCode);
+
+          await Notifications.createNotification(
+            'Fichier enregistré',
+            this.state.currentFilename,
             'success',
             'htmleditor'
           );
