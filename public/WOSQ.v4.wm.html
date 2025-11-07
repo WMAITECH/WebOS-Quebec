@@ -1875,26 +1875,42 @@
           consoleView.scrollTop = consoleView.scrollHeight;
         };
 
-        const wrappedContent = `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <base href="${window.location.origin}/">
-  <script>
-    window.NexusApp = window.parent.NexusApp || {};
-    window.Apps = window.parent.Apps || {};
-    window.System = window.parent.System || {};
-    window.Kernel = window.parent.Kernel || {};
-  </script>
-</head>
-<body>
-${content}
-</body>
-</html>
-`;
+        const injectionScript = `
+<script>
+(function() {
+  try {
+    window.NexusApp = window.parent.NexusApp || window.NexusApp || {};
+    window.Apps = window.parent.Apps || window.Apps || {};
+    window.System = window.parent.System || window.System || {};
+    window.Kernel = window.parent.Kernel || window.Kernel || {};
+  } catch(e) {
+    console.warn('[Preview] Cannot inject parent APIs:', e.message);
+  }
+})();
+</script>`;
 
-        iframe.srcdoc = wrappedContent;
+        let processedContent = content || '';
+
+        if (processedContent.toLowerCase().includes('<head>')) {
+          processedContent = processedContent.replace(
+            /(<head[^>]*>)/i,
+            `$1\n${injectionScript}`
+          );
+        } else if (processedContent.toLowerCase().includes('<html>')) {
+          processedContent = processedContent.replace(
+            /(<html[^>]*>)/i,
+            `$1\n<head>${injectionScript}</head>`
+          );
+        } else if (processedContent.toLowerCase().includes('<!doctype')) {
+          processedContent = processedContent.replace(
+            /(<!doctype[^>]*>)/i,
+            `$1\n<head>${injectionScript}</head>`
+          );
+        } else {
+          processedContent = injectionScript + processedContent;
+        }
+
+        iframe.srcdoc = processedContent;
 
         iframe.onload = () => {
           setTimeout(() => {
