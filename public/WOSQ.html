@@ -1918,10 +1918,14 @@
           }
         };
 
-        const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
-        iframeDoc.open();
-        iframeDoc.write(content || '');
-        iframeDoc.close();
+        const blob = new Blob([content || ''], { type: 'text/html' });
+        const url = URL.createObjectURL(blob);
+        iframe.src = url;
+
+        iframe.addEventListener('load', function cleanup() {
+          URL.revokeObjectURL(url);
+          iframe.removeEventListener('load', cleanup);
+        }, { once: true });
       },
 
       refreshPreview(name) {
