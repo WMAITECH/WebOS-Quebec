@@ -7849,12 +7849,78 @@
             this.renderTabs();
           }
 
-          content.innerHTML = '<div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center;"><div style="width: 48px; height: 48px; border: 4px solid #f3f4f6; border-top-color: #8b5cf6; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 16px;"></div><p style="color: #6b7280; font-size: 14px;">Chargement via proxy sécurisé...</p></div><style>@keyframes spin { to { transform: rotate(360deg); } }</style>';
+          content.innerHTML = '<div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center;"><div style="width: 48px; height: 48px; border: 4px solid #f3f4f6; border-top-color: #8b5cf6; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 16px;"></div><p style="color: #6b7280; font-size: 14px;">Chargement via proxy sécurisé...</p><p style="color: #9ca3af; font-size: 12px; margin-top: 8px;">Contournement CORS et X-Frame-Options...</p></div><style>@keyframes spin { to { transform: rotate(360deg); } }</style>';
 
           const proxyUrl = `https://gwcpuwihjouusnohkmcy.supabase.co/functions/v1/web-proxy?url=${encodeURIComponent(url)}`;
 
           setTimeout(() => {
-            content.innerHTML = `<iframe src="${proxyUrl}" style="width: 100%; height: 100%; border: none;" sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox allow-top-navigation" referrerpolicy="no-referrer"></iframe>`;
+            const iframe = document.createElement('iframe');
+            iframe.src = proxyUrl;
+            iframe.style.cssText = 'width: 100%; height: 100%; border: none;';
+            iframe.sandbox.add('allow-same-origin', 'allow-scripts', 'allow-forms', 'allow-popups', 'allow-popups-to-escape-sandbox', 'allow-top-navigation');
+            iframe.referrerPolicy = 'no-referrer';
+
+            let loaded = false;
+            const loadTimeout = setTimeout(() => {
+              if (!loaded) {
+                content.innerHTML = `
+                  <div style="display: flex; align-items: center; justify-content: center; height: 100%; padding: 40px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                    <div style="text-align: center; max-width: 700px; background: white; padding: 48px; border-radius: 16px; box-shadow: 0 20px 60px rgba(0,0,0,0.3);">
+                      <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2" style="margin: 0 auto 24px;">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                        <line x1="12" y1="9" x2="12" y2="13"/>
+                        <line x1="12" y1="17" x2="12.01" y2="17"/>
+                      </svg>
+                      <h2 style="margin: 0 0 16px 0; font-size: 24px; font-weight: 700; color: #1f2937;">Chargement lent</h2>
+                      <p style="margin: 0 0 24px 0; font-size: 14px; color: #6b7280; line-height: 1.6;">
+                        Le site prend du temps à charger. Vous pouvez attendre ou l'ouvrir dans un nouvel onglet.
+                      </p>
+                      <div style="background: #f3f4f6; padding: 12px; border-radius: 8px; margin-bottom: 24px; word-break: break-all;">
+                        <p style="margin: 0; font-size: 13px; color: #1f2937; font-family: monospace;">${url}</p>
+                      </div>
+                      <div style="display: flex; gap: 12px; justify-content: center;">
+                        <button onclick="WebOS.Apps.Browser.reload()" style="padding: 14px 24px; background: #6b7280; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">
+                          Réessayer
+                        </button>
+                        <button onclick="window.open('${url}', '_blank')" style="padding: 14px 24px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);">
+                          Nouvel onglet
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                `;
+              }
+            }, 10000);
+
+            iframe.onload = () => {
+              loaded = true;
+              clearTimeout(loadTimeout);
+            };
+
+            iframe.onerror = () => {
+              clearTimeout(loadTimeout);
+              content.innerHTML = `
+                <div style="display: flex; align-items: center; justify-content: center; height: 100%; padding: 40px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                  <div style="text-align: center; max-width: 700px; background: white; padding: 48px; border-radius: 16px; box-shadow: 0 20px 60px rgba(0,0,0,0.3);">
+                    <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2" style="margin: 0 auto 24px;">
+                      <circle cx="12" cy="12" r="10"/>
+                      <line x1="15" y1="9" x2="9" y2="15"/>
+                      <line x1="9" y1="9" x2="15" y2="15"/>
+                    </svg>
+                    <h2 style="margin: 0 0 16px 0; font-size: 24px; font-weight: 700; color: #1f2937;">Échec du chargement</h2>
+                    <p style="margin: 0 0 24px 0; font-size: 14px; color: #6b7280;">
+                      Le site ne peut pas être chargé via le proxy.
+                    </p>
+                    <button onclick="window.open('${url}', '_blank')" style="padding: 14px 32px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);">
+                      Ouvrir dans un nouvel onglet
+                    </button>
+                  </div>
+                </div>
+              `;
+            };
+
+            content.innerHTML = '';
+            content.appendChild(iframe);
           }, 500);
         },
 
