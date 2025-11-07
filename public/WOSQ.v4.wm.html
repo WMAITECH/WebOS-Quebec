@@ -5206,7 +5206,7 @@
           frame.innerHTML = '';
 
           const iframe = document.createElement('iframe');
-          iframe.sandbox = 'allow-scripts allow-forms allow-popups allow-modals allow-pointer-lock';
+          iframe.sandbox = 'allow-scripts allow-forms allow-popups allow-modals allow-pointer-lock allow-same-origin';
           iframe.style.cssText = 'width: 100%; height: 100%; border: none; background: white;';
           iframe.srcdoc = wrappedHTML;
 
