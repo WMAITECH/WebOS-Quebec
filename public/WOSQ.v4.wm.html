@@ -874,8 +874,8 @@
         model: 'Llama-3.2-3B-Instruct-q4f32_1-MLC',
         temperature: 0.7,
         topP: 0.95,
-        maxTokens: 1024,
-        contextWindow: 4096,
+        maxTokens: 2048,
+        contextWindow: 8192,
         systemPrompt: `Tu es l'Agent Orchestrateur Central de WebOS Québec (WOSQ v4).
 
 # ARCHITECTURE SYSTÈME COMPLÈTE
@@ -1893,7 +1893,6 @@ Tu vois TOUT, tu contrôles TOUT. Sois l'assistant parfait.`
     const AIBus = {
       state: {
         localReady: false,
-        loading: false,
         lastError: null,
         retryCount: 0,
         maxRetries: 3
@@ -1943,12 +1942,6 @@ Tu vois TOUT, tu contrôles TOUT. Sois l'assistant parfait.`
         return issues;
       },
       async init() {
-        if (this.state.loading || this.state.localReady) {
-          console.log('[AIBus] Init déjà en cours ou complété');
-          return;
-        }
-
-        this.state.loading = true;
         const statusEl = document.getElementById("aiStatus");
         try {
           if (statusEl) {
@@ -1988,17 +1981,11 @@ Tu vois TOUT, tu contrôles TOUT. Sois l'assistant parfait.`
               }
               console.log(`[AI] Progress: ${Math.floor(p.progress * 100)}% - ${p.text}`);
             },
-            logLevel: 'SILENT',
-            appConfig: {
-              useIndexedDBCache: true,
-              maxStorageBufferBindingSize: 1073741824,
-              maxBufferSize: 2147483648
-            }
+            logLevel: 'INFO'
           });
 
           clearTimeout(loadTimeout);
           this.state.localReady = true;
-          this.state.loading = false;
           if (statusEl) {
             statusEl.textContent = "IA: locale prête ✓";
             statusEl.style.color = '#10b981';
@@ -2008,7 +1995,6 @@ Tu vois TOUT, tu contrôles TOUT. Sois l'assistant parfait.`
           console.error('⚠ IA locale indisponible:', err);
           console.error('[AI] Full error details:', err.message, err.stack);
           this.state.lastError = err.message;
-          this.state.loading = false;
           if (statusEl) {
             statusEl.textContent = "IA: erreur - " + (err.message.length > 50 ? err.message.substring(0, 50) + '...' : err.message);
             statusEl.style.color = '#ef4444';
@@ -2168,39 +2154,19 @@ Heure système: ${new Date().toLocaleString('fr-CA')}
 
       async chat(prompt, options = {}) {
         if (!this.state.localReady || !this.engine) {
-          if (!this.state.loading) {
-            console.log('[AIBus] Démarrage lazy loading du modèle IA...');
-            this.init();
-          }
           return this.fallbackResponse();
         }
 
         try {
           const systemContext = await this.getSystemContext();
-
-          const contextSize = systemContext.length + CONFIG.webllm.systemPrompt.length;
-          let optimizedSystemPrompt = CONFIG.webllm.systemPrompt;
-
-          if (contextSize > 2000) {
-            const essentials = `Tu es l'Agent IA de WebOS Québec (WOSQ v4).
-
-Apps: Messages, Mail, OSINT, FileManager, Terminal, TaskManager.
-Tools: file_service, mail_service, messages_service, notification_service, ui_control, system_query.
-
-Format: <TOOL_CALL>{"tool":"nom","action":"act","params":{},"reason":"..."}</TOOL_CALL>
-
-Règles: Demander permission, expliquer actions, être proactif.`;
-            optimizedSystemPrompt = essentials;
-          }
-
-          const optimizedContext = optimizedSystemPrompt + '\n\n' + systemContext;
+          const enhancedSystemPrompt = CONFIG.webllm.systemPrompt + '\n\n' + systemContext;
 
           const messages = [
-            { role: "system", content: optimizedContext }
+            { role: "system", content: enhancedSystemPrompt }
           ];
 
           if (options.includeHistory && this.conversationHistory.length > 0) {
-            messages.push(...this.conversationHistory.slice(-4));
+            messages.push(...this.conversationHistory.slice(-6));
           }
 
           messages.push({ role: "user", content: prompt });
@@ -2300,7 +2266,7 @@ Règles: Demander permission, expliquer actions, être proactif.`;
       }
     };
 
-    // AIBus.init();
+    AIBus.init();
     initializeCustomMouse();
 
     // ============================================
@@ -11551,34 +11517,7 @@ self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
-  const isAIModel = url.hostname.includes('huggingface.co') ||
-                    url.pathname.includes('mlc-') ||
-                    url.pathname.includes('Llama-');
-
-  if (isAIModel) {
-    event.respondWith(
-      caches.open('ai-model-cache-v1').then((cache) => {
-        return cache.match(request).then((cachedResponse) => {
-          if (cachedResponse) {
-            console.log('[SW] Serving AI model from cache:', url.pathname.substring(url.pathname.lastIndexOf('/') + 1));
-            return cachedResponse;
-          }
-
-          return fetch(request, {
-            mode: 'cors',
-            credentials: 'omit'
-          }).then((response) => {
-            if (response && response.status === 200) {
-              const clonedResponse = response.clone();
-              cache.put(request, clonedResponse);
-              console.log('[SW] Cached AI model chunk:', url.pathname.substring(url.pathname.lastIndexOf('/') + 1));
-            }
-            return response;
-          });
-        });
-      })
-    );
-  } else if (url.origin !== location.origin && !url.hostname.includes('supabase')) {
+  if (url.origin !== location.origin && !url.hostname.includes('supabase')) {
     event.respondWith(
       caches.match(request).then((cachedResponse) => {
         if (cachedResponse) {
