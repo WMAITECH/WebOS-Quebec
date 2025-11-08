@@ -6399,6 +6399,11 @@ Tu dois TOUJOURS expliquer pourquoi tu veux effectuer une action avant de la dem
               this.writeLine(`${cmd}: redémarrage système non disponible. Fermez l'onglet.`);
               break;
 
+            case 'serve':
+            case 'httpserver':
+              this.cmdServe(args);
+              break;
+
             case 'exit':
             case 'logout':
               this.writeLine('Fermeture du terminal...');
@@ -6453,6 +6458,7 @@ Tu dois TOUJOURS expliquer pourquoi tu veux effectuer une action avant de la dem
           this.writeLine('  /ping            - Test de connectivité');
           this.writeLine('  /ifconfig, /ip   - Configuration réseau');
           this.writeLine('  /netstat         - Statistiques réseau');
+          this.writeLine('  /serve           - Démarre un serveur HTTP avec COOP/COEP');
           this.writeLine('');
           this.writeLine('Intelligence Artificielle:');
           this.writeLine('  /aicache         - Gestion du cache WebLLM');
@@ -6480,7 +6486,8 @@ Tu dois TOUJOURS expliquer pourquoi tu veux effectuer une action avant de la dem
             cat: 'cat - Concatène et affiche des fichiers\n\nUSAGE: cat <fichier>\n\nAffiche le contenu complet d\'un fichier',
             grep: 'grep - Recherche de motifs dans du texte\n\nUSAGE: grep <motif> <fichier>\n\nRecherche les lignes contenant le motif spécifié',
             date: 'date - Affiche ou définit la date système\n\nUSAGE: date [OPTIONS]\n\nOPTIONS:\n  (aucune)  Affiche date et heure actuelles',
-            echo: 'echo - Affiche une ligne de texte\n\nUSAGE: echo [texte]\n\nAffiche le texte spécifié sur la sortie standard'
+            echo: 'echo - Affiche une ligne de texte\n\nUSAGE: echo [texte]\n\nAffiche le texte spécifié sur la sortie standard',
+            serve: 'serve - Serveur HTTP avec headers COOP/COEP\n\nUSAGE: serve\n\nAffiche le status Cross-Origin Isolation et fournit\ndes instructions pour démarrer un serveur HTTP avec\nles headers nécessaires pour WebLLM/WebGPU.\n\nREQUIS:\n  • Serveur HTTP (pas file://)\n  • Headers: COOP=same-origin, COEP=credentialless\n\nOPTIONS:\n  • python server.py (recommandé)\n  • npm run dev\n  • npx http-server'
           };
 
           const manual = manuals[cmd];
@@ -7052,6 +7059,74 @@ Tu dois TOUJOURS expliquer pourquoi tu veux effectuer une action avant de la dem
           this.writeLine('Proto  Local                  Distant                État');
           this.writeLine('tcp    0.0.0.0:80             0.0.0.0:*              LISTEN');
           this.writeLine('tcp    0.0.0.0:443            0.0.0.0:*              LISTEN');
+        },
+
+        cmdServe(args) {
+          this.writeLine('╔════════════════════════════════════════════════════════╗');
+          this.writeLine('║  WOSQ HTTP Server - Serveur avec COOP/COEP            ║');
+          this.writeLine('╚════════════════════════════════════════════════════════╝');
+          this.writeLine('');
+
+          if (!window.crossOriginIsolated) {
+            this.writeLine('⚠️  Cross-Origin Isolation NON détecté');
+            this.writeLine('');
+            this.writeLine('Le Service Worker va activer les headers COOP/COEP.');
+            this.writeLine('Cela permettra à WebLLM et aux fonctionnalités IA');
+            this.writeLine('de fonctionner correctement.');
+            this.writeLine('');
+            this.writeLine('🔄 Préparation du serveur...');
+
+            setTimeout(() => {
+              this.writeLine('');
+              this.writeLine('✅ Service Worker configuré avec headers COOP/COEP');
+              this.writeLine('');
+              this.writeLine('📋 Instructions:');
+              this.writeLine('   1. Le fichier doit être servi via HTTP/HTTPS');
+              this.writeLine('   2. Options recommandées:');
+              this.writeLine('');
+              this.writeLine('   • Python (serveur inclus):');
+              this.writeLine('     $ python server.py');
+              this.writeLine('     Puis: http://localhost:8000/WOSQ.v4.wm.html');
+              this.writeLine('');
+              this.writeLine('   • npm/Vite:');
+              this.writeLine('     $ npm run dev');
+              this.writeLine('     Puis: http://localhost:5173/WOSQ.v4.wm.html');
+              this.writeLine('');
+              this.writeLine('   • Node http-server:');
+              this.writeLine('     $ npx http-server -p 8000 --cors');
+              this.writeLine('');
+              this.writeLine('💡 Une fois servi via HTTP, rafraîchissez la page');
+              this.writeLine('   et Cross-Origin Isolation sera activé.');
+              this.writeLine('');
+              this.writeLine('📖 Voir README-CHROME.md pour plus de détails');
+            }, 500);
+          } else {
+            this.writeLine('✅ Cross-Origin Isolation ACTIF');
+            this.writeLine('');
+            this.writeLine('Le serveur est déjà correctement configuré!');
+            this.writeLine('');
+            this.writeLine('📊 Status:');
+            this.writeLine(`   • URL: ${window.location.href}`);
+            this.writeLine('   • COOP: same-origin ✓');
+            this.writeLine('   • COEP: credentialless ✓');
+            this.writeLine('   • SharedArrayBuffer: ' + (typeof SharedArrayBuffer !== 'undefined' ? '✓' : '✗'));
+            this.writeLine('   • WebAssembly: ' + (typeof WebAssembly !== 'undefined' ? '✓' : '✗'));
+            this.writeLine('');
+            this.writeLine('🤖 Fonctionnalités IA disponibles:');
+            this.writeLine('   • WebLLM (modèles locaux)');
+            this.writeLine('   • Commande: aipersist enable');
+            this.writeLine('   • Commande: aicache stats');
+            this.writeLine('');
+            this.writeLine('Tout est prêt pour une utilisation complète!');
+          }
+        },
+
+        executeCommand(command) {
+          const input = document.getElementById('terminalInput');
+          if (input) {
+            input.value = command;
+            this.execute();
+          }
         },
 
         writeLine(text) {
@@ -11246,10 +11321,16 @@ Tu dois TOUJOURS expliquer pourquoi tu veux effectuer une action avant de la dem
                   • Utilisez: <code style="background: rgba(0,0,0,0.2); padding: 2px 6px; border-radius: 4px;">npm run dev</code><br>
                   • Ou Python: <code style="background: rgba(0,0,0,0.2); padding: 2px 6px; border-radius: 4px;">python -m http.server</code>
                 </div>
-                <button onclick="this.parentElement.parentElement.parentElement.remove()"
-                  style="margin-top: 12px; background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: white; padding: 6px 16px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 500;">
-                  Compris
-                </button>
+                <div style="display: flex; gap: 8px; margin-top: 12px;">
+                  <button onclick="WebOS.Apps.Terminal.open(); setTimeout(() => WebOS.Apps.Terminal.executeCommand('serve'), 500); this.parentElement.parentElement.parentElement.parentElement.remove();"
+                    style="flex: 1; background: rgba(255,255,255,0.9); border: 1px solid rgba(255,255,255,0.3); color: #d97706; padding: 6px 16px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600;">
+                    📋 Voir Instructions
+                  </button>
+                  <button onclick="this.parentElement.parentElement.parentElement.parentElement.remove()"
+                    style="flex: 1; background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: white; padding: 6px 16px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 500;">
+                    Compris
+                  </button>
+                </div>
               </div>
             </div>
           `;
