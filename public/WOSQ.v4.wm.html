@@ -11210,7 +11210,7 @@ Tu dois TOUJOURS expliquer pourquoi tu veux effectuer une action avant de la dem
 
     // Register Service Worker (inline)
     if ('serviceWorker' in navigator) {
-      const swCode = \`
+      const swCode = `
 const CACHE_NAME = 'webos-quebec-v1.0.0';
 const RUNTIME_CACHE = 'webos-runtime';
 
@@ -11376,7 +11376,7 @@ self.addEventListener('message', (event) => {
     return;
   }
 });
-\`;
+`;
 
       const blob = new Blob([swCode], { type: 'application/javascript' });
       const swUrl = URL.createObjectURL(blob);
