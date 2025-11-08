@@ -97,6 +97,11 @@
     })();
 
     (function applySecurityHeaders() {
+      if (window !== window.top) {
+        console.warn('[Security] Preview mode detected, CSP/COOP/COEP disabled to allow iframe embedding');
+        return;
+      }
+
       if (!window.__WEBOS_SECURITY__.offlineStrict) return;
 
       const coop = document.createElement("meta");
