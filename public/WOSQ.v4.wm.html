@@ -5079,7 +5079,7 @@
                   <textarea id="htmlEditorTextarea" placeholder="Paste your complete HTML code here..." style="flex: 1; width: 100%; background: #1e293b; color: #e2e8f0; font-family: 'Consolas', 'Monaco', 'Courier New', monospace; font-size: 13px; padding: 16px; border: none; resize: none; outline: none; border-radius: 0 0 8px 8px;" spellcheck="false"></textarea>
                 </div>
 
-                <div id="previewSection" style="display: none; flex: 1; flex-direction: column; min-width: 0; background: #f8fafc; border-radius: 8px; overflow: hidden;">
+                <div id="previewSection" style="display: ${autoPreview ? 'flex' : 'none'}; flex: 1; flex-direction: column; min-width: 0; background: #f8fafc; border-radius: 8px; overflow: hidden;">
                   <div style="padding: 8px 12px; background: #1e40af; color: white; display: flex; justify-content: space-between; align-items: center;">
                     <span style="font-size: 13px; font-weight: 600;" id="deviceLabel">Live Preview — Desktop</span>
                     <div style="display: flex; gap: 8px; align-items: center;">
@@ -5096,7 +5096,7 @@
                   </div>
                 </div>
 
-                <div id="consoleSection" style="display: none; flex: 1; flex-direction: column; min-width: 0; background: #0f172a; border-radius: 8px; overflow: hidden;">
+                <div id="consoleSection" style="display: ${autoPreview ? 'flex' : 'none'}; flex: 1; flex-direction: column; min-width: 0; background: #0f172a; border-radius: 8px; overflow: hidden;">
                   <div style="padding: 8px 12px; background: #1e293b; color: white; display: flex; justify-content: space-between; align-items: center;">
                     <span style="font-size: 13px; font-weight: 600;">Console</span>
                     <button onclick="WebOS.Apps.HTMLEditor.clearConsole()" style="padding: 4px 12px; background: rgba(255,255,255,0.1); border: none; color: white; border-radius: 4px; cursor: pointer; font-size: 11px;">Clear</button>
