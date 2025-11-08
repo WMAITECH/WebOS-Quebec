@@ -150,6 +150,7 @@
       width: 100vw;
       height: 100vh;
       background: linear-gradient(to right, #1e3a8a, #3b82f6, #60a5fa);
+      background-attachment: fixed;
     }
 
     .window {
@@ -197,6 +198,12 @@
       transform: scale(1.2);
     }
 
+    @media (hover: hover) {
+      .window-control:hover {
+        transform: scale(1.3);
+      }
+    }
+
     .window-control.close { background: #ef4444; }
     .window-control.minimize { background: #f59e0b; }
     .window-control.maximize { background: #10b981; }
@@ -210,8 +217,8 @@
 
     .resize-handle {
       position: absolute;
-      width: 10px;
-      height: 10px;
+      width: 12px;
+      height: 12px;
       background: #3b82f6;
       opacity: 0;
       transition: opacity 0.2s;
@@ -242,8 +249,8 @@
     }
 
     .dock-item {
-      width: 56px;
-      height: 56px;
+      width: 48px;
+      height: 48px;
       background: white;
       border-radius: 12px;
       display: flex;
@@ -266,7 +273,7 @@
       right: 0;
       height: 40px;
       flex-wrap: wrap;
-      background: rgba(30, 64, 175, 0.98);
+      background: rgba(30, 64, 175, 0.95);
       display: flex;
       align-items: center;
       color: white;
@@ -323,6 +330,7 @@
       padding: 16px;
       z-index: 10000;
       color: #1e40af;
+      max-width: 90vw;
       min-width: 280px;
     }
 
@@ -365,7 +373,7 @@
     }
 
     .calendar-grid-day {
-      font-size: 12px;
+      font-size: 14px;
       text-align: center;
       padding: 6px;
       border-radius: 6px;
@@ -403,8 +411,8 @@
     }
 
     .loading-spinner {
-      width: 60px;
-      height: 60px;
+      width: 70px;
+      height: 70px;
       border: 4px solid rgba(255, 255, 255, 0.3);
       border-top-color: white;
       border-radius: 50%;
@@ -682,7 +690,7 @@
   </style>
 </head>
 <body>
-  <header style="position: absolute; top: -9999px; left: -9999px;"><h1>Bienvenue sur WebOS Québec</h1></header>
+  <header aria-hidden="true" style="position: absolute; top: -9999px; left: -9999px;"><h1>Bienvenue sur WebOS Québec</h1></header>
   <!-- Loading Screen -->
   <div id="loadingScreen" class="loading-screen">
     <div class="loading-spinner"></div>
@@ -742,12 +750,12 @@
   </div>
 
   <!-- Desktop Area -->
-  <main id="desktop" style="position: absolute; top: 40px; left: 0; right: 0; bottom: 0; display: none;">
+  <main id="desktop" role="main" aria-label="Zone principale du bureau" style="position: absolute; top: 40px; left: 0; right: 0; bottom: 0; display: none;">
     <!-- Windows will be inserted here -->
   </main>
 
   <!-- Top Bar -->
-  <nav aria-label="Navigation principale">
+  <nav aria-label="Navigation principale" role="navigation">
   <div id="topbar" class="topbar" style="display: none;">
     <div class="topbar-container">
       <div class="topbar-left">
@@ -848,6 +856,8 @@
     // CONFIGURATION
     // ============================================
     const CONFIG = {
+      controller: 'CentralOrchestrator',
+      aiMode: 'autonomous-with-permission',
       supabase: {
         url: 'https://gwcpuwihjouusnohkmcy.supabase.co',
         anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd3Y3B1d2loam91dXNub2hrbWN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIxODU1MTAsImV4cCI6MjA3Nzc2MTUxMH0.E9cDmyAmHvcIVNbvzBV7MKlqpLchAME9i2JKwNcuPO4'
@@ -857,7 +867,34 @@
         temperature: 0.7,
         topP: 0.95,
         maxTokens: 2048,
-        contextWindow: 8192
+        contextWindow: 8192,
+        systemPrompt: `Tu es l'agent orchestrateur central de WebOS Québec.
+
+Tu peux interagir avec le système via des tool-calls. AVANT chaque action, tu DOIS demander la permission.
+
+Outils disponibles:
+- file_service: {action: 'list'|'read'|'write'|'delete', params: {path, content?}}
+- mail_service: {action: 'list'|'send'|'read', params: {to?, subject?, body?, id?}}
+- messages_service: {action: 'list'|'send'|'read', params: {conversationId?, content?, userId?}}
+- notification_service: {action: 'send'|'list'|'clear', params: {title?, message?, priority?}}
+- ui_control: {action: 'open_app'|'click_element', params: {appName?, selector?}}
+
+Format de tool-call:
+<TOOL_CALL>
+{
+  "tool": "nom_du_service",
+  "action": "action_a_effectuer",
+  "params": {},
+  "reason": "raison humaine de cette action"
+}
+</TOOL_CALL>
+
+Tu dois TOUJOURS expliquer pourquoi tu veux effectuer une action avant de la demander.`
+      },
+      mouseBehavior: {
+        enabled: true,
+        mode: 'ai-controlled',
+        requirePermission: true
       }
     };
 
@@ -1503,6 +1540,225 @@
 
     console.log('[WOSQ v4] WorkerDefinitions chargées:', Object.keys(WorkerDefinitions));
 
+    // ============================================
+    // PERMISSION SYSTEM - Validation des actions IA
+    // ============================================
+    const PermissionSystem = {
+      pendingRequests: new Map(),
+      grantedPermissions: new Set(),
+      deniedPermissions: new Set(),
+
+      async requestPermission(toolCall) {
+        const requestId = `perm_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+        return new Promise((resolve) => {
+          this.pendingRequests.set(requestId, { toolCall, resolve });
+          this.showPermissionDialog(requestId, toolCall);
+        });
+      },
+
+      showPermissionDialog(requestId, toolCall) {
+        const dialog = document.createElement('div');
+        dialog.id = `permission-dialog-${requestId}`;
+        dialog.style.cssText = `
+          position: fixed;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          background: white;
+          border-radius: 12px;
+          padding: 24px;
+          box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+          z-index: 100000;
+          min-width: 400px;
+          max-width: 500px;
+          font-family: system-ui, -apple-system, sans-serif;
+        `;
+
+        const actionText = this.formatToolCall(toolCall);
+
+        dialog.innerHTML = `
+          <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+            <div style="width: 48px; height: 48px; background: linear-gradient(135deg, #3b82f6, #1e40af); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 24px;">🤖</div>
+            <div>
+              <h3 style="margin: 0; font-size: 18px; font-weight: 600; color: #1f2937;">Demande de Permission IA</h3>
+              <p style="margin: 4px 0 0 0; font-size: 13px; color: #6b7280;">L'agent orchestrateur souhaite effectuer une action</p>
+            </div>
+          </div>
+
+          <div style="background: #f3f4f6; border-radius: 8px; padding: 16px; margin-bottom: 16px;">
+            <p style="margin: 0 0 8px 0; font-weight: 600; font-size: 14px; color: #374151;">Action demandée:</p>
+            <p style="margin: 0; font-size: 14px; color: #1f2937; line-height: 1.5;">${actionText}</p>
+          </div>
+
+          ${toolCall.reason ? `
+          <div style="background: #eff6ff; border-left: 3px solid #3b82f6; padding: 12px; margin-bottom: 16px; border-radius: 4px;">
+            <p style="margin: 0; font-size: 13px; color: #1e40af;"><strong>Raison:</strong> ${toolCall.reason}</p>
+          </div>
+          ` : ''}
+
+          <div style="display: flex; gap: 12px; justify-content: flex-end;">
+            <button id="deny-${requestId}" style="padding: 10px 20px; border: 1px solid #d1d5db; background: white; border-radius: 8px; cursor: pointer; font-weight: 500; color: #374151; font-size: 14px;">
+              Refuser
+            </button>
+            <button id="allow-${requestId}" style="padding: 10px 20px; border: none; background: linear-gradient(135deg, #3b82f6, #1e40af); color: white; border-radius: 8px; cursor: pointer; font-weight: 500; font-size: 14px;">
+              Autoriser
+            </button>
+          </div>
+        `;
+
+        const overlay = document.createElement('div');
+        overlay.id = `permission-overlay-${requestId}`;
+        overlay.style.cssText = `
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: rgba(0, 0, 0, 0.5);
+          z-index: 99999;
+          backdrop-filter: blur(4px);
+        `;
+
+        document.body.appendChild(overlay);
+        document.body.appendChild(dialog);
+
+        document.getElementById(`allow-${requestId}`).onclick = () => {
+          this.resolvePermission(requestId, true);
+          overlay.remove();
+          dialog.remove();
+        };
+
+        document.getElementById(`deny-${requestId}`).onclick = () => {
+          this.resolvePermission(requestId, false);
+          overlay.remove();
+          dialog.remove();
+        };
+      },
+
+      formatToolCall(toolCall) {
+        const { tool, action, params } = toolCall;
+
+        const actions = {
+          'file_service': {
+            'list': 'Lister les fichiers',
+            'read': `Lire le fichier: ${params.path || 'non spécifié'}`,
+            'write': `Écrire dans le fichier: ${params.path || 'non spécifié'}`,
+            'delete': `Supprimer le fichier: ${params.path || 'non spécifié'}`
+          },
+          'mail_service': {
+            'list': 'Lister les emails',
+            'send': `Envoyer un email à: ${params.to || 'destinataire non spécifié'}`,
+            'read': `Lire l'email: ${params.id || 'non spécifié'}`
+          },
+          'messages_service': {
+            'list': 'Lister les conversations',
+            'send': `Envoyer un message dans la conversation: ${params.conversationId || 'non spécifiée'}`,
+            'read': `Lire la conversation: ${params.conversationId || 'non spécifiée'}`
+          },
+          'notification_service': {
+            'send': `Envoyer une notification: "${params.title || 'Sans titre'}"`,
+            'list': 'Lister les notifications',
+            'clear': 'Effacer les notifications'
+          },
+          'ui_control': {
+            'open_app': `Ouvrir l'application: ${params.appName || 'non spécifiée'}`,
+            'click_element': `Cliquer sur l'élément: ${params.selector || 'non spécifié'}`
+          }
+        };
+
+        return actions[tool]?.[action] || `${tool}.${action}`;
+      },
+
+      resolvePermission(requestId, granted) {
+        const request = this.pendingRequests.get(requestId);
+        if (request) {
+          if (granted) {
+            this.grantedPermissions.add(JSON.stringify(request.toolCall));
+          } else {
+            this.deniedPermissions.add(JSON.stringify(request.toolCall));
+          }
+          request.resolve(granted);
+          this.pendingRequests.delete(requestId);
+        }
+      }
+    };
+
+    // ============================================
+    // AI MOUSE CONTROLLER - Contrôle UI par l'IA
+    // ============================================
+    const AIMouseController = {
+      async clickElement(selector) {
+        console.log('[AIMouseController] Attempting to click:', selector);
+        const element = document.querySelector(selector);
+        if (element) {
+          element.click();
+          return { success: true, clicked: selector };
+        }
+        return { success: false, error: 'Element not found' };
+      },
+
+      async openApp(appName) {
+        console.log('[AIMouseController] Attempting to open app:', appName);
+        const appButton = document.querySelector(`[data-app="${appName}"]`);
+        if (appButton) {
+          appButton.click();
+          return { success: true, opened: appName };
+        }
+        return { success: false, error: 'App not found' };
+      },
+
+      async highlightElement(selector, duration = 2000) {
+        const element = document.querySelector(selector);
+        if (element) {
+          const originalOutline = element.style.outline;
+          element.style.outline = '3px solid #3b82f6';
+          element.style.outlineOffset = '2px';
+          setTimeout(() => {
+            element.style.outline = originalOutline;
+          }, duration);
+          return { success: true };
+        }
+        return { success: false, error: 'Element not found' };
+      }
+    };
+
+    // ============================================
+    // CUSTOM MOUSE INITIALIZATION
+    // ============================================
+    function initializeCustomMouse() {
+      if (!CONFIG.mouseBehavior.enabled) return;
+
+      console.log('[CustomMouse] AI-controlled mouse behavior initialized');
+      console.log('[CustomMouse] Mode:', CONFIG.mouseBehavior.mode);
+      console.log('[CustomMouse] Permission required:', CONFIG.mouseBehavior.requirePermission);
+
+      document.addEventListener('ai-mouse-command', async (event) => {
+        const { action, params } = event.detail;
+        console.log('[CustomMouse] Received AI command:', action, params);
+
+        if (CONFIG.mouseBehavior.requirePermission) {
+          const granted = await PermissionSystem.requestPermission({
+            tool: 'ui_control',
+            action: action,
+            params: params,
+            reason: 'L\'IA souhaite interagir avec l\'interface utilisateur'
+          });
+
+          if (!granted) {
+            console.log('[CustomMouse] Permission denied');
+            return;
+          }
+        }
+
+        if (action === 'click_element') {
+          await AIMouseController.clickElement(params.selector);
+        } else if (action === 'open_app') {
+          await AIMouseController.openApp(params.appName);
+        }
+      });
+    }
+
     setInterval(() => {
       const b = document.getElementById("sovereignBadge");
       if (!b) return;
@@ -1623,19 +1879,166 @@
           }
         }
       },
-      async chat(prompt) {
-        if (this.state.localReady && this.engine) {
+      conversationHistory: [],
+
+      async parseToolCall(content) {
+        const toolCallRegex = /<TOOL_CALL>\s*(\{[\s\S]*?\})\s*<\/TOOL_CALL>/;
+        const match = content.match(toolCallRegex);
+
+        if (match) {
           try {
-            return await this.engine.chat.completions.create({
-              messages: [{ role: "user", content: prompt }]
-            });
+            const toolCall = JSON.parse(match[1]);
+            return {
+              isToolCall: true,
+              toolCall: toolCall,
+              textBefore: content.substring(0, match.index).trim(),
+              textAfter: content.substring(match.index + match[0].length).trim()
+            };
           } catch (err) {
-            console.warn('⚠ Erreur lors de la génération IA:', err.message);
-            return this.fallbackResponse();
+            console.error('[AIBus] Failed to parse tool call:', err);
+            return { isToolCall: false };
           }
         }
-        return this.fallbackResponse();
+
+        return { isToolCall: false };
       },
+
+      async executeToolCall(toolCall) {
+        console.log('[AIBus] Executing tool call:', toolCall);
+
+        if (CONFIG.mouseBehavior.requirePermission) {
+          const granted = await PermissionSystem.requestPermission(toolCall);
+          if (!granted) {
+            return {
+              success: false,
+              error: 'Permission denied by user',
+              denied: true
+            };
+          }
+        }
+
+        try {
+          if (toolCall.tool === 'ui_control') {
+            return await AIMouseController[toolCall.action === 'open_app' ? 'openApp' : 'clickElement'](
+              toolCall.params.appName || toolCall.params.selector
+            );
+          }
+
+          let pid = Kernel.findProcess(toolCall.tool);
+          if (!pid) {
+            console.log('[AIBus] Creating worker for:', toolCall.tool);
+            pid = Kernel.createProcess(toolCall.tool);
+            await new Promise(resolve => setTimeout(resolve, 100));
+          }
+
+          const result = await Kernel.sendRequest(pid, toolCall.action, toolCall.params);
+          return result;
+        } catch (err) {
+          console.error('[AIBus] Tool call execution failed:', err);
+          return {
+            success: false,
+            error: err.message
+          };
+        }
+      },
+
+      async chat(prompt, options = {}) {
+        if (!this.state.localReady || !this.engine) {
+          return this.fallbackResponse();
+        }
+
+        try {
+          const messages = [
+            { role: "system", content: CONFIG.webllm.systemPrompt }
+          ];
+
+          if (options.includeHistory && this.conversationHistory.length > 0) {
+            messages.push(...this.conversationHistory.slice(-6));
+          }
+
+          messages.push({ role: "user", content: prompt });
+
+          console.log('[AIBus] Sending prompt to AI...');
+          const response = await this.engine.chat.completions.create({
+            messages: messages,
+            temperature: CONFIG.webllm.temperature,
+            top_p: CONFIG.webllm.topP,
+            max_tokens: CONFIG.webllm.maxTokens
+          });
+
+          const content = response.choices[0].message.content;
+          console.log('[AIBus] AI response:', content);
+
+          this.conversationHistory.push({ role: "user", content: prompt });
+          this.conversationHistory.push({ role: "assistant", content: content });
+
+          if (this.conversationHistory.length > 12) {
+            this.conversationHistory = this.conversationHistory.slice(-12);
+          }
+
+          const parsed = await this.parseToolCall(content);
+
+          if (parsed.isToolCall) {
+            console.log('[AIBus] Tool call detected');
+
+            const toolResult = await this.executeToolCall(parsed.toolCall);
+
+            if (toolResult.denied) {
+              return {
+                choices: [{
+                  message: {
+                    role: "assistant",
+                    content: parsed.textBefore + "\n\n⚠️ Action refusée par l'utilisateur."
+                  }
+                }],
+                toolCall: parsed.toolCall,
+                toolResult: toolResult
+              };
+            }
+
+            const followUpMessages = [
+              { role: "system", content: CONFIG.webllm.systemPrompt },
+              { role: "user", content: prompt },
+              { role: "assistant", content: content },
+              { role: "user", content: `Résultat de l'outil: ${JSON.stringify(toolResult)}` }
+            ];
+
+            const followUpResponse = await this.engine.chat.completions.create({
+              messages: followUpMessages,
+              temperature: CONFIG.webllm.temperature,
+              top_p: CONFIG.webllm.topP,
+              max_tokens: CONFIG.webllm.maxTokens
+            });
+
+            const finalContent = followUpResponse.choices[0].message.content;
+
+            this.conversationHistory.push({ role: "user", content: `Tool result: ${JSON.stringify(toolResult)}` });
+            this.conversationHistory.push({ role: "assistant", content: finalContent });
+
+            return {
+              choices: [{
+                message: {
+                  role: "assistant",
+                  content: finalContent
+                }
+              }],
+              toolCall: parsed.toolCall,
+              toolResult: toolResult
+            };
+          }
+
+          return response;
+        } catch (err) {
+          console.error('⚠ Erreur lors de la génération IA:', err);
+          return this.fallbackResponse();
+        }
+      },
+
+      clearHistory() {
+        this.conversationHistory = [];
+        console.log('[AIBus] Conversation history cleared');
+      },
+
       fallbackResponse() {
         return {
           choices: [{
@@ -1651,6 +2054,7 @@
     };
 
     AIBus.init();
+    initializeCustomMouse();
 
     // ============================================
     // ADVANCED FILE MANAGER
@@ -10508,6 +10912,23 @@
     }
   </script>
   <!-- <script src="/file-manager-advanced.js"></script> -->
-  <footer style="position: absolute; bottom: 0; left: 0; right: 0; text-align: center; padding: 10px; font-size: 12px; color: rgba(255,255,255,0.6); z-index: 1;"><p>&copy; 2023 WebOS Québec. Tous droits réservés.</p></footer>
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "WebOS Québec",
+    "description": "Système d'exploitation gouvernemental souverain dédié à l'architecture cellulaire avancée.",
+    "applicationCategory": "OperatingSystem",
+    "operatingSystem": "Web",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "CAD"
+    }
+  }
+  </script>
+
+  <footer role="contentinfo" style="position: absolute; bottom: 0; left: 0; right: 0; text-align: center; padding: 10px; font-size: 12px; color: rgba(255,255,255,0.6); z-index: 1;"><p>&copy; 2023 WebOS Québec. Tous droits réservés.</p></footer>
 </body>
 </html>
