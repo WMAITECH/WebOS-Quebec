@@ -2255,7 +2255,7 @@
     // ============================================
     // CONSOLE LOG INTERCEPTOR & LOGGER
     // ============================================
-    const Logger = (() => {
+    const ConsoleInterceptor = (() => {
       const logs = [];
       const MAX_LOGS = 1000;
 
@@ -4735,7 +4735,7 @@
         },
 
         open() {
-          const logs = Logger.getLogs().slice(0, 200);
+          const logs = ConsoleInterceptor.getLogs().slice(0, 200);
           const perf = PerformanceMonitor.getReport();
           const processes = WebOS.Kernel.getProcesses();
 
@@ -4786,7 +4786,7 @@
               <div style="display: flex; gap: 12px; margin-top: 24px;">
                 <button onclick="WebOS.Apps.TaskManager.open();" style="flex: 1; padding: 12px; background:#3b82f6; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 14px;">Task Manager</button>
                 <button onclick="PerformanceMonitor.clear(); alert('Métriques purgées');" style="flex: 1; padding: 12px; background:#ef4444; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 14px;">Purger métriques</button>
-                <button onclick="Logger.clearLogs(); alert('Logs purgés');" style="flex: 1; padding: 12px; background:#f59e0b; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 14px;">Purger logs</button>
+                <button onclick="ConsoleInterceptor.clearLogs(); alert('Logs purgés');" style="flex: 1; padding: 12px; background:#f59e0b; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 14px;">Purger logs</button>
                 <button onclick="location.reload();" style="flex: 1; padding: 12px; background:#10b981; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 14px;">Redémarrer</button>
               </div>
             </div>
@@ -6731,7 +6731,7 @@
           const logsListEl = document.getElementById('logsList');
           if (!logsListEl) return;
 
-          const logs = Logger.getLogs();
+          const logs = ConsoleInterceptor.getLogs();
           const filteredLogs = this.currentLogFilter === 'all'
             ? logs
             : logs.filter(log => log.level === this.currentLogFilter);
@@ -6793,7 +6793,7 @@
         },
 
         clearLogs() {
-          Logger.clearLogs();
+          ConsoleInterceptor.clearLogs();
           this.updateLogs();
         },
 
