@@ -528,6 +528,14 @@
       color: #1f2937;
     }
 
+    .chat-message.system {
+      background: #eff6ff;
+      color: #1e40af;
+      border-left: 3px solid #3b82f6;
+      font-size: 13px;
+      max-width: 100%;
+    }
+
     .terminal {
       background: #1f2937;
       color: #10b981;
@@ -5371,28 +5379,33 @@ Tu dois TOUJOURS expliquer pourquoi tu veux effectuer une action avant de la dem
           input.value = '';
 
           this.addMessage('user', userMessage);
-          this.currentMessages.push({ role: 'user', content: userMessage });
 
           this.addMessage('assistant', '...');
 
           try {
-            await AI.chat(this.currentMessages, (response) => {
-              this.updateLastMessage(response);
-            });
+            const response = await AIBus.chat(userMessage, { includeHistory: true });
+            const aiMessage = response.choices[0].message.content;
 
-            const lastResponse = document.getElementById('chatMessages').lastElementChild.textContent;
-            this.currentMessages.push({ role: 'assistant', content: lastResponse });
+            this.updateLastMessage(aiMessage);
 
-            if (this.ttsEnabled) {
-              this.speak(lastResponse);
+            if (response.toolCall) {
+              const toolInfo = `🔧 Action effectuée: ${response.toolCall.tool}.${response.toolCall.action}`;
+              this.addMessage('system', toolInfo);
+
+              if (response.toolResult) {
+                console.log('[AIChat] Tool result:', response.toolResult);
+              }
             }
 
-            // Save to Supabase
+            if (this.ttsEnabled) {
+              this.speak(aiMessage);
+            }
+
             if (currentUser) {
               await supabaseClient.from('ai_conversations').upsert({
                 user_id: currentUser.id,
                 model_name: CONFIG.webllm.model,
-                messages: this.currentMessages,
+                messages: AIBus.conversationHistory,
                 updated_at: new Date().toISOString()
               });
             }
