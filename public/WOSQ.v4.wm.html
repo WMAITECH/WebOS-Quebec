@@ -845,102 +845,6 @@
   <!-- Main Application Code -->
   <script type="module">
     // ============================================
-    // SECURITY: HTML SANITIZER
-    // ============================================
-    const SecurityModule = {
-      sanitizeHTML(dirty) {
-        const tagWhitelist = ['b', 'i', 'em', 'strong', 'u', 'p', 'br', 'span', 'div', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'ul', 'ol', 'li', 'a', 'code', 'pre', 'blockquote', 'hr', 'table', 'thead', 'tbody', 'tr', 'th', 'td'];
-        const attrWhitelist = ['href', 'title', 'class', 'style', 'id', 'data-id', 'data-type'];
-
-        const temp = document.createElement('div');
-        temp.innerHTML = dirty;
-
-        const walk = (node) => {
-          if (node.nodeType === Node.TEXT_NODE) return node.cloneNode();
-          if (node.nodeType !== Node.ELEMENT_NODE) return null;
-
-          const tagName = node.tagName.toLowerCase();
-          if (!tagWhitelist.includes(tagName)) return document.createTextNode(node.textContent);
-
-          const clean = document.createElement(tagName);
-
-          for (const attr of node.attributes) {
-            if (attrWhitelist.includes(attr.name.toLowerCase())) {
-              if (attr.name === 'href' && attr.value) {
-                const href = attr.value.trim().toLowerCase();
-                if (href.startsWith('javascript:') || href.startsWith('data:') || href.startsWith('vbscript:')) continue;
-              }
-              if (attr.name === 'style' && attr.value) {
-                const style = attr.value.replace(/expression\s*\(/gi, '').replace(/javascript:/gi, '');
-                clean.setAttribute(attr.name, style);
-              } else {
-                clean.setAttribute(attr.name, attr.value);
-              }
-            }
-          }
-
-          for (const child of node.childNodes) {
-            const cleanChild = walk(child);
-            if (cleanChild) clean.appendChild(cleanChild);
-          }
-
-          return clean;
-        };
-
-        const fragment = document.createDocumentFragment();
-        for (const child of temp.childNodes) {
-          const cleanChild = walk(child);
-          if (cleanChild) fragment.appendChild(cleanChild);
-        }
-
-        const result = document.createElement('div');
-        result.appendChild(fragment);
-        return result.innerHTML;
-      },
-
-      escapeHTML(text) {
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
-      }
-    };
-
-    // ============================================
-    // LOGGER SYSTEM
-    // ============================================
-    const Logger = {
-      levels: { DEBUG: 0, INFO: 1, WARN: 2, ERROR: 3 },
-      currentLevel: window.__WEBOS_SECURITY__.enableDebugLogging ? 0 : 2,
-
-      debug(context, ...args) {
-        if (this.currentLevel <= this.levels.DEBUG) {
-          console.log(`[${context}]`, ...args);
-        }
-      },
-
-      info(context, ...args) {
-        if (this.currentLevel <= this.levels.INFO) {
-          console.info(`[${context}]`, ...args);
-        }
-      },
-
-      warn(context, ...args) {
-        if (this.currentLevel <= this.levels.WARN) {
-          console.warn(`[${context}]`, ...args);
-        }
-      },
-
-      error(context, error, ...args) {
-        if (this.currentLevel <= this.levels.ERROR) {
-          console.error(`[${context}] ERROR:`, error?.message || error, ...args);
-          if (error?.stack && this.currentLevel === this.levels.DEBUG) {
-            console.error('Stack trace:', error.stack);
-          }
-        }
-      }
-    };
-
-    // ============================================
     // CONFIGURATION
     // ============================================
     const CONFIG = {
@@ -2255,7 +2159,7 @@
     // ============================================
     // CONSOLE LOG INTERCEPTOR & LOGGER
     // ============================================
-    const ConsoleInterceptor = (() => {
+    const Logger = (() => {
       const logs = [];
       const MAX_LOGS = 1000;
 
@@ -3034,7 +2938,7 @@
             </div>
           </div>
           <div class="window-content" id="window-content-${id}" data-sandbox="true">
-            ${SecurityModule.sanitizeHTML(content)}
+            ${content}
           </div>
           <div class="resize-handle se" data-direction="se"></div>
         `;
@@ -3314,7 +3218,7 @@
           const w = windows.get(id);
           if (!w) return;
           const c = w.element.querySelector('.window-content');
-          c.innerHTML = SecurityModule.sanitizeHTML(html);
+          c.innerHTML = sanitizeHTML(html);
         },
 
         closeAll() {
@@ -3325,6 +3229,10 @@
           Kernel.emit('window:closed:all', {});
         }
       };
+
+      function sanitizeHTML(html) {
+        return html.replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, "");
+      }
 
       window.addEventListener('keydown', (e) => {
         if (e.key === 'Escape' && e.ctrlKey) {
@@ -4178,9 +4086,7 @@
 
             return csvRows.join('\n');
           }
-        } catch (error) {
-          Logger.warn('FileManager', 'Failed to convert JSON to CSV', error);
-        }
+        } catch (e) {}
 
         return data;
       }
@@ -4356,15 +4262,15 @@
 
         container.innerHTML = cachedNotifications.map(notif => `
           <div style="padding: 12px; background: ${notif.is_read ? '#ffffff' : '#eff6ff'}; border-radius: 8px; border-left: 4px solid ${colors[notif.type] || '#3b82f6'}; cursor: pointer; transition: background 0.2s;"
-               onclick="WebOS.Notifications.markAsRead('${SecurityModule.escapeHTML(notif.id)}')"
+               onclick="WebOS.Notifications.markAsRead('${notif.id}')"
                onmouseover="this.style.background='#f9fafb'"
                onmouseout="this.style.background='${notif.is_read ? '#ffffff' : '#eff6ff'}'">
             <div style="display: flex; justify-content: space-between; align-items: start;">
-              <p style="font-weight: ${notif.is_read ? '400' : '600'}; color: #1f2937; margin: 0;">${SecurityModule.escapeHTML(notif.title)}</p>
+              <p style="font-weight: ${notif.is_read ? '400' : '600'}; color: #1f2937; margin: 0;">${notif.title}</p>
               ${!notif.is_read ? '<span style="width: 8px; height: 8px; background: #3b82f6; border-radius: 50%; display: inline-block;"></span>' : ''}
             </div>
-            <p style="font-size: 14px; color: #6b7280; margin: 4px 0 0 0;">${SecurityModule.escapeHTML(notif.message)}</p>
-            <p style="font-size: 12px; color: #9ca3af; margin: 4px 0 0 0;">${SecurityModule.escapeHTML(formatTimeAgo(notif.created_at))}</p>
+            <p style="font-size: 14px; color: #6b7280; margin: 4px 0 0 0;">${notif.message}</p>
+            <p style="font-size: 12px; color: #9ca3af; margin: 4px 0 0 0;">${formatTimeAgo(notif.created_at)}</p>
           </div>
         `).join('');
       }
@@ -4721,12 +4627,12 @@
             }
 
             const stats = await WebOS.Kernel.sendRequest(dbProcess.pid, 'stats');
-            if (status) status.innerHTML = `<strong style="color: #10b981;">Migration terminée avec succès!</strong><br>Collections: ${SecurityModule.escapeHTML(JSON.stringify(stats.collections, null, 2))}`;
+            if (status) status.innerHTML = `<strong style="color: #10b981;">Migration terminée avec succès!</strong><br>Collections: ${JSON.stringify(stats.collections, null, 2)}`;
 
             alert('Migration terminée avec succès!\n\nLes données sont maintenant disponibles localement.');
           } catch (error) {
             console.error('[Admin] Erreur migration:', error);
-            if (status) status.innerHTML = `<strong style="color: #ef4444;">Erreur: ${SecurityModule.escapeHTML(error.message)}</strong>`;
+            if (status) status.innerHTML = `<strong style="color: #ef4444;">Erreur: ${error.message}</strong>`;
             alert('Erreur lors de la migration: ' + error.message);
           } finally {
             this.migrationInProgress = false;
@@ -4735,7 +4641,7 @@
         },
 
         open() {
-          const logs = ConsoleInterceptor.getLogs().slice(0, 200);
+          const logs = Logger.getLogs().slice(0, 200);
           const perf = PerformanceMonitor.getReport();
           const processes = WebOS.Kernel.getProcesses();
 
@@ -4786,7 +4692,7 @@
               <div style="display: flex; gap: 12px; margin-top: 24px;">
                 <button onclick="WebOS.Apps.TaskManager.open();" style="flex: 1; padding: 12px; background:#3b82f6; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 14px;">Task Manager</button>
                 <button onclick="PerformanceMonitor.clear(); alert('Métriques purgées');" style="flex: 1; padding: 12px; background:#ef4444; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 14px;">Purger métriques</button>
-                <button onclick="ConsoleInterceptor.clearLogs(); alert('Logs purgés');" style="flex: 1; padding: 12px; background:#f59e0b; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 14px;">Purger logs</button>
+                <button onclick="Logger.clearLogs(); alert('Logs purgés');" style="flex: 1; padding: 12px; background:#f59e0b; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 14px;">Purger logs</button>
                 <button onclick="location.reload();" style="flex: 1; padding: 12px; background:#10b981; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 14px;">Redémarrer</button>
               </div>
             </div>
@@ -6731,7 +6637,7 @@
           const logsListEl = document.getElementById('logsList');
           if (!logsListEl) return;
 
-          const logs = ConsoleInterceptor.getLogs();
+          const logs = Logger.getLogs();
           const filteredLogs = this.currentLogFilter === 'all'
             ? logs
             : logs.filter(log => log.level === this.currentLogFilter);
@@ -6793,7 +6699,7 @@
         },
 
         clearLogs() {
-          ConsoleInterceptor.clearLogs();
+          Logger.clearLogs();
           this.updateLogs();
         },
 
@@ -7193,7 +7099,7 @@
             const data = await response.json();
 
             if (data.error) {
-              if (container) container.innerHTML = `<div class="osint-empty"><p>Erreur: ${SecurityModule.escapeHTML(data.error)}</p></div>`;
+              if (container) container.innerHTML = `<div class="osint-empty"><p>Erreur: ${data.error}</p></div>`;
               return;
             }
 
@@ -7224,7 +7130,7 @@
 
           } catch (error) {
             console.error('OSINT search error:', error);
-            if (container) container.innerHTML = `<div class="osint-empty"><p>Erreur: ${SecurityModule.escapeHTML(error.message)}</p></div>`;
+            if (container) container.innerHTML = `<div class="osint-empty"><p>Erreur: ${error.message}</p></div>`;
           } finally {
             if (btn) btn.disabled = false;
             if (btn) btn.textContent = 'Rechercher';
@@ -10588,40 +10494,16 @@
       toggleCalendar
     };
 
-    // ============================================
-    // GLOBAL ERROR HANDLERS
-    // ============================================
-    window.addEventListener('error', (event) => {
-      Logger.error('Global', event.error || event.message, {
-        filename: event.filename,
-        lineno: event.lineno,
-        colno: event.colno
-      });
-      if (window.__WEBOS_SECURITY__.enableDebugLogging) {
-        alert(`Erreur détectée: ${event.message}\nVoir la console pour plus de détails.`);
-      }
-    });
-
-    window.addEventListener('unhandledrejection', (event) => {
-      Logger.error('UnhandledPromise', event.reason);
-      if (window.__WEBOS_SECURITY__.enableDebugLogging) {
-        alert(`Promise non gérée: ${event.reason}\nVoir la console pour plus de détails.`);
-      }
-    });
-
     console.log('WebOS Québec v1.0 - Système de logs activé');
     console.info('Tous les logs de la console (F12) apparaissent maintenant dans le Moniteur Système');
 
     // Start the system
-    initialize().catch(error => {
-      Logger.error('Initialize', error);
-      alert('Erreur critique lors du démarrage du système. Voir la console.');
-    });
+    initialize().catch(console.error);
 
     // Register Service Worker
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw.js').catch(err => {
-        Logger.warn('ServiceWorker', 'Registration failed (normal in dev mode)', err);
+        console.warn('[ServiceWorker] Registration failed - this is expected in development mode and does not affect functionality:', err.message);
       });
     }
   </script>
