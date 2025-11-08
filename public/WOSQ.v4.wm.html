@@ -150,7 +150,6 @@
       width: 100vw;
       height: 100vh;
       background: linear-gradient(to right, #1e3a8a, #3b82f6, #60a5fa);
-      background-attachment: fixed;
     }
 
     .window {
@@ -198,12 +197,6 @@
       transform: scale(1.2);
     }
 
-    @media (hover: hover) {
-      .window-control:hover {
-        transform: scale(1.3);
-      }
-    }
-
     .window-control.close { background: #ef4444; }
     .window-control.minimize { background: #f59e0b; }
     .window-control.maximize { background: #10b981; }
@@ -217,8 +210,8 @@
 
     .resize-handle {
       position: absolute;
-      width: 12px;
-      height: 12px;
+      width: 10px;
+      height: 10px;
       background: #3b82f6;
       opacity: 0;
       transition: opacity 0.2s;
@@ -249,8 +242,8 @@
     }
 
     .dock-item {
-      width: 48px;
-      height: 48px;
+      width: 56px;
+      height: 56px;
       background: white;
       border-radius: 12px;
       display: flex;
@@ -273,7 +266,7 @@
       right: 0;
       height: 40px;
       flex-wrap: wrap;
-      background: rgba(30, 64, 175, 0.95);
+      background: rgba(30, 64, 175, 0.98);
       display: flex;
       align-items: center;
       color: white;
@@ -330,7 +323,6 @@
       padding: 16px;
       z-index: 10000;
       color: #1e40af;
-      max-width: 90vw;
       min-width: 280px;
     }
 
@@ -373,7 +365,7 @@
     }
 
     .calendar-grid-day {
-      font-size: 14px;
+      font-size: 12px;
       text-align: center;
       padding: 6px;
       border-radius: 6px;
@@ -411,8 +403,8 @@
     }
 
     .loading-spinner {
-      width: 70px;
-      height: 70px;
+      width: 60px;
+      height: 60px;
       border: 4px solid rgba(255, 255, 255, 0.3);
       border-top-color: white;
       border-radius: 50%;
@@ -526,14 +518,6 @@
     .chat-message.assistant {
       background: #f3f4f6;
       color: #1f2937;
-    }
-
-    .chat-message.system {
-      background: #eff6ff;
-      color: #1e40af;
-      border-left: 3px solid #3b82f6;
-      font-size: 13px;
-      max-width: 100%;
     }
 
     .terminal {
@@ -698,7 +682,7 @@
   </style>
 </head>
 <body>
-  <header aria-hidden="true" style="position: absolute; top: -9999px; left: -9999px;"><h1>Bienvenue sur WebOS Québec</h1></header>
+  <header style="position: absolute; top: -9999px; left: -9999px;"><h1>Bienvenue sur WebOS Québec</h1></header>
   <!-- Loading Screen -->
   <div id="loadingScreen" class="loading-screen">
     <div class="loading-spinner"></div>
@@ -758,12 +742,12 @@
   </div>
 
   <!-- Desktop Area -->
-  <main id="desktop" role="main" aria-label="Zone principale du bureau" style="position: absolute; top: 40px; left: 0; right: 0; bottom: 0; display: none;">
+  <main id="desktop" style="position: absolute; top: 40px; left: 0; right: 0; bottom: 0; display: none;">
     <!-- Windows will be inserted here -->
   </main>
 
   <!-- Top Bar -->
-  <nav aria-label="Navigation principale" role="navigation">
+  <nav aria-label="Navigation principale">
   <div id="topbar" class="topbar" style="display: none;">
     <div class="topbar-container">
       <div class="topbar-left">
@@ -864,8 +848,6 @@
     // CONFIGURATION
     // ============================================
     const CONFIG = {
-      controller: 'CentralOrchestrator',
-      aiMode: 'autonomous-with-permission',
       supabase: {
         url: 'https://gwcpuwihjouusnohkmcy.supabase.co',
         anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd3Y3B1d2loam91dXNub2hrbWN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIxODU1MTAsImV4cCI6MjA3Nzc2MTUxMH0.E9cDmyAmHvcIVNbvzBV7MKlqpLchAME9i2JKwNcuPO4'
@@ -875,149 +857,7 @@
         temperature: 0.7,
         topP: 0.95,
         maxTokens: 2048,
-        contextWindow: 8192,
-        systemPrompt: `Tu es l'Agent Orchestrateur Central de WebOS Québec (WOSQ v4).
-
-# ARCHITECTURE SYSTÈME COMPLÈTE
-
-## KERNEL - Cœur du Système
-- Architecture cellulaire multi-processus
-- Processus: database-module, sync-provider, ui-orchestrator
-- Événements: process:created, process:terminated, db:updated, peer:discovered
-- Commandes: Kernel.createProcess(), Kernel.sendRequest(), Kernel.emit()
-
-## FILESYSTEM (OPFS - Origin Private File System)
-- Système de fichiers natif navigateur
-- Persistance locale garantie
-- Opérations: FileSystem.readFile(path), FileSystem.writeFile(path, content), FileSystem.listDir(path)
-- Structure: /home/user/, /system/, /tmp/
-
-## APPLICATIONS DISPONIBLES
-1. **Messages** - Apps.Messages.open()
-   - Conversations temps réel via Supabase
-   - WebRTC peer-to-peer
-   - Participants multiples
-
-2. **Mail** - Apps.Mail.open()
-   - Client email complet
-   - Envoi/réception via Supabase edge functions
-   - Pièces jointes (Storage buckets)
-
-3. **OSINT Search** - Apps.OSINTSearch.open()
-   - Recherche multi-sources intelligente
-   - NLP pour analyse de requêtes
-   - Agrégation de données publiques
-
-4. **File Manager** - Apps.FileManager.open()
-   - Interface graphique OPFS
-   - Upload/download
-   - Prévisualisation fichiers
-
-5. **Terminal** - Apps.Terminal.open()
-   - 50+ commandes bash-like
-   - ls, cat, echo, rm, mkdir, serve, aipersist, etc.
-
-6. **Task Manager** - Apps.TaskManager.open()
-   - Monitoring processus Kernel
-   - Métriques CPU/RAM/Réseau
-   - Kill/restart processus
-
-7. **System Monitor** - Apps.SystemMonitor.open()
-   - Logs temps réel
-   - Console.log() capture
-   - Filtrage par niveau
-
-## WINDOW MANAGER
-- WindowManager.create(id, title, content, options)
-- Fenêtres draggables, redimensionnables
-- Minimise/maximise/ferme
-- Z-index dynamique
-- Multi-fenêtres simultanées
-
-## SUPABASE BACKEND
-Tables actives:
-- users (auth.users)
-- conversations + conversation_participants + messages
-- email_accounts + emails + email_attachments
-- osint_searches + osint_results + osint_sources
-- files (metadata)
-- notifications
-- telemetry
-
-Storage buckets:
-- message-attachments
-- email-attachments
-- user-files
-
-## NOTIFICATIONS
-- Notifications.show(title, message, options)
-- NotificationCenter (centre de notifications topbar)
-- Temps réel via Supabase Realtime
-- Badge compteur non-lus
-
-## AI SYSTÈME (TOI)
-- Modèle: Llama 3.2 3B Instruct (quantized q4f32_1)
-- WebLLM local dans le navigateur
-- Cache IndexedDB pour persistance
-- WebGPU pour accélération matérielle
-- Tu as accès à TOUT via tool-calls
-
-## SERVICE WORKER
-- Cache assets statiques
-- Headers COOP/COEP pour SharedArrayBuffer
-- Persistance modèle IA
-- Fetch interceptor
-
-## ÉTAT SYSTÈME ACTUEL
-Tu peux obtenir l'état en temps réel:
-- Kernel.getProcesses() → liste processus actifs
-- WindowManager.getWindows() → fenêtres ouvertes
-- currentUser → utilisateur connecté (id, email, metadata)
-- FileSystem.listDir('/') → fichiers racine
-
-# OUTILS DISPONIBLES
-
-## file_service
-{action: 'list'|'read'|'write'|'delete', params: {path, content?}}
-
-## mail_service
-{action: 'list'|'send'|'read', params: {to?, subject?, body?, id?}}
-
-## messages_service
-{action: 'list'|'send'|'read', params: {conversationId?, content?, userId?}}
-
-## notification_service
-{action: 'send'|'list'|'clear', params: {title?, message?, priority?}}
-
-## ui_control
-{action: 'open_app'|'close_app'|'list_windows', params: {appName?, windowId?}}
-
-## system_query
-{action: 'get_processes'|'get_windows'|'get_user'|'get_logs', params: {filter?}}
-
-Format de tool-call:
-<TOOL_CALL>
-{
-  "tool": "nom_du_service",
-  "action": "action_a_effectuer",
-  "params": {},
-  "reason": "explication claire pour l'utilisateur"
-}
-</TOOL_CALL>
-
-RÈGLES:
-1. TOUJOURS demander permission avant action
-2. EXPLIQUER clairement ce que tu vas faire
-3. Utiliser les noms EXACTS des apps (Messages, Mail, OSINTSearch, etc.)
-4. Toujours vérifier l'état système avant agir
-5. Être proactif: suggérer des actions utiles
-
-Tu vois TOUT, tu contrôles TOUT. Sois l'assistant parfait.`
-      },
-      mouseBehavior: {
-        enabled: true,
-        mode: 'ai-controlled',
-        requirePermission: true
+        contextWindow: 8192
       }
     };
 
@@ -1663,225 +1503,6 @@ Tu vois TOUT, tu contrôles TOUT. Sois l'assistant parfait.`
 
     console.log('[WOSQ v4] WorkerDefinitions chargées:', Object.keys(WorkerDefinitions));
 
-    // ============================================
-    // PERMISSION SYSTEM - Validation des actions IA
-    // ============================================
-    const PermissionSystem = {
-      pendingRequests: new Map(),
-      grantedPermissions: new Set(),
-      deniedPermissions: new Set(),
-
-      async requestPermission(toolCall) {
-        const requestId = `perm_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-
-        return new Promise((resolve) => {
-          this.pendingRequests.set(requestId, { toolCall, resolve });
-          this.showPermissionDialog(requestId, toolCall);
-        });
-      },
-
-      showPermissionDialog(requestId, toolCall) {
-        const dialog = document.createElement('div');
-        dialog.id = `permission-dialog-${requestId}`;
-        dialog.style.cssText = `
-          position: fixed;
-          top: 50%;
-          left: 50%;
-          transform: translate(-50%, -50%);
-          background: white;
-          border-radius: 12px;
-          padding: 24px;
-          box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-          z-index: 100000;
-          min-width: 400px;
-          max-width: 500px;
-          font-family: system-ui, -apple-system, sans-serif;
-        `;
-
-        const actionText = this.formatToolCall(toolCall);
-
-        dialog.innerHTML = `
-          <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
-            <div style="width: 48px; height: 48px; background: linear-gradient(135deg, #3b82f6, #1e40af); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 24px;">🤖</div>
-            <div>
-              <h3 style="margin: 0; font-size: 18px; font-weight: 600; color: #1f2937;">Demande de Permission IA</h3>
-              <p style="margin: 4px 0 0 0; font-size: 13px; color: #6b7280;">L'agent orchestrateur souhaite effectuer une action</p>
-            </div>
-          </div>
-
-          <div style="background: #f3f4f6; border-radius: 8px; padding: 16px; margin-bottom: 16px;">
-            <p style="margin: 0 0 8px 0; font-weight: 600; font-size: 14px; color: #374151;">Action demandée:</p>
-            <p style="margin: 0; font-size: 14px; color: #1f2937; line-height: 1.5;">${actionText}</p>
-          </div>
-
-          ${toolCall.reason ? `
-          <div style="background: #eff6ff; border-left: 3px solid #3b82f6; padding: 12px; margin-bottom: 16px; border-radius: 4px;">
-            <p style="margin: 0; font-size: 13px; color: #1e40af;"><strong>Raison:</strong> ${toolCall.reason}</p>
-          </div>
-          ` : ''}
-
-          <div style="display: flex; gap: 12px; justify-content: flex-end;">
-            <button id="deny-${requestId}" style="padding: 10px 20px; border: 1px solid #d1d5db; background: white; border-radius: 8px; cursor: pointer; font-weight: 500; color: #374151; font-size: 14px;">
-              Refuser
-            </button>
-            <button id="allow-${requestId}" style="padding: 10px 20px; border: none; background: linear-gradient(135deg, #3b82f6, #1e40af); color: white; border-radius: 8px; cursor: pointer; font-weight: 500; font-size: 14px;">
-              Autoriser
-            </button>
-          </div>
-        `;
-
-        const overlay = document.createElement('div');
-        overlay.id = `permission-overlay-${requestId}`;
-        overlay.style.cssText = `
-          position: fixed;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background: rgba(0, 0, 0, 0.5);
-          z-index: 99999;
-          backdrop-filter: blur(4px);
-        `;
-
-        document.body.appendChild(overlay);
-        document.body.appendChild(dialog);
-
-        document.getElementById(`allow-${requestId}`).onclick = () => {
-          this.resolvePermission(requestId, true);
-          overlay.remove();
-          dialog.remove();
-        };
-
-        document.getElementById(`deny-${requestId}`).onclick = () => {
-          this.resolvePermission(requestId, false);
-          overlay.remove();
-          dialog.remove();
-        };
-      },
-
-      formatToolCall(toolCall) {
-        const { tool, action, params } = toolCall;
-
-        const actions = {
-          'file_service': {
-            'list': 'Lister les fichiers',
-            'read': `Lire le fichier: ${params.path || 'non spécifié'}`,
-            'write': `Écrire dans le fichier: ${params.path || 'non spécifié'}`,
-            'delete': `Supprimer le fichier: ${params.path || 'non spécifié'}`
-          },
-          'mail_service': {
-            'list': 'Lister les emails',
-            'send': `Envoyer un email à: ${params.to || 'destinataire non spécifié'}`,
-            'read': `Lire l'email: ${params.id || 'non spécifié'}`
-          },
-          'messages_service': {
-            'list': 'Lister les conversations',
-            'send': `Envoyer un message dans la conversation: ${params.conversationId || 'non spécifiée'}`,
-            'read': `Lire la conversation: ${params.conversationId || 'non spécifiée'}`
-          },
-          'notification_service': {
-            'send': `Envoyer une notification: "${params.title || 'Sans titre'}"`,
-            'list': 'Lister les notifications',
-            'clear': 'Effacer les notifications'
-          },
-          'ui_control': {
-            'open_app': `Ouvrir l'application: ${params.appName || 'non spécifiée'}`,
-            'click_element': `Cliquer sur l'élément: ${params.selector || 'non spécifié'}`
-          }
-        };
-
-        return actions[tool]?.[action] || `${tool}.${action}`;
-      },
-
-      resolvePermission(requestId, granted) {
-        const request = this.pendingRequests.get(requestId);
-        if (request) {
-          if (granted) {
-            this.grantedPermissions.add(JSON.stringify(request.toolCall));
-          } else {
-            this.deniedPermissions.add(JSON.stringify(request.toolCall));
-          }
-          request.resolve(granted);
-          this.pendingRequests.delete(requestId);
-        }
-      }
-    };
-
-    // ============================================
-    // AI MOUSE CONTROLLER - Contrôle UI par l'IA
-    // ============================================
-    const AIMouseController = {
-      async clickElement(selector) {
-        console.log('[AIMouseController] Attempting to click:', selector);
-        const element = document.querySelector(selector);
-        if (element) {
-          element.click();
-          return { success: true, clicked: selector };
-        }
-        return { success: false, error: 'Element not found' };
-      },
-
-      async openApp(appName) {
-        console.log('[AIMouseController] Attempting to open app:', appName);
-        const appButton = document.querySelector(`[data-app="${appName}"]`);
-        if (appButton) {
-          appButton.click();
-          return { success: true, opened: appName };
-        }
-        return { success: false, error: 'App not found' };
-      },
-
-      async highlightElement(selector, duration = 2000) {
-        const element = document.querySelector(selector);
-        if (element) {
-          const originalOutline = element.style.outline;
-          element.style.outline = '3px solid #3b82f6';
-          element.style.outlineOffset = '2px';
-          setTimeout(() => {
-            element.style.outline = originalOutline;
-          }, duration);
-          return { success: true };
-        }
-        return { success: false, error: 'Element not found' };
-      }
-    };
-
-    // ============================================
-    // CUSTOM MOUSE INITIALIZATION
-    // ============================================
-    function initializeCustomMouse() {
-      if (!CONFIG.mouseBehavior.enabled) return;
-
-      console.log('[CustomMouse] AI-controlled mouse behavior initialized');
-      console.log('[CustomMouse] Mode:', CONFIG.mouseBehavior.mode);
-      console.log('[CustomMouse] Permission required:', CONFIG.mouseBehavior.requirePermission);
-
-      document.addEventListener('ai-mouse-command', async (event) => {
-        const { action, params } = event.detail;
-        console.log('[CustomMouse] Received AI command:', action, params);
-
-        if (CONFIG.mouseBehavior.requirePermission) {
-          const granted = await PermissionSystem.requestPermission({
-            tool: 'ui_control',
-            action: action,
-            params: params,
-            reason: 'L\'IA souhaite interagir avec l\'interface utilisateur'
-          });
-
-          if (!granted) {
-            console.log('[CustomMouse] Permission denied');
-            return;
-          }
-        }
-
-        if (action === 'click_element') {
-          await AIMouseController.clickElement(params.selector);
-        } else if (action === 'open_app') {
-          await AIMouseController.openApp(params.appName);
-        }
-      });
-    }
-
     setInterval(() => {
       const b = document.getElementById("sovereignBadge");
       if (!b) return;
@@ -2002,256 +1623,19 @@ Tu vois TOUT, tu contrôles TOUT. Sois l'assistant parfait.`
           }
         }
       },
-      conversationHistory: [],
-
-      async parseToolCall(content) {
-        const toolCallRegex = /<TOOL_CALL>\s*(\{[\s\S]*?\})\s*<\/TOOL_CALL>/;
-        const match = content.match(toolCallRegex);
-
-        if (match) {
+      async chat(prompt) {
+        if (this.state.localReady && this.engine) {
           try {
-            const toolCall = JSON.parse(match[1]);
-            return {
-              isToolCall: true,
-              toolCall: toolCall,
-              textBefore: content.substring(0, match.index).trim(),
-              textAfter: content.substring(match.index + match[0].length).trim()
-            };
-          } catch (err) {
-            console.error('[AIBus] Failed to parse tool call:', err);
-            return { isToolCall: false };
-          }
-        }
-
-        return { isToolCall: false };
-      },
-
-      async getSystemContext() {
-        try {
-          const processes = Kernel.getProcesses().map(p => p.name);
-          const windows = Array.from(document.querySelectorAll('.window'))
-            .filter(w => w.style.display !== 'none')
-            .map(w => w.querySelector('.window-title')?.textContent);
-
-          const user = currentUser ? {
-            email: currentUser.email,
-            id: currentUser.id.substring(0, 8)
-          } : null;
-
-          const context = `
-# ÉTAT SYSTÈME ACTUEL (temps réel)
-
-Utilisateur connecté: ${user ? user.email : 'Non connecté'}
-Processus actifs: ${processes.length > 0 ? processes.join(', ') : 'Aucun'}
-Fenêtres ouvertes: ${windows.length > 0 ? windows.join(', ') : 'Aucune'}
-
-URL actuelle: ${window.location.href}
-Cross-Origin Isolation: ${window.crossOriginIsolated ? 'Activé ✓' : 'Désactivé'}
-Service Worker: ${navigator.serviceWorker?.controller ? 'Actif ✓' : 'Inactif'}
-
-Heure système: ${new Date().toLocaleString('fr-CA')}
-`;
-
-          return context;
-        } catch (err) {
-          console.error('[AIBus] Erreur getSystemContext:', err);
-          return '';
-        }
-      },
-
-      async executeToolCall(toolCall) {
-        console.log('[AIBus] Executing tool call:', toolCall);
-
-        if (CONFIG.mouseBehavior.requirePermission) {
-          const granted = await PermissionSystem.requestPermission(toolCall);
-          if (!granted) {
-            return {
-              success: false,
-              error: 'Permission denied by user',
-              denied: true
-            };
-          }
-        }
-
-        try {
-          if (toolCall.tool === 'system_query') {
-            switch (toolCall.action) {
-              case 'get_processes':
-                return {
-                  success: true,
-                  data: Kernel.getProcesses().map(p => ({
-                    pid: p.pid,
-                    name: p.name,
-                    status: p.status,
-                    created: p.created
-                  }))
-                };
-              case 'get_windows':
-                const windows = Array.from(document.querySelectorAll('.window')).map(w => ({
-                  id: w.id,
-                  title: w.querySelector('.window-title')?.textContent,
-                  visible: w.style.display !== 'none',
-                  minimized: w.classList.contains('minimized')
-                }));
-                return { success: true, data: windows };
-              case 'get_user':
-                return {
-                  success: true,
-                  data: currentUser ? {
-                    id: currentUser.id,
-                    email: currentUser.email,
-                    metadata: currentUser.user_metadata
-                  } : null
-                };
-              case 'get_logs':
-                const logEl = document.getElementById('systemLogs');
-                const logs = logEl ? Array.from(logEl.children).slice(-20).map(l => l.textContent) : [];
-                return { success: true, data: logs };
-              default:
-                return { success: false, error: 'Action inconnue' };
-            }
-          }
-
-          if (toolCall.tool === 'ui_control') {
-            if (toolCall.action === 'list_windows') {
-              const windows = Array.from(document.querySelectorAll('.window')).map(w => ({
-                id: w.id,
-                title: w.querySelector('.window-title')?.textContent,
-                visible: w.style.display !== 'none'
-              }));
-              return { success: true, data: windows };
-            }
-            if (toolCall.action === 'close_app') {
-              const win = document.getElementById(toolCall.params.windowId);
-              if (win) {
-                win.remove();
-                return { success: true, message: 'Fenêtre fermée' };
-              }
-              return { success: false, error: 'Fenêtre non trouvée' };
-            }
-            return await AIMouseController[toolCall.action === 'open_app' ? 'openApp' : 'clickElement'](
-              toolCall.params.appName || toolCall.params.selector
-            );
-          }
-
-          let pid = Kernel.findProcess(toolCall.tool);
-          if (!pid) {
-            console.log('[AIBus] Creating worker for:', toolCall.tool);
-            pid = Kernel.createProcess(toolCall.tool);
-            await new Promise(resolve => setTimeout(resolve, 100));
-          }
-
-          const result = await Kernel.sendRequest(pid, toolCall.action, toolCall.params);
-          return result;
-        } catch (err) {
-          console.error('[AIBus] Tool call execution failed:', err);
-          return {
-            success: false,
-            error: err.message
-          };
-        }
-      },
-
-      async chat(prompt, options = {}) {
-        if (!this.state.localReady || !this.engine) {
-          return this.fallbackResponse();
-        }
-
-        try {
-          const systemContext = await this.getSystemContext();
-          const enhancedSystemPrompt = CONFIG.webllm.systemPrompt + '\n\n' + systemContext;
-
-          const messages = [
-            { role: "system", content: enhancedSystemPrompt }
-          ];
-
-          if (options.includeHistory && this.conversationHistory.length > 0) {
-            messages.push(...this.conversationHistory.slice(-6));
-          }
-
-          messages.push({ role: "user", content: prompt });
-
-          console.log('[AIBus] Sending prompt to AI...');
-          const response = await this.engine.chat.completions.create({
-            messages: messages,
-            temperature: CONFIG.webllm.temperature,
-            top_p: CONFIG.webllm.topP,
-            max_tokens: CONFIG.webllm.maxTokens
-          });
-
-          const content = response.choices[0].message.content;
-          console.log('[AIBus] AI response:', content);
-
-          this.conversationHistory.push({ role: "user", content: prompt });
-          this.conversationHistory.push({ role: "assistant", content: content });
-
-          if (this.conversationHistory.length > 12) {
-            this.conversationHistory = this.conversationHistory.slice(-12);
-          }
-
-          const parsed = await this.parseToolCall(content);
-
-          if (parsed.isToolCall) {
-            console.log('[AIBus] Tool call detected');
-
-            const toolResult = await this.executeToolCall(parsed.toolCall);
-
-            if (toolResult.denied) {
-              return {
-                choices: [{
-                  message: {
-                    role: "assistant",
-                    content: parsed.textBefore + "\n\n⚠️ Action refusée par l'utilisateur."
-                  }
-                }],
-                toolCall: parsed.toolCall,
-                toolResult: toolResult
-              };
-            }
-
-            const followUpMessages = [
-              { role: "system", content: CONFIG.webllm.systemPrompt },
-              { role: "user", content: prompt },
-              { role: "assistant", content: content },
-              { role: "user", content: `Résultat de l'outil: ${JSON.stringify(toolResult)}` }
-            ];
-
-            const followUpResponse = await this.engine.chat.completions.create({
-              messages: followUpMessages,
-              temperature: CONFIG.webllm.temperature,
-              top_p: CONFIG.webllm.topP,
-              max_tokens: CONFIG.webllm.maxTokens
+            return await this.engine.chat.completions.create({
+              messages: [{ role: "user", content: prompt }]
             });
-
-            const finalContent = followUpResponse.choices[0].message.content;
-
-            this.conversationHistory.push({ role: "user", content: `Tool result: ${JSON.stringify(toolResult)}` });
-            this.conversationHistory.push({ role: "assistant", content: finalContent });
-
-            return {
-              choices: [{
-                message: {
-                  role: "assistant",
-                  content: finalContent
-                }
-              }],
-              toolCall: parsed.toolCall,
-              toolResult: toolResult
-            };
+          } catch (err) {
+            console.warn('⚠ Erreur lors de la génération IA:', err.message);
+            return this.fallbackResponse();
           }
-
-          return response;
-        } catch (err) {
-          console.error('⚠ Erreur lors de la génération IA:', err);
-          return this.fallbackResponse();
         }
+        return this.fallbackResponse();
       },
-
-      clearHistory() {
-        this.conversationHistory = [];
-        console.log('[AIBus] Conversation history cleared');
-      },
-
       fallbackResponse() {
         return {
           choices: [{
@@ -2267,7 +1651,6 @@ Heure système: ${new Date().toLocaleString('fr-CA')}
     };
 
     AIBus.init();
-    initializeCustomMouse();
 
     // ============================================
     // ADVANCED FILE MANAGER
@@ -3980,78 +3363,7 @@ Heure système: ${new Date().toLocaleString('fr-CA')}
     }
 
     // ============================================
-    // WEBLLM CACHE MANAGER - IndexedDB Cache Management
-    // WebLLM 0.2.79+ uses IndexedDB automatically for caching.
-    // This manager provides statistics and manual cache control.
-    // ============================================
-    const WebLLMCacheManager = (() => {
-      const CACHE_DB_NAME = 'webllm';
-
-      async function checkIndexedDBCache() {
-        try {
-          const databases = await indexedDB.databases();
-          const webllmDB = databases.find(db => db.name === CACHE_DB_NAME);
-
-          if (webllmDB) {
-            console.log('[Cache] WebLLM IndexedDB found');
-            return true;
-          }
-          return false;
-        } catch (error) {
-          console.warn('[Cache] Could not check IndexedDB:', error);
-          return false;
-        }
-      }
-
-      async function clearCache() {
-        try {
-          await new Promise((resolve, reject) => {
-            const request = indexedDB.deleteDatabase(CACHE_DB_NAME);
-            request.onsuccess = () => resolve(true);
-            request.onerror = () => reject(request.error);
-            request.onblocked = () => {
-              console.warn('[Cache] Delete blocked - close all tabs using WebLLM');
-              reject(new Error('Database deletion blocked'));
-            };
-          });
-
-          console.log('[Cache] WebLLM cache cleared successfully');
-          return true;
-        } catch (error) {
-          console.error('[Cache] Failed to clear cache:', error);
-          return false;
-        }
-      }
-
-      async function getCacheStats() {
-        try {
-          const estimate = await navigator.storage.estimate();
-          const hasCacheDB = await checkIndexedDBCache();
-
-          return {
-            model: CONFIG.webllm.model,
-            cached: hasCacheDB,
-            storageUsed: (estimate.usage / 1024 / 1024).toFixed(2) + ' MB',
-            storageQuota: (estimate.quota / 1024 / 1024 / 1024).toFixed(2) + ' GB',
-            storagePercent: ((estimate.usage / estimate.quota) * 100).toFixed(1) + '%',
-            cacheType: 'IndexedDB (Native WebLLM)'
-          };
-        } catch (error) {
-          console.error('[Cache] Failed to get stats:', error);
-          return null;
-        }
-      }
-
-      return {
-        checkCache: checkIndexedDBCache,
-        clearCache,
-        getCacheStats,
-        isSupported: () => 'indexedDB' in window
-      };
-    })();
-
-    // ============================================
-    // WEBLLM INTEGRATION WITH CACHE
+    // WEBLLM INTEGRATION
     // ============================================
     const AI = (() => {
       let engine = null;
@@ -4106,51 +3418,6 @@ Heure système: ${new Date().toLocaleString('fr-CA')}
         return issues;
       }
 
-      function updateAIStatusDisplay() {
-        const statusEl = document.getElementById('aiStatus');
-        if (!statusEl) return;
-
-        if (!isReady) {
-          if (!window.crossOriginIsolated) {
-            statusEl.textContent = 'Mode Standard';
-            statusEl.style.color = '#9ca3af';
-            statusEl.title = 'IA locale non disponible (servir via HTTP pour activer)';
-          } else {
-            statusEl.textContent = 'IA: Chargement...';
-            statusEl.style.color = '#f59e0b';
-          }
-          return;
-        }
-
-        if (navigator.serviceWorker && navigator.serviceWorker.controller) {
-          navigator.serviceWorker.controller.postMessage({ type: 'ai-persistence-status' });
-
-          const handler = (event) => {
-            if (event.data.type === 'ai-persistence-status') {
-              const status = event.data.status;
-              if (status.enabled) {
-                statusEl.textContent = 'IA: Prête ✓ (Persistant)';
-              } else {
-                statusEl.textContent = 'IA: Prête ✓';
-              }
-              statusEl.style.color = '#10b981';
-              navigator.serviceWorker.removeEventListener('message', handler);
-            }
-          };
-
-          navigator.serviceWorker.addEventListener('message', handler);
-          setTimeout(() => {
-            navigator.serviceWorker.removeEventListener('message', handler);
-            if (statusEl.textContent.startsWith('IA: Prête')) return;
-            statusEl.textContent = 'IA: Prête ✓';
-            statusEl.style.color = '#10b981';
-          }, 500);
-        } else {
-          statusEl.textContent = 'IA: Prête ✓';
-          statusEl.style.color = '#10b981';
-        }
-      }
-
       async function initialize() {
         if (isReady) return true;
         if (isLoading) return false;
@@ -4171,29 +3438,11 @@ Heure système: ${new Date().toLocaleString('fr-CA')}
             throw new Error(errorMsg);
           }
 
-          if (WebLLMCacheManager.isSupported()) {
-            console.log('[AI] IndexedDB cache available - checking for cached model...');
-            if (statusEl) statusEl.textContent = 'IA: Vérification du cache...';
-
-            const hasCache = await WebLLMCacheManager.checkCache();
-            if (hasCache) {
-              console.log('[AI] Cache found - faster loading!');
-              if (statusEl) {
-                statusEl.textContent = 'IA: Chargement depuis le cache...';
-                statusEl.style.color = '#10b981';
-              }
-            } else {
-              console.log('[AI] No cache found - first download will be cached');
-            }
-          } else {
-            console.warn('[AI] IndexedDB not supported - cache disabled');
-          }
-
           if (statusEl) statusEl.textContent = 'IA: Chargement du module...';
 
           const { CreateMLCEngine } = await loadWebLLMWithRetry();
 
-          if (statusEl) statusEl.textContent = 'IA: Initialisation du modèle...';
+          if (statusEl) statusEl.textContent = 'IA: Téléchargement du modèle...';
 
           const progressCallback = (report) => {
             const percent = Math.round(report.progress * 100);
@@ -4208,7 +3457,6 @@ Heure système: ${new Date().toLocaleString('fr-CA')}
           console.log('[AI] Browser:', navigator.userAgent);
           console.log('[AI] WebGPU available:', !!navigator.gpu);
           console.log('[AI] WebAssembly available:', typeof WebAssembly !== 'undefined');
-          console.log('[AI] IndexedDB Cache:', WebLLMCacheManager.isSupported() ? 'Enabled' : 'Disabled');
 
           engine = await CreateMLCEngine(
             CONFIG.webllm.model,
@@ -4222,15 +3470,11 @@ Heure système: ${new Date().toLocaleString('fr-CA')}
           isLoading = false;
 
           if (statusEl) {
-            updateAIStatusDisplay();
+            statusEl.textContent = 'IA: Prête ✓';
+            statusEl.style.color = '#10b981';
           }
 
-          const stats = await WebLLMCacheManager.getCacheStats();
-          if (stats) {
-            console.log('[AI] Cache Stats:', stats);
-          }
-
-          Kernel.emit('ai:ready', { model: CONFIG.webllm.model, cached: stats?.cached });
+          Kernel.emit('ai:ready', { model: CONFIG.webllm.model });
           console.log('[AI] Successfully initialized');
           return true;
         } catch (error) {
@@ -4291,10 +3535,7 @@ Heure système: ${new Date().toLocaleString('fr-CA')}
       return {
         initialize,
         chat,
-        isReady: () => isReady,
-        getCacheStats: () => WebLLMCacheManager.getCacheStats(),
-        clearCache: () => WebLLMCacheManager.clearCache(),
-        updateAIStatusDisplay
+        isReady: () => isReady
       };
     })();
 
@@ -5726,33 +4967,28 @@ Heure système: ${new Date().toLocaleString('fr-CA')}
           input.value = '';
 
           this.addMessage('user', userMessage);
+          this.currentMessages.push({ role: 'user', content: userMessage });
 
           this.addMessage('assistant', '...');
 
           try {
-            const response = await AIBus.chat(userMessage, { includeHistory: true });
-            const aiMessage = response.choices[0].message.content;
+            await AI.chat(this.currentMessages, (response) => {
+              this.updateLastMessage(response);
+            });
 
-            this.updateLastMessage(aiMessage);
-
-            if (response.toolCall) {
-              const toolInfo = `🔧 Action effectuée: ${response.toolCall.tool}.${response.toolCall.action}`;
-              this.addMessage('system', toolInfo);
-
-              if (response.toolResult) {
-                console.log('[AIChat] Tool result:', response.toolResult);
-              }
-            }
+            const lastResponse = document.getElementById('chatMessages').lastElementChild.textContent;
+            this.currentMessages.push({ role: 'assistant', content: lastResponse });
 
             if (this.ttsEnabled) {
-              this.speak(aiMessage);
+              this.speak(lastResponse);
             }
 
+            // Save to Supabase
             if (currentUser) {
               await supabaseClient.from('ai_conversations').upsert({
                 user_id: currentUser.id,
                 model_name: CONFIG.webllm.model,
-                messages: AIBus.conversationHistory,
+                messages: this.currentMessages,
                 updated_at: new Date().toISOString()
               });
             }
@@ -6532,14 +5768,6 @@ Heure système: ${new Date().toLocaleString('fr-CA')}
               this.cmdWhich(args);
               break;
 
-            case 'aicache':
-              await this.cmdAICache(args);
-              break;
-
-            case 'aipersist':
-              await this.cmdAIPersist(args);
-              break;
-
             case 'whereis':
               this.writeLine(`${args[0]}: /usr/bin/${args[0]}`);
               break;
@@ -6610,11 +5838,6 @@ Heure système: ${new Date().toLocaleString('fr-CA')}
               this.writeLine(`${cmd}: redémarrage système non disponible. Fermez l'onglet.`);
               break;
 
-            case 'serve':
-            case 'httpserver':
-              this.cmdServe(args);
-              break;
-
             case 'exit':
             case 'logout':
               this.writeLine('Fermeture du terminal...');
@@ -6669,11 +5892,6 @@ Heure système: ${new Date().toLocaleString('fr-CA')}
           this.writeLine('  /ping            - Test de connectivité');
           this.writeLine('  /ifconfig, /ip   - Configuration réseau');
           this.writeLine('  /netstat         - Statistiques réseau');
-          this.writeLine('  /serve           - Démarre un serveur HTTP avec COOP/COEP');
-          this.writeLine('');
-          this.writeLine('Intelligence Artificielle:');
-          this.writeLine('  /aicache         - Gestion du cache WebLLM');
-          this.writeLine('  /aipersist       - Gestion de la persistence IA');
           this.writeLine('');
           this.writeLine('Autres:');
           this.writeLine('  /echo, /printf   - Affiche du texte');
@@ -6697,8 +5915,7 @@ Heure système: ${new Date().toLocaleString('fr-CA')}
             cat: 'cat - Concatène et affiche des fichiers\n\nUSAGE: cat <fichier>\n\nAffiche le contenu complet d\'un fichier',
             grep: 'grep - Recherche de motifs dans du texte\n\nUSAGE: grep <motif> <fichier>\n\nRecherche les lignes contenant le motif spécifié',
             date: 'date - Affiche ou définit la date système\n\nUSAGE: date [OPTIONS]\n\nOPTIONS:\n  (aucune)  Affiche date et heure actuelles',
-            echo: 'echo - Affiche une ligne de texte\n\nUSAGE: echo [texte]\n\nAffiche le texte spécifié sur la sortie standard',
-            serve: 'serve - Serveur HTTP avec headers COOP/COEP\n\nUSAGE: serve\n\nAffiche le status Cross-Origin Isolation et fournit\ndes instructions pour démarrer un serveur HTTP avec\nles headers nécessaires pour WebLLM/WebGPU.\n\nREQUIS:\n  • Serveur HTTP (pas file://)\n  • Headers: COOP=same-origin, COEP=credentialless\n\nOPTIONS:\n  • python server.py (recommandé)\n  • npm run dev\n  • npx http-server'
+            echo: 'echo - Affiche une ligne de texte\n\nUSAGE: echo [texte]\n\nAffiche le texte spécifié sur la sortie standard'
           };
 
           const manual = manuals[cmd];
@@ -7067,149 +6284,6 @@ Heure système: ${new Date().toLocaleString('fr-CA')}
           }
         },
 
-        async cmdAICache(args) {
-          const subcommand = args[0] || 'stats';
-
-          switch (subcommand) {
-            case 'stats':
-            case 'info':
-              this.writeLine('=== WebLLM Cache Statistics ===');
-              this.writeLine('');
-
-              const stats = await AI.getCacheStats();
-              if (stats) {
-                this.writeLine(`Model: ${stats.model}`);
-                this.writeLine(`Cache Type: ${stats.cacheType}`);
-                this.writeLine(`Cache Status: ${stats.cached ? 'Present' : 'Not cached yet'}`);
-                this.writeLine('');
-                this.writeLine('=== Storage Information ===');
-                this.writeLine(`Used: ${stats.storageUsed}`);
-                this.writeLine(`Quota: ${stats.storageQuota}`);
-                this.writeLine(`Usage: ${stats.storagePercent}`);
-              } else {
-                this.writeLine('Unable to retrieve cache statistics');
-              }
-              break;
-
-            case 'clear':
-              this.writeLine('Clearing WebLLM IndexedDB cache...');
-              this.writeLine('WARNING: This will delete the cached model.');
-              this.writeLine('');
-              const result = await AI.clearCache();
-              if (result) {
-                this.writeLine('✓ Cache cleared successfully');
-                this.writeLine('✓ The model will be re-downloaded on next AI initialization');
-                this.writeLine('✓ Reload the page to start fresh');
-              } else {
-                this.writeLine('✗ Failed to clear cache');
-                this.writeLine('  Try closing all tabs using this site and retry');
-              }
-              break;
-
-            case 'help':
-              this.writeLine('aicache - Manage WebLLM model cache');
-              this.writeLine('');
-              this.writeLine('Usage:');
-              this.writeLine('  aicache [stats|info]  - Show cache statistics (default)');
-              this.writeLine('  aicache clear         - Clear the cached model');
-              this.writeLine('  aicache help          - Show this help message');
-              this.writeLine('');
-              this.writeLine('WebLLM uses IndexedDB to automatically cache the model.');
-              this.writeLine('After the first download, subsequent loads are instant.');
-              break;
-
-            default:
-              this.writeLine(`aicache: unknown command '${subcommand}'`);
-              this.writeLine('Try: aicache help');
-          }
-        },
-
-        async cmdAIPersist(args) {
-          const subcommand = args[0];
-
-          if (!subcommand) {
-            this.writeLine('=== AI Engine Persistence Status ===');
-            this.writeLine('');
-
-            if (navigator.serviceWorker && navigator.serviceWorker.controller) {
-              navigator.serviceWorker.controller.postMessage({
-                type: 'ai-persistence-status'
-              });
-
-              await new Promise(resolve => {
-                const handler = (event) => {
-                  if (event.data.type === 'ai-persistence-status') {
-                    const status = event.data.status;
-                    this.writeLine(`Status: ${status.enabled ? 'ENABLED' : 'DISABLED'}`);
-                    this.writeLine(`State: ${status.hasState ? 'Active' : 'Not active'}`);
-                    if (status.lastActivity) {
-                      this.writeLine(`Last Activity: ${new Date(status.lastActivity).toLocaleString()}`);
-                    }
-                    navigator.serviceWorker.removeEventListener('message', handler);
-                    resolve();
-                  }
-                };
-                navigator.serviceWorker.addEventListener('message', handler);
-                setTimeout(() => {
-                  navigator.serviceWorker.removeEventListener('message', handler);
-                  resolve();
-                }, 1000);
-              });
-            } else {
-              this.writeLine('Service Worker not available');
-            }
-
-            this.writeLine('');
-            this.writeLine('Use: aipersist enable|disable|help');
-            return;
-          }
-
-          switch (subcommand) {
-            case 'enable':
-              this.writeLine('Enabling AI persistence...');
-              if (navigator.serviceWorker && navigator.serviceWorker.controller) {
-                navigator.serviceWorker.controller.postMessage({
-                  type: 'ai-persistence-enable'
-                });
-                this.writeLine('✓ AI persistence enabled');
-                this.writeLine('  AI engine state will be maintained across page reloads');
-              } else {
-                this.writeLine('✗ Service Worker not available');
-              }
-              break;
-
-            case 'disable':
-              this.writeLine('Disabling AI persistence...');
-              if (navigator.serviceWorker && navigator.serviceWorker.controller) {
-                navigator.serviceWorker.controller.postMessage({
-                  type: 'ai-persistence-disable'
-                });
-                this.writeLine('✓ AI persistence disabled');
-                this.writeLine('  AI engine state will be cleared on page reload');
-              } else {
-                this.writeLine('✗ Service Worker not available');
-              }
-              break;
-
-            case 'help':
-              this.writeLine('aipersist - Manage AI Engine Persistence');
-              this.writeLine('');
-              this.writeLine('Usage:');
-              this.writeLine('  aipersist           - Show persistence status');
-              this.writeLine('  aipersist enable    - Enable AI state persistence');
-              this.writeLine('  aipersist disable   - Disable AI state persistence');
-              this.writeLine('  aipersist help      - Show this help message');
-              this.writeLine('');
-              this.writeLine('When enabled, the AI engine maintains its state across');
-              this.writeLine('page reloads, reducing initialization time.');
-              break;
-
-            default:
-              this.writeLine(`aipersist: unknown command '${subcommand}'`);
-              this.writeLine('Try: aipersist help');
-          }
-        },
-
         async cmdFile(args) {
           if (args.length === 0) {
             this.writeLine('Usage: file <filename>');
@@ -7270,51 +6344,6 @@ Heure système: ${new Date().toLocaleString('fr-CA')}
           this.writeLine('Proto  Local                  Distant                État');
           this.writeLine('tcp    0.0.0.0:80             0.0.0.0:*              LISTEN');
           this.writeLine('tcp    0.0.0.0:443            0.0.0.0:*              LISTEN');
-        },
-
-        cmdServe(args) {
-          this.writeLine('╔════════════════════════════════════════════════════════╗');
-          this.writeLine('║  WOSQ - Diagnostic Système                            ║');
-          this.writeLine('╚════════════════════════════════════════════════════════╝');
-          this.writeLine('');
-
-          if (!window.crossOriginIsolated) {
-            this.writeLine('📊 Status: Mode Standard');
-            this.writeLine('');
-            this.writeLine('Toutes les fonctionnalités principales sont disponibles.');
-            this.writeLine('L\'IA locale (optionnelle) nécessite un serveur HTTP.');
-            this.writeLine('');
-            this.writeLine('Fonctionnalités actives:');
-            this.writeLine('  ✓ Interface WebOS complète');
-            this.writeLine('  ✓ Gestionnaire de fichiers');
-            this.writeLine('  ✓ Terminal bash');
-            this.writeLine('  ✓ Applications (Messages, Mail, OSINT)');
-            this.writeLine('  ✓ Authentification Supabase');
-            this.writeLine('  ✓ Stockage local');
-            this.writeLine('');
-            this.writeLine('Fonctionnalités optionnelles (nécessitent HTTP):');
-            this.writeLine('  • IA locale WebLLM');
-            this.writeLine('  • Commandes: aipersist, aicache');
-            this.writeLine('');
-            this.writeLine('Pour activer l\'IA locale (optionnel):');
-            this.writeLine('  $ python server.py');
-            this.writeLine('  Puis: http://localhost:8000/WOSQ.v4.wm.html');
-          } else {
-            this.writeLine('📊 Status: Mode Complet ✓');
-            this.writeLine('');
-            this.writeLine('Toutes les fonctionnalités sont disponibles!');
-            this.writeLine('');
-            this.writeLine('Système:');
-            this.writeLine(`  • URL: ${window.location.protocol}//${window.location.host}`);
-            this.writeLine('  • Cross-Origin Isolation: ✓');
-            this.writeLine('  • SharedArrayBuffer: ' + (typeof SharedArrayBuffer !== 'undefined' ? '✓' : '✗'));
-            this.writeLine('  • WebAssembly: ' + (typeof WebAssembly !== 'undefined' ? '✓' : '✗'));
-            this.writeLine('');
-            this.writeLine('Fonctionnalités IA disponibles:');
-            this.writeLine('  • WebLLM (modèles locaux)');
-            this.writeLine('  • aipersist - Gestion persistence');
-            this.writeLine('  • aicache - Gestion cache modèles');
-          }
         },
 
         writeLine(text) {
@@ -11468,223 +10497,17 @@ Heure système: ${new Date().toLocaleString('fr-CA')}
     console.log('WebOS Québec v1.0 - Système de logs activé');
     console.info('Tous les logs de la console (F12) apparaissent maintenant dans le Moniteur Système');
 
-    // Silent Cross-Origin Isolation check
-    if (!window.crossOriginIsolated) {
-      console.info('[WOSQ] Mode standard - Fonctionnement normal sans IA locale');
-      console.info('[WOSQ] Pour activer WebLLM: servir via HTTP avec headers COOP/COEP');
-    } else {
-      console.log('[WOSQ] ✓ Cross-Origin Isolation activé - IA WebLLM disponible');
-    }
-
     // Start the system
     initialize().catch(console.error);
 
-    // Register Service Worker (inline)
+    // Register Service Worker
     if ('serviceWorker' in navigator) {
-      const swCode = `
-const CACHE_NAME = 'webos-quebec-v1.0.0';
-const RUNTIME_CACHE = 'webos-runtime';
-
-const STATIC_ASSETS = [
-  '/',
-  '/webos-quebec.html',
-  'https://cdn.tailwindcss.com',
-];
-
-self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(STATIC_ASSETS);
-    })
-  );
-  self.skipWaiting();
-});
-
-self.addEventListener('activate', (event) => {
-  event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames
-          .filter((name) => name !== CACHE_NAME && name !== RUNTIME_CACHE)
-          .map((name) => caches.delete(name))
-      );
-    })
-  );
-  self.clients.claim();
-});
-
-self.addEventListener('fetch', (event) => {
-  const { request } = event;
-  const url = new URL(request.url);
-
-  if (url.origin !== location.origin && !url.hostname.includes('supabase')) {
-    event.respondWith(
-      caches.match(request).then((cachedResponse) => {
-        if (cachedResponse) {
-          return cachedResponse;
-        }
-
-        return fetch(request).then((response) => {
-          if (!response || response.status !== 200 || response.type !== 'basic') {
-            return response;
-          }
-
-          const responseToCache = response.clone();
-          caches.open(RUNTIME_CACHE).then((cache) => {
-            cache.put(request, responseToCache);
-          });
-
-          return response;
-        });
-      })
-    );
-  } else {
-    event.respondWith(fetch(request));
-  }
-});
-
-const aiPersistenceState = {
-  enabled: false,
-  aiEngineState: null,
-  lastActivity: null,
-  keepAliveInterval: null
-};
-
-function startKeepAlive() {
-  if (aiPersistenceState.keepAliveInterval) return;
-
-  aiPersistenceState.keepAliveInterval = setInterval(() => {
-    self.clients.matchAll().then(clients => {
-      if (clients.length === 0) {
-        stopKeepAlive();
-      }
-    });
-  }, 30000);
-}
-
-function stopKeepAlive() {
-  if (aiPersistenceState.keepAliveInterval) {
-    clearInterval(aiPersistenceState.keepAliveInterval);
-    aiPersistenceState.keepAliveInterval = null;
-  }
-}
-
-self.addEventListener('message', (event) => {
-  const { type, data } = event.data;
-
-  if (type === 'SKIP_WAITING') {
-    self.skipWaiting();
-    return;
-  }
-
-  if (type === 'ai-persistence-enable') {
-    aiPersistenceState.enabled = true;
-    aiPersistenceState.lastActivity = Date.now();
-    startKeepAlive();
-
-    event.ports[0]?.postMessage({ type: 'ai-persistence-enabled' });
-
-    self.clients.matchAll().then(clients => {
-      clients.forEach(client => {
-        client.postMessage({ type: 'ai-persistence-enabled' });
-      });
-    });
-    return;
-  }
-
-  if (type === 'ai-persistence-disable') {
-    aiPersistenceState.enabled = false;
-    aiPersistenceState.aiEngineState = null;
-    stopKeepAlive();
-
-    event.ports[0]?.postMessage({ type: 'ai-persistence-disabled' });
-
-    self.clients.matchAll().then(clients => {
-      clients.forEach(client => {
-        client.postMessage({ type: 'ai-persistence-disabled' });
-      });
-    });
-    return;
-  }
-
-  if (type === 'ai-persistence-status') {
-    const status = {
-      enabled: aiPersistenceState.enabled,
-      hasState: !!aiPersistenceState.aiEngineState,
-      lastActivity: aiPersistenceState.lastActivity
-    };
-
-    event.ports[0]?.postMessage({ type: 'ai-persistence-status', status });
-
-    if (event.source) {
-      event.source.postMessage({ type: 'ai-persistence-status', status });
-    }
-    return;
-  }
-
-  if (type === 'ai-persistence-store') {
-    if (aiPersistenceState.enabled) {
-      aiPersistenceState.aiEngineState = data;
-      aiPersistenceState.lastActivity = Date.now();
-      event.ports[0]?.postMessage({ type: 'ai-persistence-stored', success: true });
-    } else {
-      event.ports[0]?.postMessage({ type: 'ai-persistence-stored', success: false });
-    }
-    return;
-  }
-
-  if (type === 'ai-persistence-retrieve') {
-    event.ports[0]?.postMessage({
-      type: 'ai-persistence-retrieved',
-      state: aiPersistenceState.aiEngineState
-    });
-    return;
-  }
-
-  if (type === 'ai-persistence-clear') {
-    aiPersistenceState.aiEngineState = null;
-    event.ports[0]?.postMessage({ type: 'ai-persistence-cleared' });
-    return;
-  }
-});
-`;
-
-      const blob = new Blob([swCode], { type: 'application/javascript' });
-      const swUrl = URL.createObjectURL(blob);
-
-      navigator.serviceWorker.register(swUrl).then(registration => {
-        console.log('[ServiceWorker] Registered successfully (inline)');
-
-        navigator.serviceWorker.addEventListener('message', (event) => {
-          if (event.data.type === 'ai-persistence-enabled' || event.data.type === 'ai-persistence-disabled') {
-            if (typeof AI !== 'undefined' && AI.updateAIStatusDisplay) {
-              AI.updateAIStatusDisplay();
-            }
-          }
-        });
-      }).catch(err => {
+      navigator.serviceWorker.register('/sw.js').catch(err => {
         console.warn('[ServiceWorker] Registration failed - this is expected in development mode and does not affect functionality:', err.message);
       });
     }
   </script>
   <!-- <script src="/file-manager-advanced.js"></script> -->
-
-  <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@type": "WebApplication",
-    "name": "WebOS Québec",
-    "description": "Système d'exploitation gouvernemental souverain dédié à l'architecture cellulaire avancée.",
-    "applicationCategory": "OperatingSystem",
-    "operatingSystem": "Web",
-    "offers": {
-      "@type": "Offer",
-      "price": "0",
-      "priceCurrency": "CAD"
-    }
-  }
-  </script>
-
-  <footer role="contentinfo" style="position: absolute; bottom: 0; left: 0; right: 0; text-align: center; padding: 10px; font-size: 12px; color: rgba(255,255,255,0.6); z-index: 1;"><p>&copy; 2023 WebOS Québec. Tous droits réservés.</p></footer>
+  <footer style="position: absolute; bottom: 0; left: 0; right: 0; text-align: center; padding: 10px; font-size: 12px; color: rgba(255,255,255,0.6); z-index: 1;"><p>&copy; 2023 WebOS Québec. Tous droits réservés.</p></footer>
 </body>
 </html>
