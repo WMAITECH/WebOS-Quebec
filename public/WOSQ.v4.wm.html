@@ -3906,8 +3906,14 @@ Tu dois TOUJOURS expliquer pourquoi tu veux effectuer une action avant de la dem
         if (!statusEl) return;
 
         if (!isReady) {
-          statusEl.textContent = 'IA: Non chargée';
-          statusEl.style.color = '#9ca3af';
+          if (!window.crossOriginIsolated) {
+            statusEl.textContent = 'Mode Standard';
+            statusEl.style.color = '#9ca3af';
+            statusEl.title = 'IA locale non disponible (servir via HTTP pour activer)';
+          } else {
+            statusEl.textContent = 'IA: Chargement...';
+            statusEl.style.color = '#f59e0b';
+          }
           return;
         }
 
@@ -7063,61 +7069,46 @@ Tu dois TOUJOURS expliquer pourquoi tu veux effectuer une action avant de la dem
 
         cmdServe(args) {
           this.writeLine('╔════════════════════════════════════════════════════════╗');
-          this.writeLine('║  WOSQ HTTP Server - Serveur avec COOP/COEP            ║');
+          this.writeLine('║  WOSQ - Diagnostic Système                            ║');
           this.writeLine('╚════════════════════════════════════════════════════════╝');
           this.writeLine('');
 
           if (!window.crossOriginIsolated) {
-            this.writeLine('⚠️  Cross-Origin Isolation NON détecté');
+            this.writeLine('📊 Status: Mode Standard');
             this.writeLine('');
-            this.writeLine('Le Service Worker va activer les headers COOP/COEP.');
-            this.writeLine('Cela permettra à WebLLM et aux fonctionnalités IA');
-            this.writeLine('de fonctionner correctement.');
+            this.writeLine('Toutes les fonctionnalités principales sont disponibles.');
+            this.writeLine('L\'IA locale (optionnelle) nécessite un serveur HTTP.');
             this.writeLine('');
-            this.writeLine('🔄 Préparation du serveur...');
-
-            setTimeout(() => {
-              this.writeLine('');
-              this.writeLine('✅ Service Worker configuré avec headers COOP/COEP');
-              this.writeLine('');
-              this.writeLine('📋 Instructions:');
-              this.writeLine('   1. Le fichier doit être servi via HTTP/HTTPS');
-              this.writeLine('   2. Options recommandées:');
-              this.writeLine('');
-              this.writeLine('   • Python (serveur inclus):');
-              this.writeLine('     $ python server.py');
-              this.writeLine('     Puis: http://localhost:8000/WOSQ.v4.wm.html');
-              this.writeLine('');
-              this.writeLine('   • npm/Vite:');
-              this.writeLine('     $ npm run dev');
-              this.writeLine('     Puis: http://localhost:5173/WOSQ.v4.wm.html');
-              this.writeLine('');
-              this.writeLine('   • Node http-server:');
-              this.writeLine('     $ npx http-server -p 8000 --cors');
-              this.writeLine('');
-              this.writeLine('💡 Une fois servi via HTTP, rafraîchissez la page');
-              this.writeLine('   et Cross-Origin Isolation sera activé.');
-              this.writeLine('');
-              this.writeLine('📖 Voir README-CHROME.md pour plus de détails');
-            }, 500);
+            this.writeLine('Fonctionnalités actives:');
+            this.writeLine('  ✓ Interface WebOS complète');
+            this.writeLine('  ✓ Gestionnaire de fichiers');
+            this.writeLine('  ✓ Terminal bash');
+            this.writeLine('  ✓ Applications (Messages, Mail, OSINT)');
+            this.writeLine('  ✓ Authentification Supabase');
+            this.writeLine('  ✓ Stockage local');
+            this.writeLine('');
+            this.writeLine('Fonctionnalités optionnelles (nécessitent HTTP):');
+            this.writeLine('  • IA locale WebLLM');
+            this.writeLine('  • Commandes: aipersist, aicache');
+            this.writeLine('');
+            this.writeLine('Pour activer l\'IA locale (optionnel):');
+            this.writeLine('  $ python server.py');
+            this.writeLine('  Puis: http://localhost:8000/WOSQ.v4.wm.html');
           } else {
-            this.writeLine('✅ Cross-Origin Isolation ACTIF');
+            this.writeLine('📊 Status: Mode Complet ✓');
             this.writeLine('');
-            this.writeLine('Le serveur est déjà correctement configuré!');
+            this.writeLine('Toutes les fonctionnalités sont disponibles!');
             this.writeLine('');
-            this.writeLine('📊 Status:');
-            this.writeLine(`   • URL: ${window.location.href}`);
-            this.writeLine('   • COOP: same-origin ✓');
-            this.writeLine('   • COEP: credentialless ✓');
-            this.writeLine('   • SharedArrayBuffer: ' + (typeof SharedArrayBuffer !== 'undefined' ? '✓' : '✗'));
-            this.writeLine('   • WebAssembly: ' + (typeof WebAssembly !== 'undefined' ? '✓' : '✗'));
+            this.writeLine('Système:');
+            this.writeLine(`  • URL: ${window.location.protocol}//${window.location.host}`);
+            this.writeLine('  • Cross-Origin Isolation: ✓');
+            this.writeLine('  • SharedArrayBuffer: ' + (typeof SharedArrayBuffer !== 'undefined' ? '✓' : '✗'));
+            this.writeLine('  • WebAssembly: ' + (typeof WebAssembly !== 'undefined' ? '✓' : '✗'));
             this.writeLine('');
-            this.writeLine('🤖 Fonctionnalités IA disponibles:');
-            this.writeLine('   • WebLLM (modèles locaux)');
-            this.writeLine('   • Commande: aipersist enable');
-            this.writeLine('   • Commande: aicache stats');
-            this.writeLine('');
-            this.writeLine('Tout est prêt pour une utilisation complète!');
+            this.writeLine('Fonctionnalités IA disponibles:');
+            this.writeLine('  • WebLLM (modèles locaux)');
+            this.writeLine('  • aipersist - Gestion persistence');
+            this.writeLine('  • aicache - Gestion cache modèles');
           }
         },
 
@@ -11272,94 +11263,13 @@ Tu dois TOUJOURS expliquer pourquoi tu veux effectuer une action avant de la dem
     console.log('WebOS Québec v1.0 - Système de logs activé');
     console.info('Tous les logs de la console (F12) apparaissent maintenant dans le Moniteur Système');
 
-    // Check Cross-Origin Isolation
-    function checkCrossOriginIsolation() {
-      if (!window.crossOriginIsolated) {
-        console.warn('[WOSQ] Cross-Origin Isolation non activé');
-        console.warn('[WOSQ] Les fonctionnalités IA WebLLM ne seront pas disponibles');
-        console.info('[WOSQ] Solutions:');
-        console.info('  1. Utiliser un serveur HTTP avec headers COOP/COEP');
-        console.info('  2. Serveur Python: python -m http.server 8000');
-        console.info('  3. npm run dev (dans le projet Vite)');
-
-        setTimeout(() => {
-          const notification = document.createElement('div');
-          notification.style.cssText = `
-            position: fixed;
-            top: 60px;
-            right: 20px;
-            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-            color: white;
-            padding: 20px;
-            border-radius: 12px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
-            z-index: 100000;
-            max-width: 400px;
-            font-family: system-ui, -apple-system, sans-serif;
-            animation: slideIn 0.3s ease-out;
-          `;
-
-          notification.innerHTML = `
-            <div style="display: flex; align-items: start; gap: 12px;">
-              <div style="font-size: 24px;">⚠️</div>
-              <div style="flex: 1;">
-                <div style="font-weight: bold; margin-bottom: 8px; font-size: 16px;">Mode Dégradé</div>
-                <div style="font-size: 14px; line-height: 1.5; margin-bottom: 12px;">
-                  Cross-Origin Isolation désactivé. Les fonctionnalités IA WebLLM ne sont pas disponibles.
-                </div>
-                <div style="font-size: 12px; opacity: 0.9; line-height: 1.4;">
-                  <strong>Pour activer l'IA locale:</strong><br>
-                  • Servez le fichier via HTTP (pas file://)<br>
-                  • Utilisez: <code style="background: rgba(0,0,0,0.2); padding: 2px 6px; border-radius: 4px;">npm run dev</code><br>
-                  • Ou Python: <code style="background: rgba(0,0,0,0.2); padding: 2px 6px; border-radius: 4px;">python -m http.server</code>
-                </div>
-                <div style="display: flex; gap: 8px; margin-top: 12px;">
-                  <button onclick="this.parentElement.parentElement.parentElement.parentElement.remove(); WebOS.Apps.Terminal.open(); setTimeout(() => { const input = document.getElementById('terminalInput'); if (input) { input.value = 'serve'; input.focus(); WebOS.Apps.Terminal.execute(); } }, 600);"
-                    style="flex: 1; background: rgba(255,255,255,0.9); border: 1px solid rgba(255,255,255,0.3); color: #d97706; padding: 6px 16px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600;">
-                    📋 Voir Instructions
-                  </button>
-                  <button onclick="this.parentElement.parentElement.parentElement.parentElement.remove()"
-                    style="flex: 1; background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: white; padding: 6px 16px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 500;">
-                    Compris
-                  </button>
-                </div>
-              </div>
-            </div>
-          `;
-
-          const style = document.createElement('style');
-          style.textContent = `
-            @keyframes slideIn {
-              from {
-                transform: translateX(120%);
-                opacity: 0;
-              }
-              to {
-                transform: translateX(0);
-                opacity: 1;
-              }
-            }
-          `;
-          document.head.appendChild(style);
-          document.body.appendChild(notification);
-
-          setTimeout(() => {
-            notification.style.transition = 'opacity 0.3s ease-out, transform 0.3s ease-out';
-            setTimeout(() => {
-              if (notification.parentElement) {
-                notification.style.opacity = '0';
-                notification.style.transform = 'translateX(120%)';
-                setTimeout(() => notification.remove(), 300);
-              }
-            }, 15000);
-          }, 100);
-        }, 2000);
-      } else {
-        console.log('[WOSQ] ✓ Cross-Origin Isolation activé - IA WebLLM disponible');
-      }
+    // Silent Cross-Origin Isolation check
+    if (!window.crossOriginIsolated) {
+      console.info('[WOSQ] Mode standard - Fonctionnement normal sans IA locale');
+      console.info('[WOSQ] Pour activer WebLLM: servir via HTTP avec headers COOP/COEP');
+    } else {
+      console.log('[WOSQ] ✓ Cross-Origin Isolation activé - IA WebLLM disponible');
     }
-
-    checkCrossOriginIsolation();
 
     // Start the system
     initialize().catch(console.error);
