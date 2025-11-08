@@ -7121,14 +7121,6 @@ Tu dois TOUJOURS expliquer pourquoi tu veux effectuer une action avant de la dem
           }
         },
 
-        executeCommand(command) {
-          const input = document.getElementById('terminalInput');
-          if (input) {
-            input.value = command;
-            this.execute();
-          }
-        },
-
         writeLine(text) {
           const output = document.getElementById('terminalOutput');
           if (!output) return;
@@ -11322,7 +11314,7 @@ Tu dois TOUJOURS expliquer pourquoi tu veux effectuer une action avant de la dem
                   • Ou Python: <code style="background: rgba(0,0,0,0.2); padding: 2px 6px; border-radius: 4px;">python -m http.server</code>
                 </div>
                 <div style="display: flex; gap: 8px; margin-top: 12px;">
-                  <button onclick="WebOS.Apps.Terminal.open(); setTimeout(() => WebOS.Apps.Terminal.executeCommand('serve'), 500); this.parentElement.parentElement.parentElement.parentElement.remove();"
+                  <button onclick="this.parentElement.parentElement.parentElement.parentElement.remove(); WebOS.Apps.Terminal.open(); setTimeout(() => { const input = document.getElementById('terminalInput'); if (input) { input.value = 'serve'; input.focus(); WebOS.Apps.Terminal.execute(); } }, 600);"
                     style="flex: 1; background: rgba(255,255,255,0.9); border: 1px solid rgba(255,255,255,0.3); color: #d97706; padding: 6px 16px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600;">
                     📋 Voir Instructions
                   </button>
