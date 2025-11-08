@@ -3775,7 +3775,146 @@ Tu dois TOUJOURS expliquer pourquoi tu veux effectuer une action avant de la dem
     }
 
     // ============================================
-    // WEBLLM INTEGRATION
+    // OPFS CACHE MANAGER - Advanced Persistent Storage
+    // ============================================
+    const OPFSCacheManager = (() => {
+      const CACHE_VERSION = 'v1';
+      const MODEL_CACHE_KEY = `webllm-model-${CONFIG.webllm.model}-${CACHE_VERSION}`;
+
+      async function getOPFSRoot() {
+        if (!navigator.storage || !navigator.storage.getDirectory) {
+          throw new Error('OPFS not supported');
+        }
+        return await navigator.storage.getDirectory();
+      }
+
+      async function getCachedModel() {
+        try {
+          const root = await getOPFSRoot();
+          const modelDir = await root.getDirectoryHandle('webllm-cache', { create: false });
+          const modelFile = await modelDir.getFileHandle(MODEL_CACHE_KEY, { create: false });
+          const file = await modelFile.getFile();
+          const metadata = await getCacheMetadata();
+
+          console.log('[OPFS] Cache found:', {
+            size: (file.size / 1024 / 1024).toFixed(2) + ' MB',
+            lastAccess: new Date(metadata.lastAccess).toLocaleString(),
+            model: metadata.model
+          });
+
+          return { file, metadata };
+        } catch (error) {
+          console.log('[OPFS] No cache found:', error.message);
+          return null;
+        }
+      }
+
+      async function cacheModel(data) {
+        try {
+          const root = await getOPFSRoot();
+          const modelDir = await root.getDirectoryHandle('webllm-cache', { create: true });
+          const modelFile = await modelDir.getFileHandle(MODEL_CACHE_KEY, { create: true });
+          const writable = await modelFile.createWritable();
+
+          await writable.write(data);
+          await writable.close();
+
+          await saveCacheMetadata({
+            model: CONFIG.webllm.model,
+            version: CACHE_VERSION,
+            cachedAt: Date.now(),
+            lastAccess: Date.now(),
+            size: data.size || data.byteLength
+          });
+
+          console.log('[OPFS] Model cached successfully');
+          return true;
+        } catch (error) {
+          console.error('[OPFS] Failed to cache model:', error);
+          return false;
+        }
+      }
+
+      async function getCacheMetadata() {
+        try {
+          const root = await getOPFSRoot();
+          const metaFile = await root.getFileHandle('cache-metadata.json', { create: false });
+          const file = await metaFile.getFile();
+          const text = await file.text();
+          return JSON.parse(text);
+        } catch {
+          return null;
+        }
+      }
+
+      async function saveCacheMetadata(metadata) {
+        try {
+          const root = await getOPFSRoot();
+          const metaFile = await root.getFileHandle('cache-metadata.json', { create: true });
+          const writable = await metaFile.createWritable();
+          await writable.write(JSON.stringify(metadata, null, 2));
+          await writable.close();
+        } catch (error) {
+          console.error('[OPFS] Failed to save metadata:', error);
+        }
+      }
+
+      async function updateLastAccess() {
+        const metadata = await getCacheMetadata();
+        if (metadata) {
+          metadata.lastAccess = Date.now();
+          await saveCacheMetadata(metadata);
+        }
+      }
+
+      async function clearCache() {
+        try {
+          const root = await getOPFSRoot();
+          await root.removeEntry('webllm-cache', { recursive: true });
+          await root.removeEntry('cache-metadata.json');
+          console.log('[OPFS] Cache cleared');
+          return true;
+        } catch (error) {
+          console.error('[OPFS] Failed to clear cache:', error);
+          return false;
+        }
+      }
+
+      async function getCacheStats() {
+        try {
+          const metadata = await getCacheMetadata();
+          if (!metadata) return null;
+
+          const estimate = await navigator.storage.estimate();
+
+          return {
+            model: metadata.model,
+            version: metadata.version,
+            size: (metadata.size / 1024 / 1024).toFixed(2) + ' MB',
+            cachedAt: new Date(metadata.cachedAt).toLocaleString(),
+            lastAccess: new Date(metadata.lastAccess).toLocaleString(),
+            storageUsed: (estimate.usage / 1024 / 1024).toFixed(2) + ' MB',
+            storageQuota: (estimate.quota / 1024 / 1024 / 1024).toFixed(2) + ' GB',
+            storagePercent: ((estimate.usage / estimate.quota) * 100).toFixed(1) + '%'
+          };
+        } catch (error) {
+          console.error('[OPFS] Failed to get cache stats:', error);
+          return null;
+        }
+      }
+
+      return {
+        getCachedModel,
+        cacheModel,
+        updateLastAccess,
+        clearCache,
+        getCacheStats,
+        isSupported: () => !!navigator.storage?.getDirectory
+      };
+    })();
+
+    // ============================================
+    // WEBLLM INTEGRATION WITH OPFS CACHE
     // ============================================
     const AI = (() => {
       let engine = null;
@@ -3850,18 +3989,45 @@ Tu dois TOUJOURS expliquer pourquoi tu veux effectuer une action avant de la dem
             throw new Error(errorMsg);
           }
 
+          if (OPFSCacheManager.isSupported()) {
+            console.log('[AI] OPFS cache available - checking for cached model...');
+            if (statusEl) statusEl.textContent = 'IA: Vérification du cache...';
+
+            const cachedModel = await OPFSCacheManager.getCachedModel();
+            if (cachedModel) {
+              console.log('[AI] Using cached model - instant load!');
+              if (statusEl) {
+                statusEl.textContent = 'IA: Chargement depuis le cache...';
+                statusEl.style.color = '#10b981';
+              }
+              await OPFSCacheManager.updateLastAccess();
+            } else {
+              console.log('[AI] No cache found - will download and cache');
+            }
+          } else {
+            console.warn('[AI] OPFS not supported - cache disabled');
+          }
+
           if (statusEl) statusEl.textContent = 'IA: Chargement du module...';
 
           const { CreateMLCEngine } = await loadWebLLMWithRetry();
 
-          if (statusEl) statusEl.textContent = 'IA: Téléchargement du modèle...';
+          if (statusEl) statusEl.textContent = 'IA: Initialisation du modèle...';
 
+          let isFirstDownload = true;
           const progressCallback = (report) => {
             const percent = Math.round(report.progress * 100);
             if (statusEl) {
-              statusEl.textContent = `IA: ${report.text || 'téléchargement'} ${percent}%`;
+              const cacheStatus = OPFSCacheManager.isSupported() ? ' (cache activé)' : '';
+              statusEl.textContent = `IA: ${report.text || 'téléchargement'} ${percent}%${cacheStatus}`;
               statusEl.style.color = '#f59e0b';
             }
+
+            if (isFirstDownload && percent > 0) {
+              isFirstDownload = false;
+              console.log('[AI] First download detected - will cache for future use');
+            }
+
             console.log(`[AI] ${report.text} - ${percent}%`);
           };
 
@@ -3869,12 +4035,16 @@ Tu dois TOUJOURS expliquer pourquoi tu veux effectuer une action avant de la dem
           console.log('[AI] Browser:', navigator.userAgent);
           console.log('[AI] WebGPU available:', !!navigator.gpu);
           console.log('[AI] WebAssembly available:', typeof WebAssembly !== 'undefined');
+          console.log('[AI] OPFS Cache:', OPFSCacheManager.isSupported() ? 'Enabled' : 'Disabled');
 
           engine = await CreateMLCEngine(
             CONFIG.webllm.model,
             {
               initProgressCallback: progressCallback,
-              logLevel: 'INFO'
+              logLevel: 'INFO',
+              appConfig: {
+                useIndexedDBCache: true
+              }
             }
           );
 
@@ -3886,7 +4056,12 @@ Tu dois TOUJOURS expliquer pourquoi tu veux effectuer une action avant de la dem
             statusEl.style.color = '#10b981';
           }
 
-          Kernel.emit('ai:ready', { model: CONFIG.webllm.model });
+          const stats = await OPFSCacheManager.getCacheStats();
+          if (stats) {
+            console.log('[AI] Cache Stats:', stats);
+          }
+
+          Kernel.emit('ai:ready', { model: CONFIG.webllm.model, cached: !!stats });
           console.log('[AI] Successfully initialized');
           return true;
         } catch (error) {
@@ -3947,7 +4122,9 @@ Tu dois TOUJOURS expliquer pourquoi tu veux effectuer une action avant de la dem
       return {
         initialize,
         chat,
-        isReady: () => isReady
+        isReady: () => isReady,
+        getCacheStats: () => OPFSCacheManager.getCacheStats(),
+        clearCache: () => OPFSCacheManager.clearCache()
       };
     })();
 
@@ -6185,6 +6362,10 @@ Tu dois TOUJOURS expliquer pourquoi tu veux effectuer une action avant de la dem
               this.cmdWhich(args);
               break;
 
+            case 'aicache':
+              await this.cmdAICache(args);
+              break;
+
             case 'whereis':
               this.writeLine(`${args[0]}: /usr/bin/${args[0]}`);
               break;
@@ -6309,6 +6490,9 @@ Tu dois TOUJOURS expliquer pourquoi tu veux effectuer une action avant de la dem
           this.writeLine('  /ping            - Test de connectivité');
           this.writeLine('  /ifconfig, /ip   - Configuration réseau');
           this.writeLine('  /netstat         - Statistiques réseau');
+          this.writeLine('');
+          this.writeLine('Intelligence Artificielle:');
+          this.writeLine('  /aicache         - Gestion du cache WebLLM');
           this.writeLine('');
           this.writeLine('Autres:');
           this.writeLine('  /echo, /printf   - Affiche du texte');
@@ -6698,6 +6882,61 @@ Tu dois TOUJOURS expliquer pourquoi tu veux effectuer une action avant de la dem
             this.writeLine(`/usr/bin/${args[0]}`);
           } else {
             this.writeLine(`which: aucun ${args[0]} dans (${this.environment.PATH})`);
+          }
+        },
+
+        async cmdAICache(args) {
+          const subcommand = args[0] || 'stats';
+
+          switch (subcommand) {
+            case 'stats':
+            case 'info':
+              this.writeLine('=== WebLLM Cache Statistics ===');
+              this.writeLine('');
+
+              const stats = await AI.getCacheStats();
+              if (stats) {
+                this.writeLine(`Model: ${stats.model}`);
+                this.writeLine(`Cache Version: ${stats.version}`);
+                this.writeLine(`Size: ${stats.size}`);
+                this.writeLine(`Cached At: ${stats.cachedAt}`);
+                this.writeLine(`Last Access: ${stats.lastAccess}`);
+                this.writeLine('');
+                this.writeLine('=== Storage Information ===');
+                this.writeLine(`Used: ${stats.storageUsed}`);
+                this.writeLine(`Quota: ${stats.storageQuota}`);
+                this.writeLine(`Usage: ${stats.storagePercent}`);
+              } else {
+                this.writeLine('No cache found or OPFS not supported');
+              }
+              break;
+
+            case 'clear':
+              this.writeLine('Clearing WebLLM cache...');
+              const result = await AI.clearCache();
+              if (result) {
+                this.writeLine('✓ Cache cleared successfully');
+                this.writeLine('Note: The model will be re-downloaded on next AI initialization');
+              } else {
+                this.writeLine('✗ Failed to clear cache');
+              }
+              break;
+
+            case 'help':
+              this.writeLine('aicache - Manage WebLLM model cache');
+              this.writeLine('');
+              this.writeLine('Usage:');
+              this.writeLine('  aicache [stats|info]  - Show cache statistics (default)');
+              this.writeLine('  aicache clear         - Clear the cached model');
+              this.writeLine('  aicache help          - Show this help message');
+              this.writeLine('');
+              this.writeLine('The cache uses OPFS (Origin Private File System) to persist');
+              this.writeLine('the WebLLM model across sessions, avoiding re-downloads.');
+              break;
+
+            default:
+              this.writeLine(`aicache: unknown command '${subcommand}'`);
+              this.writeLine('Try: aicache help');
           }
         },
 
