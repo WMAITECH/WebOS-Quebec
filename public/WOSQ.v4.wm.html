@@ -876,16 +876,124 @@
         topP: 0.95,
         maxTokens: 2048,
         contextWindow: 8192,
-        systemPrompt: `Tu es l'agent orchestrateur central de WebOS Québec.
+        systemPrompt: `Tu es l'Agent Orchestrateur Central de WebOS Québec (WOSQ v4).
 
-Tu peux interagir avec le système via des tool-calls. AVANT chaque action, tu DOIS demander la permission.
+# ARCHITECTURE SYSTÈME COMPLÈTE
 
-Outils disponibles:
-- file_service: {action: 'list'|'read'|'write'|'delete', params: {path, content?}}
-- mail_service: {action: 'list'|'send'|'read', params: {to?, subject?, body?, id?}}
-- messages_service: {action: 'list'|'send'|'read', params: {conversationId?, content?, userId?}}
-- notification_service: {action: 'send'|'list'|'clear', params: {title?, message?, priority?}}
-- ui_control: {action: 'open_app'|'click_element', params: {appName?, selector?}}
+## KERNEL - Cœur du Système
+- Architecture cellulaire multi-processus
+- Processus: database-module, sync-provider, ui-orchestrator
+- Événements: process:created, process:terminated, db:updated, peer:discovered
+- Commandes: Kernel.createProcess(), Kernel.sendRequest(), Kernel.emit()
+
+## FILESYSTEM (OPFS - Origin Private File System)
+- Système de fichiers natif navigateur
+- Persistance locale garantie
+- Opérations: FileSystem.readFile(path), FileSystem.writeFile(path, content), FileSystem.listDir(path)
+- Structure: /home/user/, /system/, /tmp/
+
+## APPLICATIONS DISPONIBLES
+1. **Messages** - Apps.Messages.open()
+   - Conversations temps réel via Supabase
+   - WebRTC peer-to-peer
+   - Participants multiples
+
+2. **Mail** - Apps.Mail.open()
+   - Client email complet
+   - Envoi/réception via Supabase edge functions
+   - Pièces jointes (Storage buckets)
+
+3. **OSINT Search** - Apps.OSINTSearch.open()
+   - Recherche multi-sources intelligente
+   - NLP pour analyse de requêtes
+   - Agrégation de données publiques
+
+4. **File Manager** - Apps.FileManager.open()
+   - Interface graphique OPFS
+   - Upload/download
+   - Prévisualisation fichiers
+
+5. **Terminal** - Apps.Terminal.open()
+   - 50+ commandes bash-like
+   - ls, cat, echo, rm, mkdir, serve, aipersist, etc.
+
+6. **Task Manager** - Apps.TaskManager.open()
+   - Monitoring processus Kernel
+   - Métriques CPU/RAM/Réseau
+   - Kill/restart processus
+
+7. **System Monitor** - Apps.SystemMonitor.open()
+   - Logs temps réel
+   - Console.log() capture
+   - Filtrage par niveau
+
+## WINDOW MANAGER
+- WindowManager.create(id, title, content, options)
+- Fenêtres draggables, redimensionnables
+- Minimise/maximise/ferme
+- Z-index dynamique
+- Multi-fenêtres simultanées
+
+## SUPABASE BACKEND
+Tables actives:
+- users (auth.users)
+- conversations + conversation_participants + messages
+- email_accounts + emails + email_attachments
+- osint_searches + osint_results + osint_sources
+- files (metadata)
+- notifications
+- telemetry
+
+Storage buckets:
+- message-attachments
+- email-attachments
+- user-files
+
+## NOTIFICATIONS
+- Notifications.show(title, message, options)
+- NotificationCenter (centre de notifications topbar)
+- Temps réel via Supabase Realtime
+- Badge compteur non-lus
+
+## AI SYSTÈME (TOI)
+- Modèle: Llama 3.2 3B Instruct (quantized q4f32_1)
+- WebLLM local dans le navigateur
+- Cache IndexedDB pour persistance
+- WebGPU pour accélération matérielle
+- Tu as accès à TOUT via tool-calls
+
+## SERVICE WORKER
+- Cache assets statiques
+- Headers COOP/COEP pour SharedArrayBuffer
+- Persistance modèle IA
+- Fetch interceptor
+
+## ÉTAT SYSTÈME ACTUEL
+Tu peux obtenir l'état en temps réel:
+- Kernel.getProcesses() → liste processus actifs
+- WindowManager.getWindows() → fenêtres ouvertes
+- currentUser → utilisateur connecté (id, email, metadata)
+- FileSystem.listDir('/') → fichiers racine
+
+# OUTILS DISPONIBLES
+
+## file_service
+{action: 'list'|'read'|'write'|'delete', params: {path, content?}}
+
+## mail_service
+{action: 'list'|'send'|'read', params: {to?, subject?, body?, id?}}
+
+## messages_service
+{action: 'list'|'send'|'read', params: {conversationId?, content?, userId?}}
+
+## notification_service
+{action: 'send'|'list'|'clear', params: {title?, message?, priority?}}
+
+## ui_control
+{action: 'open_app'|'close_app'|'list_windows', params: {appName?, windowId?}}
+
+## system_query
+{action: 'get_processes'|'get_windows'|'get_user'|'get_logs', params: {filter?}}
 
 Format de tool-call:
 <TOOL_CALL>
@@ -893,11 +1001,18 @@ Format de tool-call:
   "tool": "nom_du_service",
   "action": "action_a_effectuer",
   "params": {},
-  "reason": "raison humaine de cette action"
+  "reason": "explication claire pour l'utilisateur"
 }
 </TOOL_CALL>
 
-Tu dois TOUJOURS expliquer pourquoi tu veux effectuer une action avant de la demander.`
+RÈGLES:
+1. TOUJOURS demander permission avant action
+2. EXPLIQUER clairement ce que tu vas faire
+3. Utiliser les noms EXACTS des apps (Messages, Mail, OSINTSearch, etc.)
+4. Toujours vérifier l'état système avant agir
+5. Être proactif: suggérer des actions utiles
+
+Tu vois TOUT, tu contrôles TOUT. Sois l'assistant parfait.`
       },
       mouseBehavior: {
         enabled: true,
@@ -1911,6 +2026,39 @@ Tu dois TOUJOURS expliquer pourquoi tu veux effectuer une action avant de la dem
         return { isToolCall: false };
       },
 
+      async getSystemContext() {
+        try {
+          const processes = Kernel.getProcesses().map(p => p.name);
+          const windows = Array.from(document.querySelectorAll('.window'))
+            .filter(w => w.style.display !== 'none')
+            .map(w => w.querySelector('.window-title')?.textContent);
+
+          const user = currentUser ? {
+            email: currentUser.email,
+            id: currentUser.id.substring(0, 8)
+          } : null;
+
+          const context = `
+# ÉTAT SYSTÈME ACTUEL (temps réel)
+
+Utilisateur connecté: ${user ? user.email : 'Non connecté'}
+Processus actifs: ${processes.length > 0 ? processes.join(', ') : 'Aucun'}
+Fenêtres ouvertes: ${windows.length > 0 ? windows.join(', ') : 'Aucune'}
+
+URL actuelle: ${window.location.href}
+Cross-Origin Isolation: ${window.crossOriginIsolated ? 'Activé ✓' : 'Désactivé'}
+Service Worker: ${navigator.serviceWorker?.controller ? 'Actif ✓' : 'Inactif'}
+
+Heure système: ${new Date().toLocaleString('fr-CA')}
+`;
+
+          return context;
+        } catch (err) {
+          console.error('[AIBus] Erreur getSystemContext:', err);
+          return '';
+        }
+      },
+
       async executeToolCall(toolCall) {
         console.log('[AIBus] Executing tool call:', toolCall);
 
@@ -1926,7 +2074,61 @@ Tu dois TOUJOURS expliquer pourquoi tu veux effectuer une action avant de la dem
         }
 
         try {
+          if (toolCall.tool === 'system_query') {
+            switch (toolCall.action) {
+              case 'get_processes':
+                return {
+                  success: true,
+                  data: Kernel.getProcesses().map(p => ({
+                    pid: p.pid,
+                    name: p.name,
+                    status: p.status,
+                    created: p.created
+                  }))
+                };
+              case 'get_windows':
+                const windows = Array.from(document.querySelectorAll('.window')).map(w => ({
+                  id: w.id,
+                  title: w.querySelector('.window-title')?.textContent,
+                  visible: w.style.display !== 'none',
+                  minimized: w.classList.contains('minimized')
+                }));
+                return { success: true, data: windows };
+              case 'get_user':
+                return {
+                  success: true,
+                  data: currentUser ? {
+                    id: currentUser.id,
+                    email: currentUser.email,
+                    metadata: currentUser.user_metadata
+                  } : null
+                };
+              case 'get_logs':
+                const logEl = document.getElementById('systemLogs');
+                const logs = logEl ? Array.from(logEl.children).slice(-20).map(l => l.textContent) : [];
+                return { success: true, data: logs };
+              default:
+                return { success: false, error: 'Action inconnue' };
+            }
+          }
+
           if (toolCall.tool === 'ui_control') {
+            if (toolCall.action === 'list_windows') {
+              const windows = Array.from(document.querySelectorAll('.window')).map(w => ({
+                id: w.id,
+                title: w.querySelector('.window-title')?.textContent,
+                visible: w.style.display !== 'none'
+              }));
+              return { success: true, data: windows };
+            }
+            if (toolCall.action === 'close_app') {
+              const win = document.getElementById(toolCall.params.windowId);
+              if (win) {
+                win.remove();
+                return { success: true, message: 'Fenêtre fermée' };
+              }
+              return { success: false, error: 'Fenêtre non trouvée' };
+            }
             return await AIMouseController[toolCall.action === 'open_app' ? 'openApp' : 'clickElement'](
               toolCall.params.appName || toolCall.params.selector
             );
@@ -1956,8 +2158,11 @@ Tu dois TOUJOURS expliquer pourquoi tu veux effectuer une action avant de la dem
         }
 
         try {
+          const systemContext = await this.getSystemContext();
+          const enhancedSystemPrompt = CONFIG.webllm.systemPrompt + '\n\n' + systemContext;
+
           const messages = [
-            { role: "system", content: CONFIG.webllm.systemPrompt }
+            { role: "system", content: enhancedSystemPrompt }
           ];
 
           if (options.includeHistory && this.conversationHistory.length > 0) {
