@@ -2,8 +2,8 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <meta name="description" content="WOSQ v4.0 Cellular - Système d'exploitation souverain pour architecture cellulaire, intégrant Web Workers et CRDT pour une interactivité avancée.">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+  <meta name="description" content="WOSQ v4.0 Cellular - Système d'exploitation gouvernemental souverain dédié à l'architecture cellulaire avancée, intégrant des technologies comme les Web Workers et CRDT">
   <meta name="theme-color" content="#1e40af">
   <meta name="version" content="4.0.0-cellular">
   <meta name="architecture" content="cellular-multiprocess">
@@ -135,7 +135,7 @@
     })();
   </script>
 
-  <title>WOSQ v4.0 Cellular - Système d'Exploitation Souverain - Architecture Multi-Processus</title>
+  <title>WOSQ v4.0 Cellular - Architecture Multi-Processus Avancée</title>
 
   <style>
     * {
@@ -233,14 +233,12 @@
       transform: translateX(-50%);
       background: rgba(255, 255, 255, 0.25);
       backdrop-filter: blur(20px);
-      border-radius: 12px;
-      padding: 10px;
+      border-radius: 20px;
+      padding: 12px;
       display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
+      gap: 12px;
       box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
       border: 1px solid rgba(255, 255, 255, 0.3);
-      transition: padding 0.3s;
     }
 
     .dock-item {
@@ -266,7 +264,7 @@
       top: 0;
       left: 0;
       right: 0;
-      height: 50px;
+      height: 40px;
       flex-wrap: wrap;
       background: rgba(30, 64, 175, 0.98);
       display: flex;
@@ -274,7 +272,13 @@
       color: white;
       z-index: 9999;
       box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-      overflow: hidden;
+      overflow-x: auto;
+      overflow-y: hidden;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+      transform: translateZ(0);
+      backface-visibility: hidden;
+      will-change: transform;
     }
 
     .topbar::-webkit-scrollbar {
@@ -347,8 +351,8 @@
 
     .calendar-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-      gap: 8px;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 4px;
       margin-top: 12px;
     }
 
@@ -490,23 +494,6 @@
 
     .btn:hover {
       transform: translateY(-2px);
-    }
-
-    @media (max-width: 768px) { .btn { font-size: 14px; } }
-
-    .live-video-container {
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      z-index: 10005;
-      background: rgba(255, 255, 255, 0.8);
-      border-radius: 12px;
-      box-shadow: 0 10px 40px rgba(0,0,0,0.5);
-      padding: 10px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
     }
 
     .btn:disabled {
@@ -695,14 +682,7 @@
   </style>
 </head>
 <body>
-  <header><h1>Bienvenue sur WebOS Québec</h1></header>
-  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/webcam-easy/1.0.0/webcam-easy.min.js"></script>
-  <div id="webcam" style="display:none;"></div>
-  <div id="liveVideoContainer" class="live-video-container" style="display:none;">
-    <video id="liveVideo" autoplay style="width:100%; border-radius:12px; border:5px solid #1e40af;"></video>
-    <button class="btn" id="captureButton">Capture Image</button>
-  </div>
-  <button id="startWebcam">Démarrer Webcam</button>
+  <header style="position: absolute; top: -9999px; left: -9999px;"><h1>Bienvenue sur WebOS Québec</h1></header>
   <!-- Loading Screen -->
   <div id="loadingScreen" class="loading-screen">
     <div class="loading-spinner"></div>
@@ -762,13 +742,12 @@
   </div>
 
   <!-- Desktop Area -->
-  <div id="webcamFeedback" style="display:none; color: #10b981; text-align: center;">Webcam en cours d'utilisation.</div>
-  <main id="desktop" role="main" style="position: absolute; top: 50px; left: 0; right: 0; bottom: 0; display: flex; flex-direction: column;">
+  <main id="desktop" style="position: absolute; top: 40px; left: 0; right: 0; bottom: 0; display: none;">
     <!-- Windows will be inserted here -->
   </main>
 
   <!-- Top Bar -->
-  <nav aria-label="Navigation principale" role="navigation">
+  <nav aria-label="Navigation principale">
   <div id="topbar" class="topbar" style="display: none;">
     <div class="topbar-container">
       <div class="topbar-left">
@@ -793,7 +772,7 @@
   </nav>
 
   <!-- Dock -->
-  <div id="dock" class="dock" style="display: flex;">
+  <div id="dock" class="dock" style="display: none;">
     <div class="dock-item" onclick="WebOS.NotificationCenter.toggle()" title="Portail Citoyen - Notifications" id="dock-portal" style="position: relative;">
       <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#1e40af" stroke-width="2">
         <rect x="3" y="3" width="7" height="7"></rect>
@@ -10525,58 +10504,6 @@
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw.js').catch(err => {
         console.warn('[ServiceWorker] Registration failed - this is expected in development mode and does not affect functionality:', err.message);
-      });
-    }
-
-    // Webcam functionality
-    let webcam = null;
-    const startWebcamBtn = document.getElementById('startWebcam');
-    const captureBtn = document.getElementById('captureButton');
-    const liveVideo = document.getElementById('liveVideo');
-    const liveVideoContainer = document.getElementById('liveVideoContainer');
-    const webcamFeedback = document.getElementById('webcamFeedback');
-
-    if (startWebcamBtn) {
-      startWebcamBtn.addEventListener('click', async () => {
-        try {
-          if (typeof Webcam !== 'undefined') {
-            webcam = new Webcam(liveVideo, "user");
-            await webcam.start();
-            console.log("Webcam started");
-            liveVideoContainer.style.display = 'block';
-            if (webcamFeedback) webcamFeedback.style.display = 'block';
-          } else {
-            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-            liveVideo.srcObject = stream;
-            liveVideoContainer.style.display = 'block';
-            if (webcamFeedback) webcamFeedback.style.display = 'block';
-            console.log("Webcam started with native API");
-          }
-        } catch (err) {
-          console.error("Webcam not available", err);
-          alert("Erreur: Impossible d'accéder à la webcam");
-        }
-      });
-    }
-
-    if (captureBtn && liveVideo) {
-      captureBtn.addEventListener('click', () => {
-        try {
-          if (webcam && typeof webcam.snap === 'function') {
-            const picture = webcam.snap();
-            console.log("Image capturée: ", picture);
-          } else {
-            const canvas = document.createElement('canvas');
-            canvas.width = liveVideo.videoWidth;
-            canvas.height = liveVideo.videoHeight;
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(liveVideo, 0, 0);
-            const picture = canvas.toDataURL('image/png');
-            console.log("Image capturée: ", picture);
-          }
-        } catch (err) {
-          console.error("Erreur lors de la capture: ", err);
-        }
       });
     }
   </script>
