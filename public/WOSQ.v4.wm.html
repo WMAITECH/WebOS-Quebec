@@ -3901,6 +3901,45 @@ Tu dois TOUJOURS expliquer pourquoi tu veux effectuer une action avant de la dem
         return issues;
       }
 
+      function updateAIStatusDisplay() {
+        const statusEl = document.getElementById('aiStatus');
+        if (!statusEl) return;
+
+        if (!isReady) {
+          statusEl.textContent = 'IA: Non chargée';
+          statusEl.style.color = '#9ca3af';
+          return;
+        }
+
+        if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+          navigator.serviceWorker.controller.postMessage({ type: 'ai-persistence-status' });
+
+          const handler = (event) => {
+            if (event.data.type === 'ai-persistence-status') {
+              const status = event.data.status;
+              if (status.enabled) {
+                statusEl.textContent = 'IA: Prête ✓ (Persistant)';
+              } else {
+                statusEl.textContent = 'IA: Prête ✓';
+              }
+              statusEl.style.color = '#10b981';
+              navigator.serviceWorker.removeEventListener('message', handler);
+            }
+          };
+
+          navigator.serviceWorker.addEventListener('message', handler);
+          setTimeout(() => {
+            navigator.serviceWorker.removeEventListener('message', handler);
+            if (statusEl.textContent.startsWith('IA: Prête')) return;
+            statusEl.textContent = 'IA: Prête ✓';
+            statusEl.style.color = '#10b981';
+          }, 500);
+        } else {
+          statusEl.textContent = 'IA: Prête ✓';
+          statusEl.style.color = '#10b981';
+        }
+      }
+
       async function initialize() {
         if (isReady) return true;
         if (isLoading) return false;
@@ -3972,8 +4011,7 @@ Tu dois TOUJOURS expliquer pourquoi tu veux effectuer une action avant de la dem
           isLoading = false;
 
           if (statusEl) {
-            statusEl.textContent = 'IA: Prête ✓';
-            statusEl.style.color = '#10b981';
+            updateAIStatusDisplay();
           }
 
           const stats = await WebLLMCacheManager.getCacheStats();
@@ -4044,7 +4082,8 @@ Tu dois TOUJOURS expliquer pourquoi tu veux effectuer une action avant de la dem
         chat,
         isReady: () => isReady,
         getCacheStats: () => WebLLMCacheManager.getCacheStats(),
-        clearCache: () => WebLLMCacheManager.clearCache()
+        clearCache: () => WebLLMCacheManager.clearCache(),
+        updateAIStatusDisplay
       };
     })();
 
@@ -6286,6 +6325,10 @@ Tu dois TOUJOURS expliquer pourquoi tu veux effectuer une action avant de la dem
               await this.cmdAICache(args);
               break;
 
+            case 'aipersist':
+              await this.cmdAIPersist(args);
+              break;
+
             case 'whereis':
               this.writeLine(`${args[0]}: /usr/bin/${args[0]}`);
               break;
@@ -6413,6 +6456,7 @@ Tu dois TOUJOURS expliquer pourquoi tu veux effectuer une action avant de la dem
           this.writeLine('');
           this.writeLine('Intelligence Artificielle:');
           this.writeLine('  /aicache         - Gestion du cache WebLLM');
+          this.writeLine('  /aipersist       - Gestion de la persistence IA');
           this.writeLine('');
           this.writeLine('Autres:');
           this.writeLine('  /echo, /printf   - Affiche du texte');
@@ -6859,6 +6903,92 @@ Tu dois TOUJOURS expliquer pourquoi tu veux effectuer une action avant de la dem
             default:
               this.writeLine(`aicache: unknown command '${subcommand}'`);
               this.writeLine('Try: aicache help');
+          }
+        },
+
+        async cmdAIPersist(args) {
+          const subcommand = args[0];
+
+          if (!subcommand) {
+            this.writeLine('=== AI Engine Persistence Status ===');
+            this.writeLine('');
+
+            if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+              navigator.serviceWorker.controller.postMessage({
+                type: 'ai-persistence-status'
+              });
+
+              await new Promise(resolve => {
+                const handler = (event) => {
+                  if (event.data.type === 'ai-persistence-status') {
+                    const status = event.data.status;
+                    this.writeLine(`Status: ${status.enabled ? 'ENABLED' : 'DISABLED'}`);
+                    this.writeLine(`State: ${status.hasState ? 'Active' : 'Not active'}`);
+                    if (status.lastActivity) {
+                      this.writeLine(`Last Activity: ${new Date(status.lastActivity).toLocaleString()}`);
+                    }
+                    navigator.serviceWorker.removeEventListener('message', handler);
+                    resolve();
+                  }
+                };
+                navigator.serviceWorker.addEventListener('message', handler);
+                setTimeout(() => {
+                  navigator.serviceWorker.removeEventListener('message', handler);
+                  resolve();
+                }, 1000);
+              });
+            } else {
+              this.writeLine('Service Worker not available');
+            }
+
+            this.writeLine('');
+            this.writeLine('Use: aipersist enable|disable|help');
+            return;
+          }
+
+          switch (subcommand) {
+            case 'enable':
+              this.writeLine('Enabling AI persistence...');
+              if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+                navigator.serviceWorker.controller.postMessage({
+                  type: 'ai-persistence-enable'
+                });
+                this.writeLine('✓ AI persistence enabled');
+                this.writeLine('  AI engine state will be maintained across page reloads');
+              } else {
+                this.writeLine('✗ Service Worker not available');
+              }
+              break;
+
+            case 'disable':
+              this.writeLine('Disabling AI persistence...');
+              if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+                navigator.serviceWorker.controller.postMessage({
+                  type: 'ai-persistence-disable'
+                });
+                this.writeLine('✓ AI persistence disabled');
+                this.writeLine('  AI engine state will be cleared on page reload');
+              } else {
+                this.writeLine('✗ Service Worker not available');
+              }
+              break;
+
+            case 'help':
+              this.writeLine('aipersist - Manage AI Engine Persistence');
+              this.writeLine('');
+              this.writeLine('Usage:');
+              this.writeLine('  aipersist           - Show persistence status');
+              this.writeLine('  aipersist enable    - Enable AI state persistence');
+              this.writeLine('  aipersist disable   - Disable AI state persistence');
+              this.writeLine('  aipersist help      - Show this help message');
+              this.writeLine('');
+              this.writeLine('When enabled, the AI engine maintains its state across');
+              this.writeLine('page reloads, reducing initialization time.');
+              break;
+
+            default:
+              this.writeLine(`aipersist: unknown command '${subcommand}'`);
+              this.writeLine('Try: aipersist help');
           }
         },
 
@@ -11080,7 +11210,17 @@ Tu dois TOUJOURS expliquer pourquoi tu veux effectuer une action avant de la dem
 
     // Register Service Worker
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js').catch(err => {
+      navigator.serviceWorker.register('/sw.js').then(registration => {
+        console.log('[ServiceWorker] Registered successfully');
+
+        navigator.serviceWorker.addEventListener('message', (event) => {
+          if (event.data.type === 'ai-persistence-enabled' || event.data.type === 'ai-persistence-disabled') {
+            if (typeof AI !== 'undefined' && AI.updateAIStatusDisplay) {
+              AI.updateAIStatusDisplay();
+            }
+          }
+        });
+      }).catch(err => {
         console.warn('[ServiceWorker] Registration failed - this is expected in development mode and does not affect functionality:', err.message);
       });
     }
