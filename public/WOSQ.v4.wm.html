@@ -11205,6 +11205,89 @@ Tu dois TOUJOURS expliquer pourquoi tu veux effectuer une action avant de la dem
     console.log('WebOS Québec v1.0 - Système de logs activé');
     console.info('Tous les logs de la console (F12) apparaissent maintenant dans le Moniteur Système');
 
+    // Check Cross-Origin Isolation
+    function checkCrossOriginIsolation() {
+      if (!window.crossOriginIsolated) {
+        console.warn('[WOSQ] Cross-Origin Isolation non activé');
+        console.warn('[WOSQ] Les fonctionnalités IA WebLLM ne seront pas disponibles');
+        console.info('[WOSQ] Solutions:');
+        console.info('  1. Utiliser un serveur HTTP avec headers COOP/COEP');
+        console.info('  2. Serveur Python: python -m http.server 8000');
+        console.info('  3. npm run dev (dans le projet Vite)');
+
+        setTimeout(() => {
+          const notification = document.createElement('div');
+          notification.style.cssText = `
+            position: fixed;
+            top: 60px;
+            right: 20px;
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+            z-index: 100000;
+            max-width: 400px;
+            font-family: system-ui, -apple-system, sans-serif;
+            animation: slideIn 0.3s ease-out;
+          `;
+
+          notification.innerHTML = `
+            <div style="display: flex; align-items: start; gap: 12px;">
+              <div style="font-size: 24px;">⚠️</div>
+              <div style="flex: 1;">
+                <div style="font-weight: bold; margin-bottom: 8px; font-size: 16px;">Mode Dégradé</div>
+                <div style="font-size: 14px; line-height: 1.5; margin-bottom: 12px;">
+                  Cross-Origin Isolation désactivé. Les fonctionnalités IA WebLLM ne sont pas disponibles.
+                </div>
+                <div style="font-size: 12px; opacity: 0.9; line-height: 1.4;">
+                  <strong>Pour activer l'IA locale:</strong><br>
+                  • Servez le fichier via HTTP (pas file://)<br>
+                  • Utilisez: <code style="background: rgba(0,0,0,0.2); padding: 2px 6px; border-radius: 4px;">npm run dev</code><br>
+                  • Ou Python: <code style="background: rgba(0,0,0,0.2); padding: 2px 6px; border-radius: 4px;">python -m http.server</code>
+                </div>
+                <button onclick="this.parentElement.parentElement.parentElement.remove()"
+                  style="margin-top: 12px; background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: white; padding: 6px 16px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 500;">
+                  Compris
+                </button>
+              </div>
+            </div>
+          `;
+
+          const style = document.createElement('style');
+          style.textContent = `
+            @keyframes slideIn {
+              from {
+                transform: translateX(120%);
+                opacity: 0;
+              }
+              to {
+                transform: translateX(0);
+                opacity: 1;
+              }
+            }
+          `;
+          document.head.appendChild(style);
+          document.body.appendChild(notification);
+
+          setTimeout(() => {
+            notification.style.transition = 'opacity 0.3s ease-out, transform 0.3s ease-out';
+            setTimeout(() => {
+              if (notification.parentElement) {
+                notification.style.opacity = '0';
+                notification.style.transform = 'translateX(120%)';
+                setTimeout(() => notification.remove(), 300);
+              }
+            }, 15000);
+          }, 100);
+        }, 2000);
+      } else {
+        console.log('[WOSQ] ✓ Cross-Origin Isolation activé - IA WebLLM disponible');
+      }
+    }
+
+    checkCrossOriginIsolation();
+
     // Start the system
     initialize().catch(console.error);
 
