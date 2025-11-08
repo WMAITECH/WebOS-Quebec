@@ -1832,31 +1832,11 @@
           `;
           WindowManager.create(`file-${name}`, name, content, { width: 800, height: 700 });
         } else if (ext === 'html' || ext === 'htm') {
-          const content = await FileSystem.readFile(name);
-          const escapedContent = content ? content.replace(/\\/g, '\\\\').replace(/`/g, '\\`').replace(/\$/g, '\\$') : '';
-          const htmlViewerContent = `
-            <div style="height: 100%; display: flex; flex-direction: column;">
-              <div style="display: flex; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; align-items: center;">
-                <button class="btn" style="width: auto; padding: 8px 16px; font-size: 14px; background: #f97316; font-weight: 600;" onclick="WebOS.WindowManager.close('file-${name}'); WebOS.Apps.HTMLEditor.openFile('${name}')" title="Ouvrir avec HTML Editor avancé">
-                  ⚡ HTML Editor
-                </button>
-                <div style="width: 1px; height: 24px; background: #e5e7eb;"></div>
-                <button class="btn" style="width: auto; padding: 8px 16px; font-size: 14px; background: #10b981;" onclick="AdvancedFileManager.saveFile('${name}')">
-                  💾 Enregistrer
-                </button>
-                <button class="btn" style="width: auto; padding: 8px 16px; font-size: 14px; background: #3b82f6;" onclick="AdvancedFileManager.showExportMenu('${name}')">
-                  ⬇ Exporter
-                </button>
-                <button class="btn" style="width: auto; padding: 8px 16px; font-size: 14px; background: #ef4444;" onclick="AdvancedFileManager.deleteFile('${name}')">
-                  🗑 Supprimer
-                </button>
-              </div>
-              <div style="flex: 1; display: flex; flex-direction: column;">
-                <textarea id="fileEditor-${name}" style="flex: 1; padding: 16px; border: 2px solid #e5e7eb; border-radius: 8px; font-family: 'Courier New', monospace; font-size: 13px; line-height: 1.6; resize: none;">${escapedContent}</textarea>
-              </div>
-            </div>
-          `;
-          WindowManager.create(`file-${name}`, name, htmlViewerContent, { width: 1000, height: 700 });
+          if (typeof WebOS !== 'undefined' && WebOS.Apps && WebOS.Apps.HTMLEditor) {
+            WebOS.Apps.HTMLEditor.openFile(name);
+          } else {
+            console.error('HTML Editor non disponible');
+          }
         } else if (preview.type === 'text') {
           const content = await FileSystem.readFile(name);
           const editorContent = `
@@ -5039,14 +5019,14 @@
 
         async openFile(filename) {
           const content = await FileSystem.readFile(filename);
-          this.open(content, filename);
+          this.open(content, filename, true);
         },
 
-        open(initialContent = '', filename = null) {
+        open(initialContent = '', filename = null, autoPreview = false) {
           this.state = {
             htmlCode: initialContent,
             activeDevice: 'desktop',
-            showPreview: false,
+            showPreview: autoPreview,
             consoleLogs: [],
             logIdCounter: 0,
             zoomLevel: 100,
@@ -5139,6 +5119,10 @@
               textarea.addEventListener('input', (e) => {
                 this.state.htmlCode = e.target.value;
               });
+            }
+
+            if (autoPreview && this.state.htmlCode) {
+              this.preview();
             }
           }, 100);
         },
