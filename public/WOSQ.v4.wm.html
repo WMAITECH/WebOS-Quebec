@@ -144,21 +144,9 @@
       box-sizing: border-box;
     }
 
-    .visually-hidden {
-      position: absolute;
-      width: 1px;
-      height: 1px;
-      padding: 0;
-      margin: -1px;
-      overflow: hidden;
-      clip: rect(0, 0, 0, 0);
-      white-space: nowrap;
-      border: 0;
-    }
-
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-      overflow: auto;
+      overflow: hidden;
       width: 100vw;
       height: 100vh;
       background: linear-gradient(to right, #1e3a8a, #3b82f6, #60a5fa);
@@ -175,7 +163,7 @@
       overflow: hidden;
       transition: box-shadow 0.2s;
       min-width: 300px;
-      min-height: 300px;
+      min-height: 200px;
     }
 
     .window:hover {
@@ -233,7 +221,7 @@
       height: 12px;
       background: #3b82f6;
       opacity: 0;
-      transition: opacity 0.2s, background 0.3s;
+      transition: opacity 0.2s;
     }
 
     .window:hover .resize-handle {
@@ -611,8 +599,6 @@
       background: #f3f4f6;
     }
 
-    .chat-message { transition: background 0.3s, transform 0.3s; }
-
     /* Responsive Design for Mobile and Tablets */
     @media (max-width: 768px) {
       .window {
@@ -712,12 +698,7 @@
   </style>
 </head>
 <body>
-  <div class="visually-hidden" aria-live="polite"><p aria-hidden="true">Chargement de l'application en cours...</p></div>
-  <header aria-label="Page Header" role="banner" style="display: none;"><h1>Bienvenue sur WebOS Québec</h1></header>
-  <nav aria-label="Navigation principale" role="navigation" style="display: none;"></nav>
-  <main id="desktop" role="main" aria-label="Zone principale du bureau" style="display: none;">
-    <h2 class="visually-hidden">Interface de bureau de WebOS Québec</h2>
-  </main>
+  <header aria-hidden="true" style="position: absolute; top: -9999px; left: -9999px;"><h1>Bienvenue sur WebOS Québec</h1></header>
   <!-- Loading Screen -->
   <div id="loadingScreen" class="loading-screen">
     <div class="loading-spinner"></div>
@@ -730,7 +711,7 @@
   </div>
 
   <!-- Login Screen -->
-  <div id="loginScreen" class="login-screen" role="dialog" aria-labelledby="loginTitle" aria-hidden="true">
+  <div id="loginScreen" class="login-screen" style="display: none;">
     <div class="login-box">
       <div style="text-align: center; margin-bottom: 20px;">
         <div style="font-size: 64px; margin-bottom: 16px;">⚜️</div>
@@ -895,124 +876,16 @@
         topP: 0.95,
         maxTokens: 2048,
         contextWindow: 8192,
-        systemPrompt: `Tu es l'Agent Orchestrateur Central de WebOS Québec (WOSQ v4).
+        systemPrompt: `Tu es l'agent orchestrateur central de WebOS Québec.
 
-# ARCHITECTURE SYSTÈME COMPLÈTE
+Tu peux interagir avec le système via des tool-calls. AVANT chaque action, tu DOIS demander la permission.
 
-## KERNEL - Cœur du Système
-- Architecture cellulaire multi-processus
-- Processus: database-module, sync-provider, ui-orchestrator
-- Événements: process:created, process:terminated, db:updated, peer:discovered
-- Commandes: Kernel.createProcess(), Kernel.sendRequest(), Kernel.emit()
-
-## FILESYSTEM (OPFS - Origin Private File System)
-- Système de fichiers natif navigateur
-- Persistance locale garantie
-- Opérations: FileSystem.readFile(path), FileSystem.writeFile(path, content), FileSystem.listDir(path)
-- Structure: /home/user/, /system/, /tmp/
-
-## APPLICATIONS DISPONIBLES
-1. **Messages** - Apps.Messages.open()
-   - Conversations temps réel via Supabase
-   - WebRTC peer-to-peer
-   - Participants multiples
-
-2. **Mail** - Apps.Mail.open()
-   - Client email complet
-   - Envoi/réception via Supabase edge functions
-   - Pièces jointes (Storage buckets)
-
-3. **OSINT Search** - Apps.OSINTSearch.open()
-   - Recherche multi-sources intelligente
-   - NLP pour analyse de requêtes
-   - Agrégation de données publiques
-
-4. **File Manager** - Apps.FileManager.open()
-   - Interface graphique OPFS
-   - Upload/download
-   - Prévisualisation fichiers
-
-5. **Terminal** - Apps.Terminal.open()
-   - 50+ commandes bash-like
-   - ls, cat, echo, rm, mkdir, serve, aipersist, etc.
-
-6. **Task Manager** - Apps.TaskManager.open()
-   - Monitoring processus Kernel
-   - Métriques CPU/RAM/Réseau
-   - Kill/restart processus
-
-7. **System Monitor** - Apps.SystemMonitor.open()
-   - Logs temps réel
-   - Console.log() capture
-   - Filtrage par niveau
-
-## WINDOW MANAGER
-- WindowManager.create(id, title, content, options)
-- Fenêtres draggables, redimensionnables
-- Minimise/maximise/ferme
-- Z-index dynamique
-- Multi-fenêtres simultanées
-
-## SUPABASE BACKEND
-Tables actives:
-- users (auth.users)
-- conversations + conversation_participants + messages
-- email_accounts + emails + email_attachments
-- osint_searches + osint_results + osint_sources
-- files (metadata)
-- notifications
-- telemetry
-
-Storage buckets:
-- message-attachments
-- email-attachments
-- user-files
-
-## NOTIFICATIONS
-- Notifications.show(title, message, options)
-- NotificationCenter (centre de notifications topbar)
-- Temps réel via Supabase Realtime
-- Badge compteur non-lus
-
-## AI SYSTÈME (TOI)
-- Modèle: Llama 3.2 3B Instruct (quantized q4f32_1)
-- WebLLM local dans le navigateur
-- Cache IndexedDB pour persistance
-- WebGPU pour accélération matérielle
-- Tu as accès à TOUT via tool-calls
-
-## SERVICE WORKER
-- Cache assets statiques
-- Headers COOP/COEP pour SharedArrayBuffer
-- Persistance modèle IA
-- Fetch interceptor
-
-## ÉTAT SYSTÈME ACTUEL
-Tu peux obtenir l'état en temps réel:
-- Kernel.getProcesses() → liste processus actifs
-- WindowManager.getWindows() → fenêtres ouvertes
-- currentUser → utilisateur connecté (id, email, metadata)
-- FileSystem.listDir('/') → fichiers racine
-
-# OUTILS DISPONIBLES
-
-## file_service
-{action: 'list'|'read'|'write'|'delete', params: {path, content?}}
-
-## mail_service
-{action: 'list'|'send'|'read', params: {to?, subject?, body?, id?}}
-
-## messages_service
-{action: 'list'|'send'|'read', params: {conversationId?, content?, userId?}}
-
-## notification_service
-{action: 'send'|'list'|'clear', params: {title?, message?, priority?}}
-
-## ui_control
-{action: 'open_app'|'close_app'|'list_windows', params: {appName?, windowId?}}
-
-## system_query
-{action: 'get_processes'|'get_windows'|'get_user'|'get_logs', params: {filter?}}
+Outils disponibles:
+- file_service: {action: 'list'|'read'|'write'|'delete', params: {path, content?}}
+- mail_service: {action: 'list'|'send'|'read', params: {to?, subject?, body?, id?}}
+- messages_service: {action: 'list'|'send'|'read', params: {conversationId?, content?, userId?}}
+- notification_service: {action: 'send'|'list'|'clear', params: {title?, message?, priority?}}
+- ui_control: {action: 'open_app'|'click_element', params: {appName?, selector?}}
 
 Format de tool-call:
 <TOOL_CALL>
@@ -1020,18 +893,11 @@ Format de tool-call:
   "tool": "nom_du_service",
   "action": "action_a_effectuer",
   "params": {},
-  "reason": "explication claire pour l'utilisateur"
+  "reason": "raison humaine de cette action"
 }
 </TOOL_CALL>
 
-RÈGLES:
-1. TOUJOURS demander permission avant action
-2. EXPLIQUER clairement ce que tu vas faire
-3. Utiliser les noms EXACTS des apps (Messages, Mail, OSINTSearch, etc.)
-4. Toujours vérifier l'état système avant agir
-5. Être proactif: suggérer des actions utiles
-
-Tu vois TOUT, tu contrôles TOUT. Sois l'assistant parfait.`
+Tu dois TOUJOURS expliquer pourquoi tu veux effectuer une action avant de la demander.`
       },
       mouseBehavior: {
         enabled: true,
@@ -2045,39 +1911,6 @@ Tu vois TOUT, tu contrôles TOUT. Sois l'assistant parfait.`
         return { isToolCall: false };
       },
 
-      async getSystemContext() {
-        try {
-          const processes = Kernel.getProcesses().map(p => p.name);
-          const windows = Array.from(document.querySelectorAll('.window'))
-            .filter(w => w.style.display !== 'none')
-            .map(w => w.querySelector('.window-title')?.textContent);
-
-          const user = currentUser ? {
-            email: currentUser.email,
-            id: currentUser.id.substring(0, 8)
-          } : null;
-
-          const context = `
-# ÉTAT SYSTÈME ACTUEL (temps réel)
-
-Utilisateur connecté: ${user ? user.email : 'Non connecté'}
-Processus actifs: ${processes.length > 0 ? processes.join(', ') : 'Aucun'}
-Fenêtres ouvertes: ${windows.length > 0 ? windows.join(', ') : 'Aucune'}
-
-URL actuelle: ${window.location.href}
-Cross-Origin Isolation: ${window.crossOriginIsolated ? 'Activé ✓' : 'Désactivé'}
-Service Worker: ${navigator.serviceWorker?.controller ? 'Actif ✓' : 'Inactif'}
-
-Heure système: ${new Date().toLocaleString('fr-CA')}
-`;
-
-          return context;
-        } catch (err) {
-          console.error('[AIBus] Erreur getSystemContext:', err);
-          return '';
-        }
-      },
-
       async executeToolCall(toolCall) {
         console.log('[AIBus] Executing tool call:', toolCall);
 
@@ -2093,61 +1926,7 @@ Heure système: ${new Date().toLocaleString('fr-CA')}
         }
 
         try {
-          if (toolCall.tool === 'system_query') {
-            switch (toolCall.action) {
-              case 'get_processes':
-                return {
-                  success: true,
-                  data: Kernel.getProcesses().map(p => ({
-                    pid: p.pid,
-                    name: p.name,
-                    status: p.status,
-                    created: p.created
-                  }))
-                };
-              case 'get_windows':
-                const windows = Array.from(document.querySelectorAll('.window')).map(w => ({
-                  id: w.id,
-                  title: w.querySelector('.window-title')?.textContent,
-                  visible: w.style.display !== 'none',
-                  minimized: w.classList.contains('minimized')
-                }));
-                return { success: true, data: windows };
-              case 'get_user':
-                return {
-                  success: true,
-                  data: currentUser ? {
-                    id: currentUser.id,
-                    email: currentUser.email,
-                    metadata: currentUser.user_metadata
-                  } : null
-                };
-              case 'get_logs':
-                const logEl = document.getElementById('systemLogs');
-                const logs = logEl ? Array.from(logEl.children).slice(-20).map(l => l.textContent) : [];
-                return { success: true, data: logs };
-              default:
-                return { success: false, error: 'Action inconnue' };
-            }
-          }
-
           if (toolCall.tool === 'ui_control') {
-            if (toolCall.action === 'list_windows') {
-              const windows = Array.from(document.querySelectorAll('.window')).map(w => ({
-                id: w.id,
-                title: w.querySelector('.window-title')?.textContent,
-                visible: w.style.display !== 'none'
-              }));
-              return { success: true, data: windows };
-            }
-            if (toolCall.action === 'close_app') {
-              const win = document.getElementById(toolCall.params.windowId);
-              if (win) {
-                win.remove();
-                return { success: true, message: 'Fenêtre fermée' };
-              }
-              return { success: false, error: 'Fenêtre non trouvée' };
-            }
             return await AIMouseController[toolCall.action === 'open_app' ? 'openApp' : 'clickElement'](
               toolCall.params.appName || toolCall.params.selector
             );
@@ -2177,11 +1956,8 @@ Heure système: ${new Date().toLocaleString('fr-CA')}
         }
 
         try {
-          const systemContext = await this.getSystemContext();
-          const enhancedSystemPrompt = CONFIG.webllm.systemPrompt + '\n\n' + systemContext;
-
           const messages = [
-            { role: "system", content: enhancedSystemPrompt }
+            { role: "system", content: CONFIG.webllm.systemPrompt }
           ];
 
           if (options.includeHistory && this.conversationHistory.length > 0) {
@@ -4130,14 +3906,8 @@ Heure système: ${new Date().toLocaleString('fr-CA')}
         if (!statusEl) return;
 
         if (!isReady) {
-          if (!window.crossOriginIsolated) {
-            statusEl.textContent = 'Mode Standard';
-            statusEl.style.color = '#9ca3af';
-            statusEl.title = 'IA locale non disponible (servir via HTTP pour activer)';
-          } else {
-            statusEl.textContent = 'IA: Chargement...';
-            statusEl.style.color = '#f59e0b';
-          }
+          statusEl.textContent = 'IA: Non chargée';
+          statusEl.style.color = '#9ca3af';
           return;
         }
 
@@ -6629,11 +6399,6 @@ Heure système: ${new Date().toLocaleString('fr-CA')}
               this.writeLine(`${cmd}: redémarrage système non disponible. Fermez l'onglet.`);
               break;
 
-            case 'serve':
-            case 'httpserver':
-              this.cmdServe(args);
-              break;
-
             case 'exit':
             case 'logout':
               this.writeLine('Fermeture du terminal...');
@@ -6688,7 +6453,6 @@ Heure système: ${new Date().toLocaleString('fr-CA')}
           this.writeLine('  /ping            - Test de connectivité');
           this.writeLine('  /ifconfig, /ip   - Configuration réseau');
           this.writeLine('  /netstat         - Statistiques réseau');
-          this.writeLine('  /serve           - Démarre un serveur HTTP avec COOP/COEP');
           this.writeLine('');
           this.writeLine('Intelligence Artificielle:');
           this.writeLine('  /aicache         - Gestion du cache WebLLM');
@@ -6716,8 +6480,7 @@ Heure système: ${new Date().toLocaleString('fr-CA')}
             cat: 'cat - Concatène et affiche des fichiers\n\nUSAGE: cat <fichier>\n\nAffiche le contenu complet d\'un fichier',
             grep: 'grep - Recherche de motifs dans du texte\n\nUSAGE: grep <motif> <fichier>\n\nRecherche les lignes contenant le motif spécifié',
             date: 'date - Affiche ou définit la date système\n\nUSAGE: date [OPTIONS]\n\nOPTIONS:\n  (aucune)  Affiche date et heure actuelles',
-            echo: 'echo - Affiche une ligne de texte\n\nUSAGE: echo [texte]\n\nAffiche le texte spécifié sur la sortie standard',
-            serve: 'serve - Serveur HTTP avec headers COOP/COEP\n\nUSAGE: serve\n\nAffiche le status Cross-Origin Isolation et fournit\ndes instructions pour démarrer un serveur HTTP avec\nles headers nécessaires pour WebLLM/WebGPU.\n\nREQUIS:\n  • Serveur HTTP (pas file://)\n  • Headers: COOP=same-origin, COEP=credentialless\n\nOPTIONS:\n  • python server.py (recommandé)\n  • npm run dev\n  • npx http-server'
+            echo: 'echo - Affiche une ligne de texte\n\nUSAGE: echo [texte]\n\nAffiche le texte spécifié sur la sortie standard'
           };
 
           const manual = manuals[cmd];
@@ -7289,51 +7052,6 @@ Heure système: ${new Date().toLocaleString('fr-CA')}
           this.writeLine('Proto  Local                  Distant                État');
           this.writeLine('tcp    0.0.0.0:80             0.0.0.0:*              LISTEN');
           this.writeLine('tcp    0.0.0.0:443            0.0.0.0:*              LISTEN');
-        },
-
-        cmdServe(args) {
-          this.writeLine('╔════════════════════════════════════════════════════════╗');
-          this.writeLine('║  WOSQ - Diagnostic Système                            ║');
-          this.writeLine('╚════════════════════════════════════════════════════════╝');
-          this.writeLine('');
-
-          if (!window.crossOriginIsolated) {
-            this.writeLine('📊 Status: Mode Standard');
-            this.writeLine('');
-            this.writeLine('Toutes les fonctionnalités principales sont disponibles.');
-            this.writeLine('L\'IA locale (optionnelle) nécessite un serveur HTTP.');
-            this.writeLine('');
-            this.writeLine('Fonctionnalités actives:');
-            this.writeLine('  ✓ Interface WebOS complète');
-            this.writeLine('  ✓ Gestionnaire de fichiers');
-            this.writeLine('  ✓ Terminal bash');
-            this.writeLine('  ✓ Applications (Messages, Mail, OSINT)');
-            this.writeLine('  ✓ Authentification Supabase');
-            this.writeLine('  ✓ Stockage local');
-            this.writeLine('');
-            this.writeLine('Fonctionnalités optionnelles (nécessitent HTTP):');
-            this.writeLine('  • IA locale WebLLM');
-            this.writeLine('  • Commandes: aipersist, aicache');
-            this.writeLine('');
-            this.writeLine('Pour activer l\'IA locale (optionnel):');
-            this.writeLine('  $ python server.py');
-            this.writeLine('  Puis: http://localhost:8000/WOSQ.v4.wm.html');
-          } else {
-            this.writeLine('📊 Status: Mode Complet ✓');
-            this.writeLine('');
-            this.writeLine('Toutes les fonctionnalités sont disponibles!');
-            this.writeLine('');
-            this.writeLine('Système:');
-            this.writeLine(`  • URL: ${window.location.protocol}//${window.location.host}`);
-            this.writeLine('  • Cross-Origin Isolation: ✓');
-            this.writeLine('  • SharedArrayBuffer: ' + (typeof SharedArrayBuffer !== 'undefined' ? '✓' : '✗'));
-            this.writeLine('  • WebAssembly: ' + (typeof WebAssembly !== 'undefined' ? '✓' : '✗'));
-            this.writeLine('');
-            this.writeLine('Fonctionnalités IA disponibles:');
-            this.writeLine('  • WebLLM (modèles locaux)');
-            this.writeLine('  • aipersist - Gestion persistence');
-            this.writeLine('  • aicache - Gestion cache modèles');
-          }
         },
 
         writeLine(text) {
@@ -11486,14 +11204,6 @@ Heure système: ${new Date().toLocaleString('fr-CA')}
 
     console.log('WebOS Québec v1.0 - Système de logs activé');
     console.info('Tous les logs de la console (F12) apparaissent maintenant dans le Moniteur Système');
-
-    // Silent Cross-Origin Isolation check
-    if (!window.crossOriginIsolated) {
-      console.info('[WOSQ] Mode standard - Fonctionnement normal sans IA locale');
-      console.info('[WOSQ] Pour activer WebLLM: servir via HTTP avec headers COOP/COEP');
-    } else {
-      console.log('[WOSQ] ✓ Cross-Origin Isolation activé - IA WebLLM disponible');
-    }
 
     // Start the system
     initialize().catch(console.error);
