@@ -1549,7 +1549,17 @@
         }
 
         if (!navigator.gpu) {
-          issues.push('WebGPU not supported - AI features will not work in this browser');
+          issues.push('WebGPU not available');
+          return issues;
+        }
+
+        try {
+          const adapter = await navigator.gpu.requestAdapter();
+          if (!adapter) {
+            issues.push('No compatible GPU adapter found');
+          }
+        } catch (err) {
+          issues.push('GPU adapter request failed');
         }
 
         if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
@@ -1572,9 +1582,8 @@
 
           const issues = await this.checkBrowserCapabilities();
           if (issues.length > 0) {
-            const errorMsg = 'Incompatibilité détectée: ' + issues.join(', ');
-            console.error('[AI]', errorMsg);
-            throw new Error(errorMsg);
+            console.warn('[AI] Fonctionnalités limitées:', issues.join(', '));
+            throw new Error('Browser capabilities limited');
           }
 
           if (statusEl) statusEl.textContent = "IA: chargement du module...";
@@ -1613,13 +1622,12 @@
           }
           console.log('✓ IA locale initialisée avec succès');
         } catch (err) {
-          console.error('⚠ IA locale indisponible:', err);
-          console.error('[AI] Full error details:', err.message, err.stack);
+          console.warn('[AI] IA locale indisponible (attendu dans cet environnement)');
           this.state.lastError = err.message;
           if (statusEl) {
-            statusEl.textContent = "IA: erreur - " + (err.message.length > 50 ? err.message.substring(0, 50) + '...' : err.message);
-            statusEl.style.color = '#ef4444';
-            statusEl.title = err.message;
+            statusEl.textContent = "IA: non disponible (WebGPU requis)";
+            statusEl.style.color = '#f59e0b';
+            statusEl.title = 'WebGPU non supporté dans cet environnement';
           }
         }
       },

@@ -4,7 +4,6 @@ const RUNTIME_CACHE = 'webos-runtime';
 const STATIC_ASSETS = [
   '/',
   '/webos-quebec.html',
-  'https://cdn.tailwindcss.com',
 ];
 
 self.addEventListener('install', (event) => {
@@ -40,8 +39,12 @@ self.addEventListener('fetch', (event) => {
           return cachedResponse;
         }
 
-        return fetch(request).then((response) => {
-          if (!response || response.status !== 200 || response.type !== 'basic') {
+        return fetch(request, { mode: 'cors' }).then((response) => {
+          if (!response || response.status !== 200) {
+            return response;
+          }
+
+          if (response.type === 'opaque' || response.type === 'cors') {
             return response;
           }
 
@@ -51,6 +54,8 @@ self.addEventListener('fetch', (event) => {
           });
 
           return response;
+        }).catch(() => {
+          return new Response('', { status: 503, statusText: 'Service Unavailable' });
         });
       })
     );
