@@ -174,15 +174,18 @@
       color: white;
       padding: 12px 16px;
       display: flex;
-      justify-content: space-between;
+      justify-content: center;
       align-items: center;
       cursor: move;
       user-select: none;
+      position: relative;
     }
 
     .window-controls {
       display: flex;
       gap: 8px;
+      position: absolute;
+      left: 12px;
     }
 
     .window-control {
@@ -190,16 +193,61 @@
       height: 12px;
       border-radius: 50%;
       cursor: pointer;
-      transition: transform 0.1s;
+      transition: all 0.15s ease;
+      position: relative;
     }
 
     .window-control:hover {
-      transform: scale(1.2);
+      transform: scale(1.15);
     }
 
-    .window-control.close { background: #ef4444; }
-    .window-control.minimize { background: #f59e0b; }
-    .window-control.maximize { background: #10b981; }
+    .window-control:active {
+      transform: scale(0.95);
+    }
+
+    .window-control.close {
+      background: #ef4444;
+    }
+    .window-control.close:hover::after {
+      content: '×';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: #7f1d1d;
+      font-size: 14px;
+      font-weight: bold;
+      line-height: 1;
+    }
+
+    .window-control.minimize {
+      background: #f59e0b;
+    }
+    .window-control.minimize:hover::after {
+      content: '−';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: #78350f;
+      font-size: 12px;
+      font-weight: bold;
+      line-height: 1;
+    }
+
+    .window-control.maximize {
+      background: #10b981;
+    }
+    .window-control.maximize:hover::after {
+      content: '⤢';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: #064e3b;
+      font-size: 10px;
+      line-height: 1;
+    }
 
     .window-content {
       flex: 1;
@@ -2943,12 +2991,12 @@
 
         win.innerHTML = `
           <div class="window-header">
-            <span style="font-weight: 600;">${escapeHtml(title)}</span>
             <div class="window-controls">
-              <div class="window-control minimize"></div>
-              <div class="window-control maximize"></div>
-              <div class="window-control close"></div>
+              <div class="window-control close" title="Fermer"></div>
+              <div class="window-control minimize" title="Réduire"></div>
+              <div class="window-control maximize" title="Plein écran"></div>
             </div>
+            <span style="font-weight: 600;">${escapeHtml(title)}</span>
           </div>
           <div class="window-content" id="window-content-${id}" data-sandbox="true">
             ${content}
@@ -3018,15 +3066,34 @@
             e.preventDefault();
             e.stopPropagation();
             const winData = windows.get(id);
-            if (winData && winData.element && winData.minimized) {
-              winData.element.style.display = 'flex';
-              winData.minimized = false;
+            if (!winData || !winData.element) return;
+
+            if (winData.maximized) {
+              winData.element.style.left = winData.originalPosition.left;
+              winData.element.style.top = winData.originalPosition.top;
+              winData.element.style.width = winData.originalPosition.width;
+              winData.element.style.height = winData.originalPosition.height;
+              winData.maximized = false;
+            } else {
+              winData.originalPosition = {
+                left: winData.element.style.left,
+                top: winData.element.style.top,
+                width: winData.element.style.width,
+                height: winData.element.style.height
+              };
+
+              const dockHeight = 80;
+              winData.element.style.left = '0px';
+              winData.element.style.top = '0px';
+              winData.element.style.width = '100vw';
+              winData.element.style.height = `calc(100vh - ${dockHeight}px)`;
+              winData.maximized = true;
             }
           });
         }
 
         document.getElementById('desktop').appendChild(win);
-        windows.set(id, { element: win, title, minimized: false });
+        windows.set(id, { element: win, title, minimized: false, maximized: false });
 
         Kernel.emit('window:created', { id, title });
         return win;
