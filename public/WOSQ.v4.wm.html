@@ -118,10 +118,10 @@
       csp.httpEquiv = "Content-Security-Policy";
       csp.content = [
         "default-src 'self' blob: data:",
-        "script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://cdn.jsdelivr.net https://esm.run https://unpkg.com",
+        "script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://cdn.jsdelivr.net https://esm.run https://unpkg.com https://bolt.new",
         "style-src 'self' 'unsafe-inline'",
         "img-src 'self' data: blob: https:",
-        "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://cdn.jsdelivr.net https://esm.run https://unpkg.com https://huggingface.co https://*.huggingface.co https:",
+        "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://cdn.jsdelivr.net https://esm.run https://unpkg.com https://huggingface.co https://*.huggingface.co https://bolt.new https:",
         "worker-src 'self' blob:",
         "object-src 'none'",
         "frame-src 'none'",
@@ -1516,6 +1516,7 @@
         localReady: false,
         lastError: null,
         retryCount: 0,
+        lastProgress: 0,
         maxRetries: 3
       },
       async loadWebLLMWithRetry(retryDelay = 2000) {
@@ -1606,12 +1607,16 @@
             initProgressCallback: (p) => {
               if (statusEl) {
                 const percent = Math.floor(p.progress * 100);
-                statusEl.textContent = `IA: ${p.text || 'téléchargement'} ${percent}%`;
+                const timeInfo = percent < 50 ? ' (peut prendre 20-30 min)' : ' (presque terminé)';
+                statusEl.textContent = `IA: téléchargement ${percent}%${timeInfo}`;
                 statusEl.style.color = '#f59e0b';
               }
-              console.log(`[AI] Progress: ${Math.floor(p.progress * 100)}% - ${p.text}`);
+              if (p.progress > this.state.lastProgress + 0.1 || p.progress === 1) {
+                console.log(`[AI] Progress: ${Math.floor(p.progress * 100)}% - ${p.text}`);
+                this.state.lastProgress = p.progress;
+              }
             },
-            logLevel: 'INFO'
+            logLevel: 'WARN'
           });
 
           clearTimeout(loadTimeout);
